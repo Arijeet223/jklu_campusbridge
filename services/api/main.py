@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from services.api.endpoints import router
+from backend.routers.parser import router as parser_router
 
 app = FastAPI(
     title="CampusBridge AI API",
@@ -19,6 +20,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Support both /v1 and /api/v1 prefixes for proxy flexibility
+# Core domain & diagnostic routers
 app.include_router(router)
 app.include_router(router, prefix="/api")
+
+# Real PDF parser routers
+app.include_router(parser_router, prefix="/v1")
+app.include_router(parser_router, prefix="/api/v1")
+app.include_router(parser_router, prefix="/api")
+app.include_router(parser_router)

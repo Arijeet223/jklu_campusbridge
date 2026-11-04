@@ -186,6 +186,8 @@ export interface ChatMessage {
   widgetType?: ChatWidgetType
   widgetData?: any
   trace?: AITrace
+  isStreaming?: boolean
+  citations?: Array<{ label: string; doc_id: string; page?: number; section?: string }>
 }
 
 /** PRD §4.6 & §11: Bidirectional Explain-or-Dispute Clarification Ticket */

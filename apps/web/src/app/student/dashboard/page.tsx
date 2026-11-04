@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import TopNavBar, { DEMO_PERSONAS, DemoPersona } from '@/components/TopNavBar'
-import ExplainerModal from '@/components/ExplainerModal'
+import AppLayout from '@/components/layout/AppLayout'
 import StudentHomeDashboard from '@/components/StudentHomeDashboard'
 import SourceDrawer from '@/components/SourceDrawer'
 import DisputeClarificationDrawer from '@/components/DisputeClarificationDrawer'
@@ -12,8 +11,6 @@ import type { SourceDocument, EligibilityRule, Skill } from '@/lib/types'
 
 export default function StudentDashboardPage() {
   const router = useRouter()
-  const [currentPersona, setCurrentPersona] = useState<DemoPersona>(DEMO_PERSONAS[0])
-  const [explainerOpen, setExplainerOpen] = useState(false)
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false)
   const [disputeDrawerOpen, setDisputeDrawerOpen] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<SourceDocument | null>(mockSourceDocuments['doc_resume_v3'] ?? null)
@@ -43,21 +40,12 @@ export default function StudentDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F6] text-ink-primary flex flex-col font-sans">
-      <TopNavBar
-        currentPersona={currentPersona}
-        onSelectPersona={setCurrentPersona}
-        onOpenRegisterModal={() => {}}
-        onOpenSyncExcelModal={() => {}}
-        onOpenPrivacyModal={() => {}}
-        onOpenExplainerModal={() => setExplainerOpen(true)}
-      />
-
-      <div className="flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <AppLayout pageTitle="Dashboard Overview" breadcrumb="Student Workspace">
+      <div className="space-y-6">
         <StudentHomeDashboard
-          studentName={currentPersona.name}
-          cgpa={currentPersona.cgpa ?? 8.42}
-          branch={currentPersona.branch || 'B.Tech Computer Science'}
+          studentName="Aarav Sharma"
+          cgpa={8.42}
+          branch="B.Tech Computer Science"
           institution="NIT Karnataka, Surathkal"
           skills={skills}
           onNavigate={handleNavigate}
@@ -74,12 +62,6 @@ export default function StudentDashboardPage() {
         onClose={() => setSourceDrawerOpen(false)}
         sourceDocument={selectedDoc}
       />
-
-      <ExplainerModal
-        isOpen={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-      />
-    </div>
+    </AppLayout>
   )
 }
-

@@ -161,6 +161,37 @@ export default function ChatWorkspace({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const renderMessageTextWithCitations = (text: string) => {
+    const citationRegex = /(\[📄[^\]]+\]|\[chunk-[^\]]+\])/g
+    const parts = text.split(citationRegex)
+
+    return (
+      <span className="whitespace-pre-wrap">
+        {parts.map((part, idx) => {
+          if (part.startsWith('[📄') || part.startsWith('[chunk-')) {
+            const isCodeDoc = part.toLowerCase().includes('order') || part.toLowerCase().includes('code')
+            const docId = isCodeDoc ? 'doc_code_001' : 'doc_resume_v3'
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onOpenSourceDrawer(docId)
+                }}
+                className="inline-flex items-center gap-1 mx-1 px-2 py-0.5 rounded-lg bg-[#B6D9EC]/60 hover:bg-[#B6D9EC] text-[#2B5B75] border border-[#B6D9EC] font-mono text-3xs font-bold transition-all shadow-2xs hover:scale-105 active:translate-y-0.5 cursor-pointer align-baseline"
+                title="Click to inspect verified source document & highlight in drawer"
+              >
+                <span>{part}</span>
+              </button>
+            )
+          }
+          return part
+        })}
+      </span>
+    )
+  }
+
   useEffect(() => {
     if (activeView === 'all') {
       scrollToBottom()
@@ -231,9 +262,9 @@ export default function ChatWorkspace({
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('document_type', 'RESUME')
+      formData.append('student_id', 'STU-101')
 
-      const res = await fetch('/api/backend/v1/documents', {
+      const res = await fetch('/api/v1/documents/upload', {
         method: 'POST',
         body: formData,
       })
@@ -464,22 +495,77 @@ export default function ChatWorkspace({
       return
     }
 
-    // Live AI Chat Pipeline: Scoped MCP Tools -> Hybrid RAG -> Qwen 2.5 -> Citation Validator
+    // Live AI Chat Pipeline: J.A.R.V.I.S. & T.E.R.R.A. via Qwen 2.5 streaming
+    const botMsgId = `bot-live-${Date.now()}`
+    let accumulatedText = ''
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: botMsgId,
+        sender: 'assistant',
+        agentName: 'J.A.R.V.I.S. & T.E.R.R.A. (Local Qwen 2.5)',
+        text: '',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        widgetType: 'none',
+        isStreaming: true,
+      },
+    ])
+
     try {
-      const res = await fetch('/api/backend/v1/ai/chat', {
+      const res = await fetch('/api/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: text,
-          actor_id: 'student-priya-001',
-          actor_role: 'STUDENT',
-          institution_id: 'inst-nitk-001',
-          target_job_id: 'job-techcorp-001',
+          messages: [
+            ...messages.slice(-6).map((m) => ({
+              role: m.sender === 'user' ? 'user' : 'assistant',
+              content: m.text,
+            })),
+            { role: 'user', content: text },
+          ],
+          model: 'qwen2.5:7b',
+          stream: true,
+          student_id: 'STU-101',
         }),
       })
 
-      if (res.ok) {
-        const data = await res.json()
+      if (res.ok && res.body) {
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let doneReading = false
+        let finalTrace: any = null
+        let citations: any[] = []
+
+        while (!doneReading) {
+          const { value, done } = await reader.read()
+          doneReading = done
+          if (value) {
+            const chunkStr = decoder.decode(value, { stream: true })
+            const lines = chunkStr.split('\n')
+            for (const line of lines) {
+              if (line.startsWith('data: ') && !line.includes('[DONE]')) {
+                try {
+                  const parsed = JSON.parse(line.slice(6))
+                  const delta = parsed.choices?.[0]?.delta?.content
+                  if (delta) {
+                    accumulatedText += delta
+                    setMessages((prev) =>
+                      prev.map((msg) =>
+                        msg.id === botMsgId
+                          ? { ...msg, text: accumulatedText, isStreaming: true }
+                          : msg
+                      )
+                    )
+                  }
+                  if (parsed.trace) finalTrace = parsed.trace
+                  if (parsed.citations) citations = parsed.citations
+                } catch {}
+              }
+            }
+          }
+        }
+
         let widget: any = 'none'
         if (lower.includes('defense') || lower.includes('interview') || lower.includes('proof') || lower.includes('test docker')) {
           widget = 'micro_defense'
@@ -493,20 +579,27 @@ export default function ChatWorkspace({
           widget = 'applications_tracker'
         }
 
-        const botMsg: ChatMessage = {
-          id: `bot-live-${Date.now()}`,
-          sender: 'assistant',
-          agentName: 'Career Companion & Prep Coach',
-          text: data.response,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          widgetType: widget,
-          trace: data.trace,
+        if (accumulatedText.trim().length > 0) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === botMsgId
+                ? {
+                    ...msg,
+                    text: accumulatedText,
+                    widgetType: widget,
+                    isStreaming: false,
+                    trace: finalTrace || defaultTrace1,
+                    citations,
+                  }
+                : msg
+            )
+          )
+          return
         }
-        setMessages((prev) => [...prev, botMsg])
-        return
       }
     } catch {
-      // Backend temporarily offline or restarting — fall through to local mentor response
+      // Remove placeholder on network error
+      setMessages((prev) => prev.filter((msg) => msg.id !== botMsgId))
     }
 
     // Local deterministic mentor fallback
@@ -851,7 +944,12 @@ export default function ChatWorkspace({
                         : 'border border-border-hairline bg-surface text-ink-primary'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                    <div>
+                      {renderMessageTextWithCitations(msg.text)}
+                      {msg.isStreaming && (
+                        <span className="inline-block w-1.5 h-3 ml-1 bg-[#6D3B56] animate-pulse rounded-xs align-middle" />
+                      )}
+                    </div>
                   </div>
 
                   {/* Live AI Trace Inspector Pill & Telemetry Card */}

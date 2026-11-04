@@ -20,6 +20,87 @@ import {
   Table,
 } from 'lucide-react'
 
+function MonacoStyleCodeEditor({
+  value,
+  onChange,
+  language,
+  fileName,
+  onReset,
+  height = '280px',
+}: {
+  value: string
+  onChange: (val: string) => void
+  language: 'python' | 'sql'
+  fileName: string
+  onReset?: () => void
+  height?: string
+}) {
+  const lineCount = Math.max(1, value.split('\n').length)
+  const lines = Array.from({ length: lineCount }, (_, i) => i + 1)
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      const target = e.currentTarget
+      const start = target.selectionStart
+      const end = target.selectionEnd
+      const updated = value.substring(0, start) + '    ' + value.substring(end)
+      onChange(updated)
+      setTimeout(() => {
+        target.selectionStart = target.selectionEnd = start + 4
+      }, 0)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border-2 border-[#1E293B] bg-[#0F172A] overflow-hidden shadow-md">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#1E293B] border-b border-[#334155] text-xs">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+            <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
+          </div>
+          <span className="font-mono text-2xs text-slate-300 ml-2 font-bold">{fileName}</span>
+          <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-semibold bg-[#334155] text-[#38BDF8]">
+            {language.toUpperCase()}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 text-2xs text-slate-400">
+          <span>{lineCount} lines</span>
+          {onReset && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="text-slate-300 hover:text-white transition-colors cursor-pointer"
+            >
+              Reset Code
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex font-mono text-xs leading-relaxed" style={{ minHeight: height }}>
+        <div className="w-10 bg-[#0F172A] py-3 text-right pr-3 select-none text-slate-600 font-mono text-2xs border-r border-[#1E293B]">
+          {lines.map((l) => (
+            <div key={l} className="leading-5">
+              {l}
+            </div>
+          ))}
+        </div>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          spellCheck={false}
+          className="flex-1 bg-transparent text-[#F8FAFC] p-3 focus:outline-hidden resize-none font-mono text-xs leading-5"
+          style={{ minHeight: height }}
+        />
+      </div>
+    </div>
+  )
+}
+
 interface PracticeArenaProps {
   studentId: string
   studentName: string
@@ -119,17 +200,24 @@ export default function PracticeArena({
     setDsaRunning(true)
     setDsaResult(null)
     try {
-      const res = await fetch('/api/backend/v1/practice/dsa/run', {
+      const res = await fetch('/api/v1/arena/evaluate-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           student_id: studentId,
+          problem_type: 'dsa',
           problem_id: selectedDsaId,
           code: dsaCode,
         }),
       })
       const data = await res.json()
-      setDsaResult(data)
+      setDsaResult({
+        ...(data.details || {}),
+        passed: data.passed,
+        verdict: data.verdict,
+        rubric_score: data.rubric_score,
+        skill_upgraded: data.skill_upgraded,
+      })
       if (data.passed && data.skill_upgraded && onSkillUpgraded) {
         onSkillUpgraded('Data Structures & Algorithms', '4_ASSESSMENT_VERIFIED')
       }
@@ -144,17 +232,24 @@ export default function PracticeArena({
     setSqlRunning(true)
     setSqlResult(null)
     try {
-      const res = await fetch('/api/backend/v1/practice/sql/run', {
+      const res = await fetch('/api/v1/arena/evaluate-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           student_id: studentId,
-          sql_id: selectedSqlId,
-          query: sqlQuery,
+          problem_type: 'sql',
+          problem_id: selectedSqlId,
+          code: sqlQuery,
         }),
       })
       const data = await res.json()
-      setSqlResult(data)
+      setSqlResult({
+        ...(data.details || {}),
+        passed: data.passed,
+        verdict: data.verdict,
+        rubric_score: data.rubric_score,
+        skill_upgraded: data.skill_upgraded,
+      })
       if (data.passed && data.skill_upgraded && onSkillUpgraded) {
         onSkillUpgraded('SQL & Query Optimization', '4_ASSESSMENT_VERIFIED')
       }
@@ -168,13 +263,13 @@ export default function PracticeArena({
   const handleSubmitDefense = async () => {
     setDefenseSubmitting(true)
     try {
-      // Post to defenses submit endpoint
-      const res = await fetch('/api/backend/v1/agents/micro-defense/submit', {
+      const res = await fetch('/api/v1/arena/micro-defense/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           student_id: studentId,
-          skill_id: 'FastAPI',
+          skill_id: 'FastAPI Microservices',
+          artifact_title: 'order_service.py',
           answers: [
             defenseAnswers.q1 || 'Used atomic transactions with row-level locking',
             defenseAnswers.q2 || 'Applied FastAPI BackgroundTasks for non-blocking I/O',
@@ -183,9 +278,9 @@ export default function PracticeArena({
         }),
       })
       const data = await res.json()
-      const score = data.rubric_score ?? 92
+      const score = data.rubric_score ?? data.score ?? 88
       setDefenseScore(score)
-      const passed = score >= 75
+      const passed = data.passed ?? (score >= 75)
       setDefensePassed(passed)
       if (passed && onSkillUpgraded) {
         onSkillUpgraded('FastAPI Microservices', '4_ASSESSMENT_VERIFIED')
@@ -370,27 +465,22 @@ export default function PracticeArena({
                   {selectedDsa.problem_statement}
                 </div>
 
-                {/* Embedded Code Editor */}
+                {/* Embedded Monaco-Style Interactive Code Editor */}
                 <div>
-                  <div className="flex items-center justify-between text-2xs font-semibold text-ink-muted px-1 mb-1">
-                    <span className="flex items-center gap-1">
+                  <div className="flex items-center justify-between text-2xs font-semibold text-ink-muted px-1 mb-1.5">
+                    <span className="flex items-center gap-1.5">
                       <FileCode className="h-3.5 w-3.5 text-oxford" />
                       Python Solution Runner (In-Memory Sandbox)
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setDsaCode(selectedDsa.starter_code_python)}
-                      className="text-oxford hover:underline"
-                    >
-                      Reset Starter Code
-                    </button>
+                    <span className="text-3xs text-ink-muted">Press Tab for 4-space indentation</span>
                   </div>
-                  <textarea
-                    rows={12}
+                  <MonacoStyleCodeEditor
                     value={dsaCode}
-                    onChange={(e) => setDsaCode(e.target.value)}
-                    className="w-full font-mono text-xs rounded-xl border border-border-hairline bg-[#1E293B] text-[#F8FAFC] p-3.5 focus:outline-hidden focus:border-oxford leading-relaxed"
-                    spellCheck={false}
+                    onChange={setDsaCode}
+                    language="python"
+                    fileName={`${selectedDsa.problem_id.toLowerCase()}_solution.py`}
+                    onReset={() => setDsaCode(selectedDsa.starter_code_python)}
+                    height="260px"
                   />
                 </div>
 
@@ -518,14 +608,22 @@ export default function PracticeArena({
                   {selectedSql.schema_ddl}
                 </div>
 
-                {/* SQL Editor */}
+                {/* Embedded Monaco-Style Interactive SQL Editor */}
                 <div>
-                  <textarea
-                    rows={6}
+                  <div className="flex items-center justify-between text-2xs font-semibold text-ink-muted px-1 mb-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <Table className="h-3.5 w-3.5 text-oxford" />
+                      SQLite Query Execution Sandbox
+                    </span>
+                    <span className="text-3xs text-ink-muted">In-Memory Engine &bull; Instant Results</span>
+                  </div>
+                  <MonacoStyleCodeEditor
                     value={sqlQuery}
-                    onChange={(e) => setSqlQuery(e.target.value)}
-                    className="w-full font-mono text-xs rounded-xl border border-border-hairline bg-[#0F172A] text-[#38BDF8] p-3.5 focus:outline-hidden focus:border-oxford leading-relaxed"
-                    spellCheck={false}
+                    onChange={setSqlQuery}
+                    language="sql"
+                    fileName={`${selectedSql.sql_id.toLowerCase()}_query.sql`}
+                    onReset={() => setSqlQuery(selectedSql.expected_query)}
+                    height="180px"
                   />
                 </div>
 

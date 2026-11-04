@@ -2,19 +2,16 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import TopNavBar, { DEMO_PERSONAS, DemoPersona } from '@/components/TopNavBar'
-import ExplainerModal from '@/components/ExplainerModal'
+import AppLayout from '@/components/layout/AppLayout'
 import ApplicationsTrackerView from '@/components/ApplicationsTrackerView'
 import DisputeClarificationDrawer from '@/components/DisputeClarificationDrawer'
 import SourceDrawer from '@/components/SourceDrawer'
 import { mockSourceDocuments } from '@/lib/mock-data'
 import type { SourceDocument, EligibilityRule } from '@/lib/types'
-import { ClipboardList, Sparkles } from 'lucide-react'
+import { ClipboardList } from 'lucide-react'
 
 export default function StudentApplicationsPage() {
   const router = useRouter()
-  const [currentPersona, setCurrentPersona] = useState<DemoPersona>(DEMO_PERSONAS[0])
-  const [explainerOpen, setExplainerOpen] = useState(false)
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false)
   const [disputeDrawerOpen, setDisputeDrawerOpen] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<SourceDocument | null>(mockSourceDocuments['doc_resume_v3'] ?? null)
@@ -40,17 +37,8 @@ export default function StudentApplicationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F6] text-ink-primary flex flex-col font-sans">
-      <TopNavBar
-        currentPersona={currentPersona}
-        onSelectPersona={setCurrentPersona}
-        onOpenRegisterModal={() => {}}
-        onOpenSyncExcelModal={() => {}}
-        onOpenPrivacyModal={() => {}}
-        onOpenExplainerModal={() => setExplainerOpen(true)}
-      />
-
-      <div className="flex-1 max-w-[1240px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <AppLayout pageTitle="Applications & Kanban" breadcrumb="Student Workspace">
+      <div className="space-y-6">
         {/* Header */}
         <div className="rounded-3xl bg-white border-2 border-[#E6E3DC] p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
@@ -58,9 +46,9 @@ export default function StudentApplicationsPage() {
               <ClipboardList className="h-3.5 w-3.5" />
               Kanban Pipeline &amp; Milestone Tracker
             </div>
-            <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-ink-primary tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-ink-primary tracking-tight">
               Applications &amp; Interview Pipeline
-            </h1>
+            </h2>
             <p className="text-xs sm:text-sm text-ink-muted">
               Track active campus drives from initial opt-in through deterministic eligibility, 120s micro-defense viva, and interview shortlisting.
             </p>
@@ -88,11 +76,6 @@ export default function StudentApplicationsPage() {
         company={disputeJob.company}
         onOpenSourceSpan={() => handleOpenSource('doc_resume_v3')}
       />
-
-      <ExplainerModal
-        isOpen={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-      />
-    </div>
+    </AppLayout>
   )
 }

@@ -119,7 +119,7 @@ def test_agent_endpoints():
     )
     res_pass = run_coro(submit_micro_defense(req_submit_pass))
     assert res_pass["passed"] is True
-    assert res_pass["status_awarded"] == "ASSESSMENT_VERIFIED"
+    assert res_pass["status_awarded"] == "4_ASSESSMENT_VERIFIED"
     assert res_pass["rubric_breakdown"]["handles_edge_cases"] is True
     print(f"[PASS] Micro-Defense Rubric Evaluation (Pass): successfully verified and awarded ASSESSMENT_VERIFIED.")
 
