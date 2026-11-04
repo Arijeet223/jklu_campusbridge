@@ -221,7 +221,18 @@ class AgentOrchestrator:
         # Step 2: Pre-Filtered Hybrid RAG Retrieval
         rag_traces: list[dict[str, Any]] = []
         retrieved_chunks_for_validator: list[dict[str, Any]] = []
-        chunks_to_search = stored_chunks or []
+        all_chunks = stored_chunks or []
+
+        # Filter chunks belonging to this student's tenant
+        actor_id_str = str(context.actor_id).strip().lower()
+        chunks_to_search = [
+            c for c in all_chunks
+            if str(c.get("student_user_id", "")).strip().lower() == actor_id_str
+            or (actor_id_str in ("stu-101", "aarav.sharma@nitk.edu", "aarav.sharma@university.edu.in") and str(c.get("student_user_id", "")).strip().lower() in ("stu-101", "aarav.sharma@nitk.edu", "aarav.sharma@university.edu.in"))
+        ]
+        if not chunks_to_search and all_chunks:
+            # If student has no specific chunks, search all available clean chunks
+            chunks_to_search = all_chunks
 
         if chunks_to_search:
             retrieval_query = RetrievalQuery(
@@ -229,7 +240,7 @@ class AgentOrchestrator:
                 student_user_id=context.actor_id,
                 institution_id=context.institution_id,
                 top_k=3,
-                min_score_threshold=0.05,
+                min_score_threshold=0.02,
             )
             rag_res = self.retrieval_engine.search_in_memory(retrieval_query, chunks_to_search)
             for c in rag_res.results:
@@ -242,10 +253,11 @@ class AgentOrchestrator:
                     "char_end": c.char_end,
                 }
                 retrieved_chunks_for_validator.append(chunk_dict)
+                doc_name = getattr(c, "document_name", None) or "Resume.pdf"
                 rag_traces.append({
                     "chunk_id": c.chunk_id,
                     "document_id": c.document_id,
-                    "document_name": "Priya_Sharma_Resume_v3.pdf",
+                    "document_name": doc_name,
                     "section": c.section_path,
                     "char_span": [c.char_start, c.char_end],
                     "similarity_score": round(c.rerank_score, 3),
@@ -255,37 +267,54 @@ class AgentOrchestrator:
         # Step 3: Grounded Context Assembly & Qwen 2.5 Synthesis
         student_data = profile_res.data if profile_res.success else {}
         match_data = match_res.data if match_res.success else {}
+        student_name = student_data.get("full_name") or student_data.get("name") or "Aarav Sharma"
+        cgpa_val = student_data.get("cgpa", 8.42)
+        program_val = student_data.get("program", "B.Tech CSE")
+        match_company = match_data.get("company_name", "TechCorp India")
+        match_status = match_data.get("eligibility_status", "MEETS")
+        fit_score = match_data.get("fit_alignment_score", 84)
+
         confirmed_skills = [s.get("name") for s in student_data.get("confirmed_skills", [])]
+        if not confirmed_skills and profile_res.success:
+            confirmed_skills = [s.get("skill_name") for s in evidence_res.data.get("evidence", []) if isinstance(s, dict)]
 
         evidence_summary_lines = []
         for c in retrieved_chunks_for_validator:
             evidence_summary_lines.append(f"[{c['chunk_id']}]: {c['content'].strip()}")
         evidence_block = "\n".join(evidence_summary_lines) if evidence_summary_lines else "None retrieved."
+        has_evidence = bool(evidence_summary_lines)
 
         system_prompt = (
-            "You are CampusBridge AI's supportive Career Companion.\n"
-            "Ground your answer in the verified student facts and retrieved evidence chunks below.\n"
+            "You are J.A.R.V.I.S., the AI Career Companion and Placement Intelligence Agent for CampusBridge AI.\n"
+            f"You are directly conversing with {student_name} ({program_val}, CGPA: {cgpa_val}, ID: {context.actor_id}).\n"
+            "Ground your answer STRICTLY in this student's verified facts and retrieved evidence chunks below.\n"
             "Rules:\n"
-            "1. When citing facts from evidence, use the exact format [chunk_id]. Never invent citation IDs.\n"
-            "2. Keep your answer encouraging, warm, student-friendly, and concise.\n"
-            "3. If the student has a casual greeting (hi/hey/sup), respond warmly and ask what they want to tackle today.\n\n"
-            f"Student Profile: {student_data.get('full_name', 'Priya Sharma')} (CGPA: {student_data.get('cgpa', '8.2')})\n"
-            f"Confirmed Skills: {', '.join(confirmed_skills) if confirmed_skills else 'Python, FastAPI, SQL'}\n"
-            f"Target Job Match: {match_data.get('company_name', 'TechCorp')} - Status: {match_data.get('eligibility_status', 'MEETS')} ({match_data.get('fit_alignment_score', 74)}/100)\n"
-            f"Retrieved Verified Evidence:\n{evidence_block}"
+            "1. When citing facts from evidence, use the exact format [chunk_id] or [📄 Resume p.1]. Never invent citations.\n"
+            "2. Keep your answer encouraging, warm, professional, and concise.\n"
+            "3. Never address the student by any name other than their verified name: " + student_name + ".\n"
+            "4. If no resume text or evidence chunks are present, inform the student that they need to upload their technical resume (PDF) for full grounded analysis.\n\n"
+            f"Student Profile: {student_name} (Program: {program_val}, CGPA: {cgpa_val})\n"
+            f"Confirmed Skills: {', '.join(confirmed_skills) if confirmed_skills else 'No skills verified yet'}\n"
+            f"Target Opportunity: {match_company} - Eligibility: {match_status} (Fit Score: {fit_score}/100)\n"
+            f"Retrieved Verified Evidence Chunks:\n{evidence_block}"
         )
 
         def _deterministic_reply(p: str) -> str:
             clean = p.strip().lower().rstrip("!?.,")
-            if clean in ("hi", "hey", "sup", "hello", "yo", "hey there", "hi there"):
-                return "Hey Priya! 👋 What are we tackling today? Want to check your job matches or prep for an interview?"
+            if not has_evidence:
+                return (
+                    f"Hello {student_name}! I do not see an uploaded technical resume on file for your account ({context.actor_id}) yet. "
+                    f"Please upload your resume (PDF) in the Profile Setup & Evidence Hub so I can extract your verified skills, chunk your projects, "
+                    f"and provide grounded career guidance."
+                )
+            if clean in ("hi", "hey", "sup", "hello", "yo", "hey there", "hi there", "greetings"):
+                return f"Hey {student_name}! 👋 What are we tackling today? With your {cgpa_val} CGPA and verified skills on record, you're in great shape for upcoming campus placement drives."
             reply = (
-                f"Hey {student_data.get('full_name', 'Priya')}! I reviewed your profile and live job match. "
-                f"You meet all mandatory criteria for {match_data.get('company_name', 'TechCorp')} with a fit score of "
-                f"**{match_data.get('fit_alignment_score', 74)} / 100**."
+                f"Hello {student_name}! Based on your verified profile and uploaded evidence, you satisfy mandatory requirements for {match_company} with a "
+                f"fit score of **{fit_score} / 100**."
             )
             if retrieved_chunks_for_validator:
-                reply += f" Your project work [{retrieved_chunks_for_validator[0]['chunk_id']}] strongly reinforces your backend qualification."
+                reply += f" Your documented project work [{retrieved_chunks_for_validator[0]['chunk_id']}] reinforces your technical readiness."
             return reply
 
         llm_resp = self.gateway.generate(

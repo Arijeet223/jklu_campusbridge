@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import ExplainerModal from '@/components/ExplainerModal'
 import {
   LayoutDashboard,
   UserCheck,
@@ -16,7 +15,6 @@ import {
   Activity,
   LogOut,
   Bell,
-  Sparkles,
   ChevronRight,
   ShieldCheck,
   User,
@@ -42,11 +40,10 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const [explainerOpen, setExplainerOpen] = useState(false)
   const [currentStudentName, setCurrentStudentName] = useState(userName)
   const [currentSubtitle, setCurrentSubtitle] = useState(userSubtitle)
 
-  // Sync user state if saved from login
+  // Sync user state and enforce Onboarding Guard
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cb_active_user')
@@ -58,11 +55,18 @@ export default function AppLayout({
         } else if (parsed.role) {
           setCurrentSubtitle(`${parsed.role} • ${parsed.department || 'NITK'}`)
         }
+
+        // Onboarding Guard: check if student has uploaded resume or verified evidence
+        if (parsed.role === 'STUDENT' || !parsed.role) {
+          if (parsed.needs_onboarding && pathname !== '/student/onboarding') {
+            router.push('/student/onboarding')
+          }
+        }
       }
     } catch {
       // Ignore
     }
-  }, [])
+  }, [pathname, router])
 
   const studentNavItems = [
     {
@@ -306,19 +310,8 @@ export default function AppLayout({
             </div>
           </div>
 
-          {/* Right: Explainer Modal Button, Notification Bell & Avatar */}
+          {/* Right: Notification Bell & Avatar */}
           <div className="flex items-center gap-3">
-            {/* ✨ How CampusBridge AI Works Button */}
-            <button
-              type="button"
-              onClick={() => setExplainerOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#F0B6D5]/40 hover:bg-[#F0B6D5]/60 text-[#6D3B56] border border-[#F0B6D5] font-bold text-xs uppercase tracking-wider transition-all shadow-2xs hover:shadow-xs cursor-pointer"
-            >
-              <Sparkles className="h-4 w-4 fill-[#F0B6D5] text-[#6D3B56]" />
-              <span className="hidden sm:inline">✨ How CampusBridge AI Works</span>
-              <span className="sm:hidden">✨ How It Works</span>
-            </button>
-
             {/* Notification Bell */}
             <div className="relative">
               <button
@@ -349,12 +342,6 @@ export default function AppLayout({
           {children}
         </main>
       </div>
-
-      {/* Explainer Modal */}
-      <ExplainerModal
-        isOpen={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-      />
     </div>
   )
 }

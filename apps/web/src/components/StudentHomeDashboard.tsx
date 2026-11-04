@@ -103,37 +103,15 @@ export default function StudentHomeDashboard({
           `Successfully uploaded and parsed "${file.name}"! Found ${extracted.length} provisional skills (Ghost Cards) ready for verification.`,
         )
         return
+      } else {
+        const err = await res.json().catch(() => ({ detail: 'Failed to process document' }))
+        setUploadNotice(`Upload error: ${err.detail || 'Could not parse PDF'}`)
       }
-    } catch {
-      // In case of network interruption, fallback below
+    } catch (e: any) {
+      setUploadNotice(`Upload error: ${e.message || 'Connection error'}`)
+    } finally {
+      setIsProcessingFile(false)
     }
-
-    const fallbackSkills: Skill[] = [
-      {
-        id: `sk_upload_${Date.now()}_1`,
-        name: 'Docker Containerization',
-        proficiency: 'Intermediate',
-        evidenceStatus: 'EXTRACTED',
-        sourceDocumentId: 'doc_resume_v4',
-        sourceSpan: `${file.name} • p.1, §Infrastructure`,
-        confidence: 0.94,
-      },
-      {
-        id: `sk_upload_${Date.now()}_2`,
-        name: 'Redis Streams & Caching',
-        proficiency: 'Advanced',
-        evidenceStatus: 'EXTRACTED',
-        sourceDocumentId: 'doc_resume_v4',
-        sourceSpan: `${file.name} • p.2, §Distributed Projects`,
-        confidence: 0.91,
-      },
-    ]
-
-    onUploadResume(file.name, fallbackSkills)
-    setIsProcessingFile(false)
-    setUploadNotice(
-      `Parsed "${file.name}" in sandbox. Added 2 new AI Skill Suggestions to your verification queue.`,
-    )
   }
 
   const handleDrop = (e: React.DragEvent) => {

@@ -38,7 +38,6 @@ _JOB_FULLSTACK = "job-fullstack-innovateco-002"
 _PRIYA_ID = "student-priya-001"
 _PRIYA_EXTRACTED_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-
 def _ev(
     student_id: str,
     skill_id: str,
@@ -66,6 +65,30 @@ def _ev(
         verified_at=_NOW if status in {EvidenceStatus.ASSESSMENT_VERIFIED, EvidenceStatus.INSTITUTION_VERIFIED} else None,
     )
 
+_AARAV_ID = "STU-101"
+_AARAV_PROFILE = {
+    "name": "Aarav Sharma",
+    "degree": "B.Tech",
+    "branch": "Computer Science & Engineering",
+    "program": "B.Tech CSE",
+    "grad_year": 2026,
+    "cgpa": 8.42,
+    "institution": "National Institute of Technology, Surathkal",
+    "career_preferences": {
+        "role_families": ["Backend Engineering", "Distributed Systems", "Cloud Architecture"],
+        "locations": ["Bangalore", "Hyderabad", "Remote"],
+        "work_mode": "HYBRID",
+    },
+}
+_AARAV_EVIDENCE: list[SkillEvidence] = [
+    _ev(_AARAV_ID, _SKILL_PYTHON, "Python", 0.90, EvidenceStatus.ASSESSMENT_VERIFIED, "assessment-py-101", 0, 50),
+    _ev(_AARAV_ID, _SKILL_FASTAPI, "FastAPI Microservices", 0.85, EvidenceStatus.ASSESSMENT_VERIFIED, "resume-001", 0, 50),
+    _ev(_AARAV_ID, _SKILL_SQL, "SQL & Database Design", 0.88, EvidenceStatus.ASSESSMENT_VERIFIED, "project-db-app", 0, 50),
+    _ev(_AARAV_ID, _SKILL_DOCKER, "Docker Containerization", 0.78, EvidenceStatus.STUDENT_CONFIRMED, "resume-001", 0, 50),
+    _ev(_AARAV_ID, _SKILL_GIT, "Git Version Control", 0.85, EvidenceStatus.INSTITUTION_VERIFIED, "lms-records", 0, 50),
+    _ev(_AARAV_ID, _SKILL_REACT, "React & Next.js", 0.70, EvidenceStatus.STUDENT_CONFIRMED, "resume-001", 0, 50),
+]
+
 
 _PRIYA_PROFILE = {
     "name": "Priya Sharma",
@@ -92,6 +115,10 @@ _PRIYA_EVIDENCE: list[SkillEvidence] = [
 
 _STUDENTS_BY_ID: dict[str, tuple[dict, list[SkillEvidence]]] = {
     _PRIYA_ID: (_PRIYA_PROFILE, _PRIYA_EVIDENCE),
+    _AARAV_ID: (_AARAV_PROFILE, _AARAV_EVIDENCE),
+    "STU-101": (_AARAV_PROFILE, _AARAV_EVIDENCE),
+    "aarav.sharma@university.edu.in": (_AARAV_PROFILE, _AARAV_EVIDENCE),
+    "aarav.sharma@nitk.edu": (_AARAV_PROFILE, _AARAV_EVIDENCE),
     "student-aarav-002": (
         {"name": "Aarav Patel", "degree": "B.Tech", "branch": "Computer Science", "grad_year": 2027, "cgpa": 9.1},
         [_ev("student-aarav-002", _SKILL_PYTHON, "Python", 0.95, EvidenceStatus.ASSESSMENT_VERIFIED)],
@@ -103,6 +130,7 @@ _STUDENTS_BY_ID: dict[str, tuple[dict, list[SkillEvidence]]] = {
 }
 
 _MOCK_STUDENTS = [
+    (_AARAV_ID, _AARAV_PROFILE, _AARAV_EVIDENCE),
     (_PRIYA_ID, _PRIYA_PROFILE, _PRIYA_EVIDENCE),
 ]
 
@@ -127,5 +155,10 @@ _JOBS: dict[str, list[JobRequirement]] = {
     _JOB_FULLSTACK: _JOB_FULLSTACK_REQS,
     "job-techcorp-001": _JOB_BACKEND_REQS,
     "job-backend-001": _JOB_BACKEND_REQS,
+    "JOB-2026-01": _JOB_BACKEND_REQS,
+    "JOB-2026-02": _JOB_BACKEND_REQS,
+    "JOB-2026-03": _JOB_FULLSTACK_REQS,
+    "JOB-2026-04": _JOB_BACKEND_REQS,
+    "JOB-2026-05": _JOB_BACKEND_REQS,
 }
 

@@ -206,21 +206,8 @@ export default function TopNavBar({
           )}
         </div>
 
-        {/* Right: Explainer, Excel DB & Admin Action Buttons */}
+        {/* Right: Excel DB & Admin Action Buttons */}
         <div className="flex items-center gap-2">
-          {/* ✨ How CampusBridge AI Works Explainer Modal Button */}
-          {onOpenExplainerModal && (
-            <button
-              type="button"
-              onClick={onOpenExplainerModal}
-              title="How CampusBridge AI Works — Neural Pantheon Explainer"
-              className="flex items-center gap-1.5 rounded-xl border border-[#F0B6D5] bg-[#F0B6D5]/30 hover:bg-[#F0B6D5]/50 px-3 py-1.5 text-xs font-bold text-[#6D3B56] transition-all shadow-2xs"
-            >
-              <Sparkles className="h-3.5 w-3.5 fill-[#F0B6D5] text-[#6D3B56]" />
-              <span className="inline">✨ How It Works</span>
-            </button>
-          )}
-
           {/* Download Live Excel DB Button */}
           <button
             type="button"

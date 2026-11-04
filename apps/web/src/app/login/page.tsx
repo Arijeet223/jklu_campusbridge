@@ -3,14 +3,12 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import ExplainerModal from '@/components/ExplainerModal'
 import {
   GraduationCap,
   Briefcase,
   ShieldCheck,
   Lock,
   ArrowRight,
-  Sparkles,
   CheckCircle2,
   AlertCircle,
   KeyRound,
@@ -28,7 +26,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('student@nitk2026')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [explainerOpen, setExplainerOpen] = useState(false)
 
   const handleRoleChange = (newRole: LoginRole) => {
     setRole(newRole)
@@ -68,9 +65,13 @@ export default function LoginPage() {
           localStorage.setItem('cb_auth_token', data.token || 'demo-token')
         }
 
-        // Redirect based on role
+        // Redirect based on role and onboarding requirement
         if (role === 'STUDENT') {
-          router.push('/student/dashboard')
+          if (data.needs_onboarding || data.user?.needs_onboarding) {
+            router.push('/student/onboarding')
+          } else {
+            router.push('/student/dashboard')
+          }
         } else if (role === 'FACULTY') {
           router.push('/teacher/panel')
         } else {
@@ -144,15 +145,6 @@ export default function LoginPage() {
             <p className="text-3xs text-ink-muted">Warm Institutional Studio</p>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setExplainerOpen(true)}
-          className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-[#F0B6D5]/40 hover:bg-[#F0B6D5]/60 text-[#6D3B56] border border-[#F0B6D5] font-bold text-xs uppercase tracking-wider transition-all shadow-2xs cursor-pointer"
-        >
-          <Sparkles className="h-4 w-4 fill-[#F0B6D5] text-[#6D3B56]" />
-          <span>✨ How It Works</span>
-        </button>
       </header>
 
       {/* Split-Screen Main Container */}
@@ -376,11 +368,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      <ExplainerModal
-        isOpen={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-      />
     </div>
   )
 }

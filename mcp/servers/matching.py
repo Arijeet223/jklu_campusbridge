@@ -93,11 +93,18 @@ class MatchingServer(BaseMCPServer):
     def _handle_run_match_preview(self, args: dict[str, Any], context: SecurityContext) -> dict[str, Any]:
         student_id = context.actor_id if context.actor_role == "STUDENT" else args.get("student_id", _PRIYA_ID)
         entry = _STUDENTS_BY_ID.get(student_id)
+        if not entry and ("stu-101" in str(student_id).lower() or "aarav" in str(student_id).lower()):
+            entry = _STUDENTS_BY_ID.get("STU-101")
+        if not entry:
+            entry = _STUDENTS_BY_ID.get(_PRIYA_ID)
         if not entry:
             raise MCPValidationError(f"Student '{student_id}' not found.")
 
         job_id = args.get("job_id")
         reqs = _JOBS.get(job_id)
+        if not reqs:
+            # Fall back to default backend job requirements if recognized alias
+            reqs = _JOBS.get(_JOB_BACKEND)
         if not reqs:
             raise MCPValidationError(f"Job '{job_id}' not found.")
 

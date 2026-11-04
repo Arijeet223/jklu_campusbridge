@@ -139,9 +139,42 @@ _PRIYA_PROFILE: dict = {
     "semester": 7,
 }
 
+# ── Student: Aarav Sharma (Default Active Demo Account STU-101) ───────────
+
+_AARAV_ID = "STU-101"
+
+_AARAV_PROFILE: dict = {
+    "name": "Aarav Sharma",
+    "degree": "B.Tech",
+    "branch": "Computer Science & Engineering",
+    "program": "B.Tech CSE",
+    "grad_year": 2026,
+    "cohort": 2026,
+    "semester": 8,
+    "cgpa": 8.42,
+    "institution": "National Institute of Technology, Surathkal",
+    "career_preferences": {
+        "role_families": ["Backend Engineering", "Distributed Systems", "Cloud Architecture"],
+        "locations": ["Bangalore", "Hyderabad", "Remote"],
+        "work_mode": "HYBRID",
+    },
+}
+
+_AARAV_EVIDENCE: list[SkillEvidence] = [
+    _ev(_AARAV_ID, _SKILL_PYTHON, "Python", 0.90, EvidenceStatus.ASSESSMENT_VERIFIED, "assessment-py-101"),
+    _ev(_AARAV_ID, _SKILL_FASTAPI, "FastAPI Microservices", 0.85, EvidenceStatus.ASSESSMENT_VERIFIED, "resume-001"),
+    _ev(_AARAV_ID, _SKILL_SQL, "SQL & Database Design", 0.88, EvidenceStatus.ASSESSMENT_VERIFIED, "project-db-app"),
+    _ev(_AARAV_ID, _SKILL_DOCKER, "Docker Containerization", 0.78, EvidenceStatus.STUDENT_CONFIRMED, "resume-001"),
+    _ev(_AARAV_ID, _SKILL_GIT, "Git Version Control", 0.85, EvidenceStatus.INSTITUTION_VERIFIED, "lms-records"),
+    _ev(_AARAV_ID, _SKILL_REACT, "React & Next.js", 0.70, EvidenceStatus.STUDENT_CONFIRMED, "resume-001"),
+]
+
 # ── Additional mock students for liquidity preview ────────────────────────
 
 _MOCK_STUDENTS: list[tuple[str, dict, list[SkillEvidence]]] = [
+    (
+        _AARAV_ID, _AARAV_PROFILE, _AARAV_EVIDENCE,
+    ),
     (
         _PRIYA_ID, _PRIYA_PROFILE, _PRIYA_EVIDENCE,
     ),
@@ -190,6 +223,10 @@ _MOCK_STUDENTS: list[tuple[str, dict, list[SkillEvidence]]] = [
 _STUDENTS_BY_ID: dict[str, tuple[dict, list[SkillEvidence]]] = {
     sid: (prof, evs) for sid, prof, evs in _MOCK_STUDENTS
 }
+_STUDENTS_BY_ID["STU-101"] = (_AARAV_PROFILE, _AARAV_EVIDENCE)
+_STUDENTS_BY_ID["aarav.sharma@university.edu.in"] = (_AARAV_PROFILE, _AARAV_EVIDENCE)
+_STUDENTS_BY_ID["aarav.sharma@nitk.edu"] = (_AARAV_PROFILE, _AARAV_EVIDENCE)
+_STUDENTS_BY_ID["student-aarav-001"] = (_AARAV_PROFILE, _AARAV_EVIDENCE)
 
 # ── Job: Backend Engineer at TechCorp ────────────────────────────────────
 
@@ -327,6 +364,211 @@ async def get_student_evidence(student_id: str) -> list[SkillEvidence]:
     if entry is None:
         raise HTTPException(status_code=404, detail=f"Student '{student_id}' not found.")
     return entry[1]
+
+
+@router.get("/students/{student_id}/onboarding-status")
+async def get_student_onboarding_status(student_id: str) -> dict[str, Any]:
+    """Check whether candidate has uploaded their resume and populated verified/extracted skills."""
+    store = get_excel_store()
+    evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+    stu_key = student_id.strip().lower()
+    matched_ev = [
+        e for e in evidence_rows
+        if str(e.get("student_id", "")).strip().lower() == stu_key
+        or (stu_key in ("stu-101", "aarav.sharma@nitk.edu", "aarav.sharma@university.edu.in") and str(e.get("student_id", "")).strip().lower() == "stu-101")
+    ]
+    has_resume = len(matched_ev) > 0
+    return {
+        "student_id": student_id,
+        "has_resume": has_resume,
+        "needs_onboarding": not has_resume,
+        "evidence_count": len(matched_ev),
+    }
+
+
+@router.get("/matching/live-jobs")
+async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, Any]]:
+    """Dynamically computes weighted fit alignment comparing the active student's extracted skills against Opportunities_JDs."""
+    store = get_excel_store()
+    jobs_rows = store.get_sheet(SHEET_JOBS)
+    evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+    students_rows = store.get_sheet(SHEET_STUDENTS)
+
+    # Resolve student profile
+    stu_key = student_id.strip().lower()
+    matched_student = None
+    for s in students_rows:
+        if str(s.get("student_id", "")).strip().lower() == stu_key or str(s.get("email", "")).strip().lower() == stu_key:
+            matched_student = s
+            break
+    if not matched_student:
+        matched_student = {
+            "student_id": student_id,
+            "full_name": "Aarav Sharma",
+            "cgpa": 8.42,
+            "program": "B.Tech CSE",
+            "active_backlogs": 0,
+        }
+
+    stu_cgpa = float(matched_student.get("cgpa", 8.42))
+    stu_backlogs = int(matched_student.get("active_backlogs", 0))
+
+    # Resolve student's evidence records
+    student_evidence = [
+        e for e in evidence_rows
+        if str(e.get("student_id", "")).strip().lower() == stu_key
+        or (stu_key in ("stu-101", "aarav.sharma@nitk.edu", "aarav.sharma@university.edu.in") and str(e.get("student_id", "")).strip().lower() == "stu-101")
+    ]
+
+    tier_multipliers = {
+        "4_ASSESSMENT_VERIFIED": 1.0,
+        "ASSESSMENT_VERIFIED": 1.0,
+        "3_ARTIFACT_LINKED": 0.75,
+        "ARTIFACT_LINKED": 0.75,
+        "2_STUDENT_CONFIRMED": 0.50,
+        "STUDENT_CONFIRMED": 0.50,
+        "1_EXTRACTED_UNCONFIRMED": 0.25,
+        "EXTRACTED": 0.25,
+    }
+
+    # Map skill name to best multiplier
+    skill_map: dict[str, float] = {}
+    for ev in student_evidence:
+        sk_name = str(ev.get("skill_name", "")).strip().lower()
+        tier_str = str(ev.get("tier", "1_EXTRACTED_UNCONFIRMED"))
+        mult = tier_multipliers.get(tier_str, 0.25)
+        if sk_name not in skill_map or mult > skill_map[sk_name]:
+            skill_map[sk_name] = mult
+
+    match_results = []
+    for j in jobs_rows:
+        job_id = str(j.get("job_id", f"job-{len(match_results)+1}"))
+        company = str(j.get("company_name", "Tech Company"))
+        role = str(j.get("role_title", "Software Engineer"))
+        min_cgpa = float(j.get("min_cgpa", 7.0))
+        max_backlogs = int(j.get("max_backlogs", 0))
+
+        # Parse mandatory skills
+        raw_mand = j.get("mandatory_skills_json", "[]")
+        try:
+            mand_skills = json.loads(raw_mand) if isinstance(raw_mand, str) else list(raw_mand)
+        except Exception:
+            mand_skills = ["Python", "SQL & Database Design"]
+
+        # Parse preferred skills
+        raw_pref = j.get("preferred_skills_json", "[]")
+        try:
+            pref_skills = json.loads(raw_pref) if isinstance(raw_pref, str) else list(raw_pref)
+        except Exception:
+            pref_skills = ["Docker Containerization"]
+
+        # Evaluate rules
+        rules = []
+        rules.append({
+            "id": f"er_{job_id}_deg",
+            "label": f"{matched_student.get('program', 'B.Tech CSE')} '26",
+            "status": "MEETS",
+            "ruleExpression": f"program == '{matched_student.get('program', 'B.Tech CSE')}'",
+        })
+
+        cgpa_status = "MEETS" if stu_cgpa >= min_cgpa else "DOES_NOT_MEET"
+        rules.append({
+            "id": f"er_{job_id}_cgpa",
+            "label": f"CGPA ≥ {min_cgpa}",
+            "status": cgpa_status,
+            "ruleExpression": f"cgpa >= {min_cgpa} (Candidate: {stu_cgpa})",
+        })
+
+        backlog_status = "MEETS" if stu_backlogs <= max_backlogs else "DOES_NOT_MEET"
+        rules.append({
+            "id": f"er_{job_id}_backlog",
+            "label": "No Active Backlogs" if max_backlogs == 0 else f"Max {max_backlogs} Backlogs",
+            "status": backlog_status,
+            "ruleExpression": f"active_backlogs <= {max_backlogs}",
+        })
+
+        # Score mandatory skills
+        mand_scores = []
+        for m_sk in mand_skills:
+            m_lower = m_sk.lower()
+            matched_mult = 0.0
+            for s_name, mult in skill_map.items():
+                if m_lower in s_name or s_name in m_lower or any(word in s_name for word in m_lower.split() if len(word) > 3):
+                    matched_mult = max(matched_mult, mult)
+            mand_scores.append(matched_mult)
+
+            sk_status = "MEETS" if matched_mult >= 0.50 else ("UNKNOWN" if matched_mult > 0 else "DOES_NOT_MEET")
+            rules.append({
+                "id": f"er_{job_id}_{m_sk[:6]}",
+                "label": f"{m_sk} Proficiency",
+                "status": sk_status,
+                "ruleExpression": f"skill('{m_sk}').tier >= STUDENT_CONFIRMED",
+            })
+
+        # Score preferred skills
+        pref_scores = []
+        for p_sk in pref_skills:
+            p_lower = p_sk.lower()
+            matched_mult = 0.0
+            for s_name, mult in skill_map.items():
+                if p_lower in s_name or s_name in p_lower or any(word in s_name for word in p_lower.split() if len(word) > 3):
+                    matched_mult = max(matched_mult, mult)
+            pref_scores.append(matched_mult)
+
+        # Dynamic live weighted alignment calculation
+        mand_avg = sum(mand_scores) / len(mand_scores) if mand_scores else 0.5
+        pref_avg = sum(pref_scores) / len(pref_scores) if pref_scores else 0.4
+        acad_score = 1.0 if cgpa_status == "MEETS" else 0.3
+
+        # Formula: 55% Mandatory Skills + 25% Preferred Skills + 20% Academic Standing
+        raw_alignment = (0.55 * mand_avg + 0.25 * pref_avg + 0.20 * acad_score) * 100
+        live_score = max(15, min(98, round(raw_alignment)))
+
+        # Dynamic Sandbox Toggles based on candidate's real missing or lower-tier skills
+        toggles = []
+        for idx, m_sk in enumerate(mand_skills):
+            m_mult = mand_scores[idx] if idx < len(mand_scores) else 0.0
+            if m_mult < 1.0:
+                potential = round((1.0 - m_mult) * 12)
+                toggles.append({
+                    "id": f"st_{job_id}_{idx}",
+                    "label": f"Verify {m_sk} via 120s Micro-Defense (+{potential}%)",
+                    "potentialGain": potential,
+                    "checked": False,
+                    "actionType": "MICRO_DEFENSE",
+                })
+        for idx, p_sk in enumerate(pref_skills):
+            p_mult = pref_scores[idx] if idx < len(pref_scores) else 0.0
+            if p_mult < 1.0 and len(toggles) < 3:
+                potential = round((1.0 - p_mult) * 8)
+                toggles.append({
+                    "id": f"st_{job_id}_p_{idx}",
+                    "label": f"Complete {p_sk} technical challenge (+{potential}%)",
+                    "potentialGain": potential,
+                    "checked": False,
+                    "actionType": "ASSESSMENT",
+                })
+
+        match_results.append({
+            "id": job_id,
+            "jobTitle": role,
+            "company": company,
+            "deadline": f"In {int(j.get('deadline_hours', 120)) // 24} days",
+            "eligibilityRules": rules,
+            "alignmentScore": live_score,
+            "factorBreakdown": [
+                {"id": f"fb_1_{job_id}", "label": "Required Skills", "weight": 0.35, "score": round(mand_avg * 100), "color": "bg-[#6D3B56]"},
+                {"id": f"fb_2_{job_id}", "label": "Projects & Evidence", "weight": 0.20, "score": round(pref_avg * 100), "color": "bg-[#0F766E]"},
+                {"id": f"fb_3_{job_id}", "label": "Preferred Skills", "weight": 0.15, "score": round(pref_avg * 85), "color": "bg-[#6D28D9]"},
+                {"id": f"fb_4_{job_id}", "label": "Assessment Proof", "weight": 0.15, "score": round(mand_avg * 90), "color": "bg-[#1E3A8A]"},
+                {"id": f"fb_5_{job_id}", "label": "Academic Cutoff", "weight": 0.15, "score": 95 if cgpa_status == "MEETS" else 40, "color": "bg-[#B45309]"},
+            ],
+            "sandboxToggles": toggles,
+            "ctc_lpa": j.get("ctc_lpa", 18.0),
+            "location": j.get("location", "Bangalore"),
+        })
+
+    return match_results
 
 
 @router.get("/students/{student_id}/matches")
@@ -1490,19 +1732,29 @@ async def login_user(req: LoginRequest) -> dict[str, Any]:
             s_roll = str(s.get("roll_no", "")).strip().lower()
             s_id = str(s.get("student_id", "")).strip().lower()
             if ident in (s_email, s_roll, s_id):
+                stu_id = s.get("student_id")
+                evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+                matched_ev = [
+                    e for e in evidence_rows
+                    if str(e.get("student_id", "")).strip().lower() == str(stu_id).strip().lower()
+                ]
+                needs_onboard = len(matched_ev) == 0
+
                 return {
                     "status": "SUCCESS",
                     "role": "STUDENT",
+                    "needs_onboarding": needs_onboard,
                     "user": {
-                        "id": s.get("student_id"),
+                        "id": stu_id,
                         "name": s.get("full_name"),
                         "email": s.get("email"),
                         "roll_no": s.get("roll_no"),
                         "program": s.get("program"),
                         "cgpa": s.get("cgpa"),
                         "cohort_year": s.get("cohort_year"),
+                        "needs_onboarding": needs_onboard,
                     },
-                    "token": f"cb_session_{s.get('student_id')}_{int(time.time())}",
+                    "token": f"cb_session_{stu_id}_{int(time.time())}",
                 }
         raise HTTPException(
             status_code=401,
