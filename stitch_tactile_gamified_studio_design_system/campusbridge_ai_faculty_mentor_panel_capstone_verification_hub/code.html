@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Faculty Mentor Panel | CampusBridge AI</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-lowest": "#ffffff",
+            "secondary-fixed-dim": "#a8ccde",
+            "surface-variant": "#e4e2e0",
+            "outline": "#817379",
+            "surface-dim": "#dbdad8",
+            "on-surface": "#1b1c1b",
+            "on-background": "#1b1c1b",
+            "on-secondary-fixed-variant": "#284b5b",
+            "error": "#ba1a1a",
+            "surface": "#fbf9f7",
+            "on-error-container": "#93000a",
+            "surface-container": "#efedec",
+            "on-secondary-fixed": "#001f2a",
+            "primary-fixed-dim": "#f0b6d5",
+            "secondary-container": "#c1e5f8",
+            "surface-bright": "#fbf9f7",
+            "on-secondary": "#ffffff",
+            "on-surface-variant": "#4f4449",
+            "outline-variant": "#d3c2c9",
+            "on-error": "#ffffff",
+            "secondary-fixed": "#c4e8fb",
+            "primary-fixed": "#ffd8eb",
+            "on-primary-fixed-variant": "#643953",
+            "error-container": "#ffdad6",
+            "inverse-surface": "#30302f",
+            "surface-container-highest": "#e4e2e0",
+            "surface-container-low": "#f5f3f1",
+            "secondary": "#406373",
+            "on-primary": "#ffffff",
+            "inverse-primary": "#f0b6d5",
+            "tertiary": "#416655",
+            "on-tertiary-fixed": "#002115",
+            "surface-tint": "#7e506b",
+            "background": "#fbf9f7",
+            "primary": "#7e506b",
+            "on-tertiary": "#ffffff",
+            "surface-container-high": "#eae8e6",
+            "inverse-on-surface": "#f2f0ee",
+            "tertiary-fixed-dim": "#a8cfbb",
+            "tertiary-fixed": "#c3ecd6",
+            "on-primary-container": "#71445f",
+            "primary-container": "#f0b6d5",
+            "on-tertiary-fixed-variant": "#2a4e3e",
+            "tertiary-container": "#a8d0bb",
+            "on-secondary-container": "#456778",
+            "on-tertiary-container": "#365a4a",
+            "on-primary-fixed": "#320e26"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "2.5rem",
+            "margin-mobile": "1.25rem",
+            "space-lg": "1.5rem",
+            "space-md": "1rem",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-sm": "0.5rem",
+            "space-xl": "2.5rem",
+            "gutter-mobile": "1rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "headline-xl-mobile": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-xl": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "headline-xl-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "700" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .tactile-card {
+      border: 1.5px solid #EADECE;
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+    .tactile-shelf {
+      box-shadow: 0 4px 0 #E3CFDC;
+    }
+    .tactile-btn {
+      box-shadow: 0 3px 0 rgba(45, 38, 51, 0.15);
+      transition: all 0.15s ease-out;
+    }
+    .tactile-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(45, 38, 51, 0.15);
+    }
+  </style>
+</head>
+<body class="bg-[#FAF8F6] text-on-surface font-body-md antialiased min-h-screen pb-16 selection:bg-primary-container selection:text-on-primary-fixed">
+<!-- ==================== 1. TOP FLOATING NAV DOCK ==================== -->
+<header class="sticky top-4 z-40 px-4 md:px-margin mb-6">
+<nav class="flex justify-between items-center px-space-lg py-space-sm w-full max-w-7xl mx-auto rounded-full bg-surface-container-lowest border border-outline-variant shadow-[0_4px_0_#EAD7E2] transition-all">
+<!-- Left: Brand Logo & Product Name -->
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-surface-container-lowest shadow-[0_2px_0_#643953]">
+<span class="material-symbols-outlined text-[22px]" data-icon="school" style="font-variation-settings: 'FILL' 1;">school</span>
+</div>
+<div class="flex flex-col">
+<span class="text-headline-sm font-headline-sm font-black text-on-surface tracking-tight leading-none">CampusBridge AI</span>
+<span class="text-label-sm font-label-sm text-primary font-bold tracking-wide">MENTOR ENGINE</span>
+</div>
+</div>
+<!-- Center: Navigation Pill Links (Shared Nav System) -->
+<div class="hidden md:flex items-center gap-1.5 bg-surface-container-low px-2 py-1.5 rounded-full border border-outline-variant/60">
+<a class="px-4 py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-lowest transition-colors" href="#studio">Studio</a>
+<a class="px-4 py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-lowest transition-colors" href="#sprints">Sprints</a>
+<a class="px-4 py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-lowest transition-colors" href="#skills">Skills</a>
+<!-- Active Nav Destination: Mentor Panel -->
+<a class="px-4 py-1.5 rounded-full text-label-md font-label-md bg-primary text-surface-container-lowest shadow-[0_2px_0_#4f2c41] font-bold flex items-center gap-1.5" href="#mentor-panel">
+<span class="w-2 h-2 rounded-full bg-primary-fixed-dim animate-pulse"></span>
+          Mentor Panel (Active)
+        </a>
+<a class="px-4 py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-lowest transition-colors" href="#tpo-hub">TPO Hub</a>
+<a class="px-4 py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-lowest transition-colors" href="#provenance">Provenance</a>
+</div>
+<!-- Right Trailing Actions & Profile Badge -->
+<div class="flex items-center gap-space-sm">
+<!-- Privacy Shield Pill -->
+<div class="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#B6DEC9] border border-[#255C45]/20 text-[#255C45] text-label-sm font-label-sm shadow-[0_2px_0_#9ec7b2]">
+<span class="material-symbols-outlined text-[16px]" data-icon="shield" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="font-bold">Privacy Shield: Active (FERPA Zero-Leak)</span>
+</div>
+<!-- Excel Sync Notification Badge -->
+<div class="hidden xl:flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[15px] text-tertiary" data-icon="sync">sync</span>
+<span>campusbridge_db.xlsx</span>
+</div>
+<!-- Faculty Mentor Profile Pill -->
+<div class="flex items-center gap-2 bg-surface-container-low hover:bg-primary-container/40 p-1.5 pr-3 rounded-full border border-outline-variant cursor-pointer transition-colors tactile-btn">
+<div class="w-8 h-8 rounded-full bg-[#DE95BE] border-2 border-surface-container-lowest flex items-center justify-center font-bold text-on-primary-container text-label-sm">
+            KI
+          </div>
+<div class="text-left hidden sm:block">
+<p class="text-label-sm font-label-sm font-bold text-on-surface leading-tight">Dr. Kavita Iyer</p>
+<p class="text-[10px] text-on-surface-variant font-medium">CSE Dept Mentor</p>
+</div>
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</nav>
+</header>
+<!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+<main class="max-w-7xl mx-auto px-4 md:px-margin space-y-6">
+<!-- ==================== 2. PAGE HEADER & LIVE STATUS BAR ==================== -->
+<section class="bg-surface-container-lowest rounded-3xl p-6 md:p-8 tactile-card">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-6 border-b border-dashed border-[#EADECE]">
+<div>
+<div class="flex items-center gap-2 mb-2 flex-wrap">
+<span class="inline-flex items-center gap-1 px-3 py-0.5 rounded-full bg-primary-container text-on-primary-container text-label-sm font-label-sm font-bold border border-[#DE95BE]">
+<span class="material-symbols-outlined text-[14px]" data-icon="verified">verified</span>
+              FACULTY COHORT LEAD
+            </span>
+<span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#EADECE]/60 text-on-surface-variant text-label-sm font-label-sm font-medium">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+              Advising 32 Students in B.Tech CSE Section A • 2026 Batch
+            </span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-[#232224] tracking-tight">
+            Faculty Advisee Roster &amp; Capstone Verification Hub
+          </h1>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-1">
+            Review cryptographic Git proofs, grade 120s audio technical micro-defenses, and issue verified Tier-5 academic placement clearances.
+          </p>
+</div>
+<!-- Top Right Action Controls -->
+<div class="flex items-center gap-3 flex-shrink-0">
+<button class="px-4 py-2.5 rounded-full bg-surface-container-lowest border border-outline-variant text-on-surface text-label-md font-label-md tactile-btn flex items-center gap-2 hover:bg-surface-container">
+<span class="material-symbols-outlined text-[18px] text-tertiary" data-icon="table_view">table_view</span>
+            Export Mentor Audit (.xlsx)
+          </button>
+<button class="px-5 py-2.5 rounded-full bg-primary text-surface-container-lowest text-label-md font-label-md font-bold shadow-[0_4px_0_#4f2c41] tactile-btn flex items-center gap-2 hover:opacity-95">
+<span class="material-symbols-outlined text-[18px]" data-icon="checklist_rtl">checklist_rtl</span>
+            Batch Approve Verified Proofs →
+          </button>
+</div>
+</div>
+<!-- Quick Stat Bento KPI Bar (4 horizontal cards) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+<!-- Card 1 (Mint Sage container) -->
+<div class="bg-[#B6DEC9]/40 border border-[#255C45]/20 rounded-2xl p-4 tactile-shelf transition-transform hover:-translate-y-0.5">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-[#255C45] font-bold">CAPSTONE STATUS</span>
+<span class="material-symbols-outlined text-[20px] text-[#255C45]" data-icon="task_alt" style="font-variation-settings: 'FILL' 1;">task_alt</span>
+</div>
+<div class="text-headline-md font-headline-md font-black text-on-surface mt-2">24 Verified</div>
+<div class="flex items-center gap-1.5 mt-1 text-label-sm font-label-sm text-[#255C45] font-medium">
+<span class="font-bold">75%</span> batch completion rate (Tier 5)
+          </div>
+</div>
+<!-- Card 2 (Blossom Pink container) -->
+<div class="bg-primary-container/45 border border-[#DE95BE] rounded-2xl p-4 tactile-shelf transition-transform hover:-translate-y-0.5">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-primary font-bold">TRIAGE QUEUE</span>
+<span class="px-2 py-0.5 rounded-full bg-primary text-surface-container-lowest text-[10px] font-bold tracking-wide">Action Required</span>
+</div>
+<div class="text-headline-md font-headline-md font-black text-on-surface mt-2">5 Pending</div>
+<div class="flex items-center gap-1.5 mt-1 text-label-sm font-label-sm text-primary font-medium">
+<span class="material-symbols-outlined text-[14px]" data-icon="hourglass_top">hourglass_top</span>
+            Awaiting faculty cryptographic sign-off
+          </div>
+</div>
+<!-- Card 3 (Sky Blue container) -->
+<div class="bg-[#B6D9EC]/40 border border-[#284b5b]/20 rounded-2xl p-4 tactile-shelf transition-transform hover:-translate-y-0.5">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-[#284b5b] font-bold">STUDENT SUPPORT</span>
+<span class="material-symbols-outlined text-[20px] text-[#284b5b]" data-icon="emergency_home">emergency_home</span>
+</div>
+<div class="text-headline-md font-headline-md font-black text-on-surface mt-2">3 At-Risk</div>
+<div class="flex items-center gap-1.5 mt-1 text-label-sm font-label-sm text-[#284b5b] font-medium">
+            CGPA &lt; 7.0 or Readiness &lt; 60%
+          </div>
+</div>
+<!-- Card 4 (Warm Alabaster Neutral container) -->
+<div class="bg-[#F1EFEA] border border-[#E2DFD9] rounded-2xl p-4 tactile-shelf transition-transform hover:-translate-y-0.5">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-bold">READINESS VELOCITY</span>
+<span class="material-symbols-outlined text-[20px] text-tertiary" data-icon="trending_up">trending_up</span>
+</div>
+<div class="text-headline-md font-headline-md font-black text-on-surface mt-2">79% Cohort Avg</div>
+<div class="flex items-center gap-1 mt-1 text-label-sm font-label-sm text-tertiary font-bold">
+<span>+8%</span>
+<span class="text-on-surface-variant font-normal">increase since last 14-day sprint</span>
+</div>
+</div>
+</div>
+</section>
+<!-- ==================== 3. SEARCH, FILTER & QUICK-TRIAGE BAR ==================== -->
+<section class="bg-surface-container-lowest rounded-3xl p-4 md:p-5 tactile-card flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+<!-- Search Input -->
+<div class="relative flex-1 max-w-xl">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+<input class="w-full bg-[#FAF8F6] border border-[#E5D9E8] rounded-full pl-11 pr-4 py-2.5 text-body-sm font-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-[#DE95BE] transition-all" placeholder="Search student by name, roll no (e.g. 22CSE089), or capstone repo..." type="text"/>
+</div>
+<!-- Filter Pills -->
+<div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 flex-wrap">
+<button class="px-4 py-1.5 rounded-full text-label-sm font-label-sm bg-primary text-surface-container-lowest font-bold tactile-btn shadow-[0_2px_0_#4f2c41] flex items-center gap-1.5">
+<span>All Advisees</span>
+<span class="px-1.5 py-0.2 rounded-full bg-surface-container-lowest/20 text-[10px]">32</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container-low border border-outline-variant hover:bg-surface-container text-on-surface font-medium tactile-btn flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-[#DE95BE]"></span>
+<span>Pending Verification</span>
+<span class="px-1.5 py-0.2 rounded-full bg-primary-container text-on-primary-container font-bold text-[10px]">5</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container-low border border-outline-variant hover:bg-surface-container text-on-surface font-medium tactile-btn flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="stars">stars</span>
+<span>High Readiness ≥80%</span>
+<span class="text-on-surface-variant font-bold text-[10px]">(18)</span>
+</button>
+<button class="px-3.5 py-1.5 rounded-full text-label-sm font-label-sm bg-surface-container-low border border-outline-variant hover:bg-surface-container text-on-surface font-medium tactile-btn flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-error" data-icon="warning">warning</span>
+<span>At-Risk / Needs Nudge</span>
+<span class="text-error font-bold text-[10px]">(3)</span>
+</button>
+<!-- CGPA & Sort Dropdowns -->
+<div class="flex items-center gap-2 ml-auto">
+<select class="bg-surface-container-low border border-outline-variant rounded-full text-label-sm font-label-sm text-on-surface px-3 py-1.5 focus:outline-none focus:border-primary">
+<option>CGPA Bracket: All ▾</option>
+<option>9.0+ Magna Cum Laude</option>
+<option>8.0 - 8.99 Tier 1</option>
+<option>7.0 - 7.99 Standard</option>
+<option>&lt; 7.0 At-Risk</option>
+</select>
+<select class="bg-surface-container-low border border-outline-variant rounded-full text-label-sm font-label-sm text-on-surface px-3 py-1.5 focus:outline-none focus:border-primary">
+<option>Sort: Urgency / Pending Days ▾</option>
+<option>Sort: Highest Readiness</option>
+<option>Sort: Roll Number (Asc)</option>
+</select>
+</div>
+</div>
+</section>
+<!-- ==================== 4 & 5. MAIN SPLIT: ADVISEE BENTO TABLE & INSPECTION DRAWER ==================== -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+<!-- LEFT: MAIN ADVISEE BENTO TABLE (8 COLS) -->
+<section class="lg:col-span-8 space-y-4">
+<!-- Student Card 1: Aarav Sharma -->
+<article class="bg-surface-container-lowest rounded-3xl p-5 tactile-card border-l-4 border-l-primary hover:border-[#DE95BE] transition-all">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#EADECE]">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-[#B6D9EC] border-2 border-[#85B5CE] flex items-center justify-center font-extrabold text-[#284b5b] text-headline-sm">
+                AS
+              </div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Aarav Sharma</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-[#FAF8F6] border border-outline-variant text-[11px] font-mono font-bold text-on-surface-variant">#22CSE014</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">B.Tech CSE '26</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<!-- CGPA Pill -->
+<span class="px-2.5 py-0.5 rounded-full bg-[#B6DEC9] text-[#255C45] text-label-sm font-label-sm font-extrabold border border-[#255C45]/20">
+                    8.72 CGPA
+                  </span>
+<!-- Target Profile Pill -->
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary" data-icon="work">work</span>
+                    RazorpayX &amp; Atlassian Target
+                  </span>
+</div>
+</div>
+</div>
+<!-- Readiness Bar Meter -->
+<div class="sm:text-right flex flex-col sm:items-end">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">Readiness Index:</span>
+<span class="text-headline-sm font-headline-sm font-black text-tertiary">84%</span>
+</div>
+<div class="w-36 h-2.5 bg-surface-container rounded-full overflow-hidden mt-1 p-0.5 border border-outline-variant/60">
+<div class="h-full bg-gradient-to-r from-[#F0B6D5] to-[#B6DEC9] rounded-full" style="width: 84%;"></div>
+</div>
+</div>
+</div>
+<!-- Pending Verification Item Block -->
+<div class="mt-3.5 bg-[#FAF8F6] border border-[#EADECE] rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2 py-0.5 rounded-md bg-primary-container text-on-primary-container text-[11px] font-bold border border-[#DE95BE]">
+                  1 Capstone Project
+                </span>
+<span class="text-label-md font-label-md font-bold text-on-surface">Distributed Concurrency Cache with Redis</span>
+<span class="text-label-sm font-label-sm text-[#ba1a1a] font-medium flex items-center gap-0.5">
+<span class="material-symbols-outlined text-[14px]" data-icon="pending">pending</span>
+                  Awaiting Faculty Sign-off
+                </span>
+</div>
+<div class="flex items-center gap-3 text-label-sm font-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1 font-mono text-[11px]">
+<span class="material-symbols-outlined text-[14px]" data-icon="commit">commit</span>
+                  git:9f8a2bc (main)
+                </span>
+<span>•</span>
+<span>120s Audio Defense: 92% Solid</span>
+<span>•</span>
+<span class="text-tertiary font-bold">12 Unit Tests Passing</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3.5 py-1.5 rounded-full bg-[#B6DEC9] hover:bg-[#a1cfb7] text-[#255C45] border border-[#255C45]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+                ★ Verify Capstone (Tier 5)
+              </button>
+<button class="px-3 py-1.5 rounded-full bg-[#B6D9EC] hover:bg-[#9fcbe2] text-[#284b5b] border border-[#284b5b]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="chat">chat</span>
+                💬 Feedback
+              </button>
+<button class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-on-surface-variant tactile-btn">
+<span class="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Student Card 2: Rohan Verma -->
+<article class="bg-surface-container-lowest rounded-3xl p-5 tactile-card hover:border-[#DE95BE] transition-all">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#EADECE]">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-[#CFBAED] border-2 border-[#b599df] flex items-center justify-center font-extrabold text-[#3d2757] text-headline-sm">
+                RV
+              </div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Rohan Verma</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-[#FAF8F6] border border-outline-variant text-[11px] font-mono font-bold text-on-surface-variant">#22ECE089</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">B.Tech ECE (Minor CS)</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<!-- CGPA Pill -->
+<span class="px-2.5 py-0.5 rounded-full bg-[#F1EFEA] text-on-surface text-label-sm font-label-sm font-bold border border-[#E2DFD9]">
+                    7.45 CGPA
+                  </span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-secondary" data-icon="work">work</span>
+                    Sarvam Sovereign AI Target
+                  </span>
+</div>
+</div>
+</div>
+<!-- Readiness Bar Meter -->
+<div class="sm:text-right flex flex-col sm:items-end">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">Readiness Index:</span>
+<span class="text-headline-sm font-headline-sm font-black text-secondary">71%</span>
+</div>
+<div class="w-36 h-2.5 bg-surface-container rounded-full overflow-hidden mt-1 p-0.5 border border-outline-variant/60">
+<div class="h-full bg-secondary rounded-full" style="width: 71%;"></div>
+</div>
+</div>
+</div>
+<!-- Pending Item Block -->
+<div class="mt-3.5 bg-[#FAF8F6] border border-[#EADECE] rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2 py-0.5 rounded-md bg-[#CFBAED]/50 text-[#3d2757] text-[11px] font-bold border border-[#b599df]">
+                  Course Equivalence
+                </span>
+<span class="text-label-md font-label-md font-bold text-on-surface">CSE-302 OS &amp; Distributed Systems</span>
+<span class="text-label-sm font-label-sm text-tertiary font-bold">
+                  (85% syllabus overlap confirmed)
+                </span>
+</div>
+<div class="flex items-center gap-3 text-label-sm font-label-sm text-on-surface-variant">
+<span>Transferred from ECE Microprocessors II</span>
+<span>•</span>
+<span class="font-mono text-[11px]">Equivalence Hash: 44e3..a9</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3.5 py-1.5 rounded-full bg-[#B6DEC9] hover:bg-[#a1cfb7] text-[#255C45] border border-[#255C45]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
+                ★ Verify Course Equivalence
+              </button>
+<button class="px-3 py-1.5 rounded-full bg-[#B6D9EC] hover:bg-[#9fcbe2] text-[#284b5b] border border-[#284b5b]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="chat">chat</span>
+                💬 Feedback
+              </button>
+<button class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-on-surface-variant tactile-btn">
+<span class="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Student Card 3: Ananya Sen -->
+<article class="bg-surface-container-lowest rounded-3xl p-5 tactile-card hover:border-[#DE95BE] transition-all">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#EADECE]">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-[#F6CDAF] border-2 border-[#e7a57a] flex items-center justify-center font-extrabold text-[#532d14] text-headline-sm">
+                AS
+              </div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Ananya Sen</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-[#FAF8F6] border border-outline-variant text-[11px] font-mono font-bold text-on-surface-variant">#22ADS014</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">B.Tech AI &amp; DS '26</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<!-- CGPA Pill -->
+<span class="px-2.5 py-0.5 rounded-full bg-[#B6DEC9] text-[#255C45] text-label-sm font-label-sm font-extrabold border border-[#255C45]/20">
+                    8.90 CGPA
+                  </span>
+<span class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-tertiary" data-icon="auto_awesome">auto_awesome</span>
+                    Anthropic Research Track
+                  </span>
+</div>
+</div>
+</div>
+<!-- Readiness Bar Meter -->
+<div class="sm:text-right flex flex-col sm:items-end">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">Readiness Index:</span>
+<span class="text-headline-sm font-headline-sm font-black text-tertiary">89%</span>
+</div>
+<div class="w-36 h-2.5 bg-surface-container rounded-full overflow-hidden mt-1 p-0.5 border border-outline-variant/60">
+<div class="h-full bg-[#416655] rounded-full" style="width: 89%;"></div>
+</div>
+</div>
+</div>
+<!-- Pending Item Block -->
+<div class="mt-3.5 bg-[#FAF8F6] border border-[#EADECE] rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2 py-0.5 rounded-md bg-[#B6DEC9] text-[#255C45] text-[11px] font-bold border border-[#255C45]/20">
+                  Audio Micro-Defense
+                </span>
+<span class="text-label-md font-label-md font-bold text-on-surface">120s Audio Micro-Defense for Redis Idempotency</span>
+<span class="text-label-sm font-label-sm text-tertiary font-bold">
+                  (Score: 92/100, Verified 1.0x Solid)
+                </span>
+</div>
+<div class="flex items-center gap-3 text-label-sm font-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px] text-primary" data-icon="mic">mic</span>
+                  Duration: 01:58
+                </span>
+<span>•</span>
+<span>R.O.N.E.N. Evaluation: Zero Hallucination</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3.5 py-1.5 rounded-full bg-[#B6DEC9] hover:bg-[#a1cfb7] text-[#255C45] border border-[#255C45]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]" data-icon="fingerprint">fingerprint</span>
+                ★ Sign-off 1.0x Solid Proof
+              </button>
+<button class="px-3 py-1.5 rounded-full bg-[#B6D9EC] hover:bg-[#9fcbe2] text-[#284b5b] border border-[#284b5b]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="chat">chat</span>
+                💬 Feedback
+              </button>
+<button class="w-8 h-8 rounded-full bg-surface-container hover:bg-surface-variant flex items-center justify-center text-on-surface-variant tactile-btn">
+<span class="material-symbols-outlined text-[18px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</article>
+<!-- Student Card 4: Dev Patel (At-Risk) -->
+<article class="bg-surface-container-lowest rounded-3xl p-5 tactile-card border-l-4 border-l-[#ba1a1a] hover:border-[#DE95BE] transition-all">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#EADECE]">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-error-container border-2 border-[#ba1a1a]/30 flex items-center justify-center font-extrabold text-[#ba1a1a] text-headline-sm">
+                DP
+              </div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Dev Patel</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-[#FAF8F6] border border-outline-variant text-[11px] font-mono font-bold text-on-surface-variant">#22CSE102</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">B.Tech CSE '26</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<!-- CGPA Warning Pill -->
+<span class="px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container text-label-sm font-label-sm font-black border border-[#DE95BE]">
+                    6.85 CGPA ⚠️
+                  </span>
+<span class="text-label-sm font-label-sm text-error font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="flag">flag</span>
+                    Attention Needed: Milestone Overdue
+                  </span>
+</div>
+</div>
+</div>
+<!-- Readiness Bar Meter -->
+<div class="sm:text-right flex flex-col sm:items-end">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">Readiness Index:</span>
+<span class="text-headline-sm font-headline-sm font-black text-error">58%</span>
+</div>
+<div class="w-36 h-2.5 bg-surface-container rounded-full overflow-hidden mt-1 p-0.5 border border-outline-variant/60">
+<div class="h-full bg-error rounded-full" style="width: 58%;"></div>
+</div>
+</div>
+</div>
+<!-- Pending Item Block -->
+<div class="mt-3.5 bg-error-container/20 border border-error-container rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="space-y-1">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="px-2 py-0.5 rounded-md bg-error text-surface-container-lowest text-[11px] font-bold">
+                  Overdue
+                </span>
+<span class="text-label-md font-label-md font-bold text-error">
+                  Capstone Phase 2 Milestone Overdue by 4 days
+                </span>
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">
+                  • Missing SQL Windowing Defense
+                </span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">
+                Last activity recorded 6 days ago. Cohort mentor intervention recommended before placement freeze.
+              </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3.5 py-1.5 rounded-full bg-[#FAF8F6] border border-[#DE95BE] text-on-surface text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1.5 hover:bg-surface-container">
+<span class="material-symbols-outlined text-[16px] text-error" data-icon="calendar_month">calendar_month</span>
+                ⚠️ Office Hours
+              </button>
+<button class="px-3.5 py-1.5 rounded-full bg-[#B6D9EC] hover:bg-[#9fcbe2] text-[#284b5b] border border-[#284b5b]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="outgoing_mail">outgoing_mail</span>
+                💬 Urgent Nudge
+              </button>
+</div>
+</div>
+</article>
+<!-- Student Card 5: Priya Nair -->
+<article class="bg-surface-container-lowest rounded-3xl p-5 tactile-card hover:border-[#DE95BE] transition-all">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#EADECE]">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-[#B6DEC9] border-2 border-[#255C45]/30 flex items-center justify-center font-extrabold text-[#255C45] text-headline-sm">
+                PN
+              </div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-headline-sm font-headline-sm font-bold text-on-surface">Priya Nair</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-[#FAF8F6] border border-outline-variant text-[11px] font-mono font-bold text-on-surface-variant">#22CSE045</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">B.Tech CSE '26</span>
+</div>
+<div class="flex items-center gap-2 mt-1">
+<!-- CGPA Pill -->
+<span class="px-2.5 py-0.5 rounded-full bg-[#B6DEC9] text-[#255C45] text-label-sm font-label-sm font-extrabold border border-[#255C45]/20">
+                    9.15 CGPA
+                  </span>
+<span class="px-2 py-0.5 rounded-full bg-[#CFBAED]/40 text-[#3d2757] text-label-sm font-label-sm font-bold border border-[#CFBAED]">
+                    Top 5% Cohort
+                  </span>
+</div>
+</div>
+</div>
+<!-- Readiness Bar Meter -->
+<div class="sm:text-right flex flex-col sm:items-end">
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">Readiness Index:</span>
+<span class="text-headline-sm font-headline-sm font-black text-tertiary">94%</span>
+</div>
+<div class="w-36 h-2.5 bg-surface-container rounded-full overflow-hidden mt-1 p-0.5 border border-outline-variant/60">
+<div class="h-full bg-tertiary rounded-full" style="width: 94%;"></div>
+</div>
+</div>
+</div>
+<!-- Status Block -->
+<div class="mt-3.5 bg-[#FAF8F6] border border-[#EADECE] rounded-2xl p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="flex items-center gap-2">
+<span class="w-6 h-6 rounded-full bg-[#B6DEC9] text-[#255C45] flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-[16px]" data-icon="done_all" style="font-variation-settings: 'FILL' 1;">done_all</span>
+</span>
+<span class="text-label-md font-label-md font-bold text-on-surface">
+                All Capstone Proofs &amp; Micro-Defenses Verified (Tier 5 Master)
+              </span>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 flex-shrink-0">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest border border-outline-variant text-on-surface text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1.5 hover:bg-surface-container">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="policy">policy</span>
+                View Cryptographic Ledger
+              </button>
+<button class="px-3 py-1.5 rounded-full bg-[#B6D9EC] hover:bg-[#9fcbe2] text-[#284b5b] border border-[#284b5b]/20 text-label-sm font-label-sm font-bold tactile-btn flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="celebration">celebration</span>
+                💬 Congratulate
+              </button>
+</div>
+</div>
+</article>
+</section>
+<!-- RIGHT: 5. MENTOR INSPECTION PREVIEW & RUBRIC SIGN-OFF DRAWER (4 COLS) -->
+<aside class="lg:col-span-4 space-y-4">
+<div class="bg-surface-container-lowest rounded-3xl p-6 tactile-card sticky top-28 space-y-5">
+<!-- Drawer Header -->
+<div class="flex items-center justify-between pb-3 border-b border-[#EADECE]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[22px]" data-icon="fact_check" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+<h2 class="text-headline-sm font-headline-sm font-bold text-on-surface">Capstone Inspection</h2>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container text-[11px] font-bold">
+              Active Focus
+            </span>
+</div>
+<!-- Selected Student Capstone Preview Info -->
+<div class="bg-[#FAF8F6] border border-[#EADECE] rounded-2xl p-4 space-y-2">
+<div class="flex items-center justify-between">
+<span class="text-label-sm font-label-sm text-primary font-bold">FOCUS CANDIDATE</span>
+<span class="text-[11px] font-mono text-on-surface-variant font-bold">#22CSE014</span>
+</div>
+<h4 class="text-headline-sm font-headline-sm font-black text-on-surface leading-snug">
+              Aarav Sharma — Distributed Concurrency Cache
+            </h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+              High-throughput Redis cache wrapper using lease renewal, mutex locks, and distributed sliding window limiter.
+            </p>
+<div class="flex items-center gap-2 pt-1 text-label-sm font-label-sm text-tertiary font-bold">
+<span class="material-symbols-outlined text-[16px]" data-icon="code">code</span>
+<span>repo: campusbridge.io/aarav-redis-cache</span>
+</div>
+</div>
+<!-- Rubric Verification Checklist -->
+<div class="space-y-3">
+<h5 class="text-label-md font-label-md font-bold text-on-surface-variant tracking-wider uppercase">
+              Academic Rubric Clearance
+            </h5>
+<!-- Checklist Item 1 -->
+<label class="flex items-start gap-3 p-3 rounded-2xl bg-[#FAF8F6] border border-[#EADECE] cursor-pointer hover:bg-surface-container transition-colors">
+<input checked="" class="mt-1 w-5 h-5 rounded-lg text-primary focus:ring-primary border-[#CFBAED]" type="checkbox"/>
+<div class="text-left">
+<p class="text-label-sm font-label-sm font-bold text-on-surface">Code Architecture &amp; Repo Verification</p>
+<p class="text-[11px] text-on-surface-variant">Clean modular structure, 12 unit tests passed</p>
+</div>
+</label>
+<!-- Checklist Item 2 -->
+<label class="flex items-start gap-3 p-3 rounded-2xl bg-[#FAF8F6] border border-[#EADECE] cursor-pointer hover:bg-surface-container transition-colors">
+<input checked="" class="mt-1 w-5 h-5 rounded-lg text-primary focus:ring-primary border-[#CFBAED]" type="checkbox"/>
+<div class="text-left">
+<p class="text-label-sm font-label-sm font-bold text-on-surface">120s Technical Defense Audio Transcript</p>
+<p class="text-[11px] text-on-surface-variant">Evaluated by R.O.N.E.N. at 92% Solid score</p>
+</div>
+</label>
+<!-- Checklist Item 3 (Pending) -->
+<label class="flex items-start gap-3 p-3 rounded-2xl bg-primary-container/30 border border-[#DE95BE] cursor-pointer transition-colors">
+<input class="mt-1 w-5 h-5 rounded-lg text-primary focus:ring-primary border-[#DE95BE]" type="checkbox"/>
+<div class="text-left">
+<p class="text-label-sm font-label-sm font-bold text-primary">Faculty Endorsement &amp; Academic Tier 5 Credit Sign-off</p>
+<p class="text-[11px] text-on-surface-variant font-medium">Pending Dr. Iyer digital sign-off</p>
+</div>
+</label>
+</div>
+<!-- Audio Waveform Mini-Player Widget -->
+<div class="bg-[#F1EFEA] rounded-2xl p-3 border border-[#E2DFD9] flex items-center justify-between gap-3">
+<button class="w-9 h-9 rounded-full bg-primary text-surface-container-lowest flex items-center justify-center tactile-btn shadow-[0_2px_0_#4f2c41]">
+<span class="material-symbols-outlined text-[20px]" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex-1 space-y-1">
+<div class="flex justify-between text-[11px] font-bold text-on-surface-variant">
+<span>Micro-Defense Audio (01:58)</span>
+<span>Idempotency QA</span>
+</div>
+<div class="flex items-end gap-1 h-5 w-full">
+<span class="w-1 h-3 bg-primary rounded-full"></span>
+<span class="w-1 h-4 bg-primary rounded-full"></span>
+<span class="w-1 h-2 bg-primary rounded-full"></span>
+<span class="w-1 h-5 bg-[#DE95BE] rounded-full"></span>
+<span class="w-1 h-3 bg-[#DE95BE] rounded-full"></span>
+<span class="w-1 h-4 bg-tertiary rounded-full"></span>
+<span class="w-1 h-5 bg-tertiary rounded-full"></span>
+<span class="w-1 h-2 bg-tertiary rounded-full"></span>
+<span class="w-1 h-4 bg-[#B6D9EC] rounded-full"></span>
+<span class="w-1 h-3 bg-[#B6D9EC] rounded-full"></span>
+<span class="w-1 h-5 bg-primary rounded-full"></span>
+<span class="w-1 h-4 bg-primary rounded-full"></span>
+<span class="w-1 h-2 bg-primary rounded-full"></span>
+<span class="w-1 h-4 bg-primary rounded-full"></span>
+<span class="w-1 h-1 bg-outline rounded-full"></span>
+</div>
+</div>
+</div>
+<!-- Mentor Feedback Composer Input -->
+<div class="space-y-2">
+<label class="text-label-sm font-label-sm font-bold text-on-surface flex items-center justify-between">
+<span>Private Faculty Note &amp; Transcript Annotation</span>
+<span class="text-[11px] text-on-surface-variant">Encrypted</span>
+</label>
+<textarea class="w-full bg-[#FAF8F6] border border-[#E5D9E8] rounded-2xl p-3 text-body-sm font-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-[#DE95BE] transition-all resize-none" placeholder="Add private mentor note or rubric revision suggestion..." rows="3">Demonstrated strong grasp of lock leases and sliding-window concurrency under high load. Approved for production-grade placement dossier.</textarea>
+<!-- Quick Template Chips -->
+<div class="flex items-center gap-1.5 flex-wrap pt-1">
+<button class="px-2.5 py-1 rounded-full bg-surface-container-low border border-outline-variant hover:bg-surface-container text-label-sm font-label-sm text-on-surface-variant transition-colors tactile-btn">
+                + "Strengthen thread-safety analysis"
+              </button>
+<button class="px-2.5 py-1 rounded-full bg-[#B6DEC9]/60 border border-[#255C45]/20 hover:bg-[#B6DEC9] text-label-sm font-label-sm text-[#255C45] font-bold transition-colors tactile-btn">
+                + "Approved for placement cohort"
+              </button>
+</div>
+</div>
+<!-- Sign-Off Primary Deep Plum Capsule Button -->
+<button class="w-full py-3.5 px-4 rounded-full bg-primary hover:bg-[#6e445d] text-surface-container-lowest font-headline-sm text-[15px] font-bold shadow-[0_4px_0_#4f2c41] tactile-btn flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[20px]" data-icon="draw">draw</span>
+            Digitally Sign &amp; Lock Capstone Proof →
+          </button>
+<p class="text-[11px] text-center text-on-surface-variant font-medium">
+            This action creates an irreversible zero-leak SHA-256 faculty endorsement hash on the institutional ledger.
+          </p>
+</div>
+</aside>
+</div>
+</main>
+<!-- ==================== 6. FOOTER ==================== -->
+<footer class="max-w-7xl mx-auto px-4 md:px-margin mt-12 pt-6 border-t border-dashed border-[#EADECE] text-center">
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-body-sm font-body-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span>© 2025 CampusBridge AI • Pastel Tactile Studio v3.2</span>
+</div>
+<div class="flex items-center gap-3 text-label-sm font-label-sm font-medium">
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container border border-outline-variant">Faculty Mentor Portal</span>
+<span>•</span>
+<span>FERPA &amp; Institutional Placement Ethics Certified</span>
+<span>•</span>
+<span class="text-tertiary font-bold">Excel ODBC Sync Active</span>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,631 @@
+{
+  "version": "1.1",
+  "generated_at": "2026-11-01T14:00:53Z",
+  "servers_count": 6,
+  "tools_count": 13,
+  "tools": [
+    {
+      "server": "student-profile",
+      "name": "get_my_profile",
+      "description": "Read authenticated student's structured profile, degree standing, and Privacy Shield settings.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "include_preferences": {
+            "type": "boolean",
+            "description": "Whether to include career preference details.",
+            "default": true
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "student_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "degree": {
+            "type": "string"
+          },
+          "cgpa": {
+            "type": "number"
+          },
+          "privacy_shield": {
+            "type": "object"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "student-profile",
+      "name": "list_my_evidence",
+      "description": "List all skill evidence items, 6-tier status, confidence scores, and source document spans for the authenticated student.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "status_filter": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "EXTRACTED",
+              "STUDENT_CONFIRMED",
+              "ARTIFACT_LINKED",
+              "ASSESSMENT_VERIFIED",
+              "INSTITUTION_VERIFIED",
+              "EXPIRED"
+            ],
+            "default": "ALL"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "student_id": {
+            "type": "string"
+          },
+          "evidence_count": {
+            "type": "integer"
+          },
+          "evidence": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "student-profile",
+      "name": "propose_profile_update",
+      "description": "Propose a new AI-extracted skill claim. Creates a provisional Ghost Card (EXTRACTED status) that requires student confirmation.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "skill_name",
+          "source_document_id",
+          "source_span"
+        ],
+        "properties": {
+          "skill_name": {
+            "type": "string",
+            "description": "Canonical name of the skill."
+          },
+          "proficiency_level": {
+            "type": "number",
+            "description": "Proficiency 0.0 to 1.0.",
+            "default": 0.8
+          },
+          "source_document_id": {
+            "type": "string",
+            "description": "Document ID where skill was found."
+          },
+          "source_span": {
+            "type": "object",
+            "required": [
+              "start_char",
+              "end_char"
+            ],
+            "properties": {
+              "start_char": {
+                "type": "integer"
+              },
+              "end_char": {
+                "type": "integer"
+              },
+              "section_path": {
+                "type": "string",
+                "default": "Skills"
+              }
+            }
+          },
+          "extraction_confidence": {
+            "type": "number",
+            "default": 0.9
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "evidence_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 10,
+      "timeout_seconds": 10.0,
+      "read_only": false
+    },
+    {
+      "server": "career-knowledge",
+      "name": "search_role_guides",
+      "description": "Search institutional career role guides, skill expectations, and prerequisites.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search keywords e.g. 'Backend Engineer', 'Machine Learning'."
+          },
+          "role_family": {
+            "type": "string",
+            "description": "Optional filter by role family."
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "total_matches": {
+            "type": "integer"
+          },
+          "guides": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "FACULTY_MENTOR",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "career-knowledge",
+      "name": "search_learning_resources",
+      "description": "Search approved learning resources categorized for 72-Hour Drive Sprint or Semester Marathon modes.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "skills"
+        ],
+        "properties": {
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Target skill gaps."
+          },
+          "prep_mode": {
+            "type": "string",
+            "enum": [
+              "ALL",
+              "SPRINT_72H",
+              "MARATHON_SEMESTER"
+            ],
+            "default": "ALL"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "total_resources": {
+            "type": "integer"
+          },
+          "resources": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "FACULTY_MENTOR",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "job-intelligence",
+      "name": "get_approved_job",
+      "description": "Fetch an officer-approved job opportunity with its mandatory and preferred criteria.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Job identifier e.g. 'job-backend-techcorp-001'."
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "mandatory_requirements": {
+            "type": "array"
+          },
+          "preferred_requirements": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "RECRUITER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "job-intelligence",
+      "name": "draft_job_requirements",
+      "description": "Parse raw JD text into structured draft criteria with source spans. Restricted to placement officers and admins.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "raw_description",
+          "company_name",
+          "job_title"
+        ],
+        "properties": {
+          "company_name": {
+            "type": "string"
+          },
+          "job_title": {
+            "type": "string"
+          },
+          "raw_description": {
+            "type": "string",
+            "description": "Raw text of the recruiter JD."
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "draft_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "extracted_mandatory": {
+            "type": "array"
+          },
+          "extracted_preferred": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "PLACEMENT_OFFICER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 20,
+      "timeout_seconds": 10.0,
+      "read_only": false
+    },
+    {
+      "server": "matching",
+      "name": "run_match_preview",
+      "description": "Evaluate deterministic hard eligibility gates and 5-factor rubric alignment for a student and job.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Target job identifier."
+          },
+          "student_id": {
+            "type": "string",
+            "description": "Optional student override (officer scope only)."
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "eligibility_status": {
+            "type": "string"
+          },
+          "alignment_score": {
+            "type": "number"
+          },
+          "eligibility_gates": {
+            "type": "array"
+          },
+          "factor_breakdown": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "FACULTY_MENTOR",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "matching",
+      "name": "explain_match",
+      "description": "Translate match results into a plain-language coaching summary with inline citations to verified evidence.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "job_id"
+        ],
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "description": "Target job identifier."
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string"
+          },
+          "explanation_markdown": {
+            "type": "string"
+          },
+          "strengths": {
+            "type": "array"
+          },
+          "actionable_gaps": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "FACULTY_MENTOR",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 30,
+      "timeout_seconds": 8.0,
+      "read_only": true
+    },
+    {
+      "server": "placement-ops",
+      "name": "list_my_applications",
+      "description": "List the active applications and placement pipeline milestones for the authenticated student.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "student_id": {
+            "type": "string"
+          },
+          "total_applications": {
+            "type": "integer"
+          },
+          "applications": {
+            "type": "array"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "PLACEMENT_OFFICER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 60,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    },
+    {
+      "server": "placement-ops",
+      "name": "create_study_task",
+      "description": "Add an actionable prep task into the student's 72-Hour Drive Sprint or Semester Marathon checklist.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "title",
+          "mode"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Action title e.g. 'Complete SQL Indexing Rubric'."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "SPRINT_72H",
+              "MARATHON_SEMESTER"
+            ],
+            "default": "SPRINT_72H"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "default": "HIGH"
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "required_roles": [
+        "STUDENT",
+        "FACULTY_MENTOR",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 20,
+      "timeout_seconds": 5.0,
+      "read_only": false
+    },
+    {
+      "server": "placement-ops",
+      "name": "record_human_review",
+      "description": "Record an official placement officer adjudication or eligibility exception override with mandatory reason code.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "decision",
+          "reason_code",
+          "target_entity_id"
+        ],
+        "properties": {
+          "target_entity_id": {
+            "type": "string",
+            "description": "Application, dispute, or job ID."
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "REJECTED",
+              "OVERRIDE_GRANTED"
+            ]
+          },
+          "reason_code": {
+            "type": "string",
+            "enum": [
+              "EQUIVALENCE_APPROVED",
+              "TRANSCRIPT_VERIFIED",
+              "RECRUITER_POLICY_WAIVER",
+              "INSUFFICIENT_DOCUMENTATION"
+            ]
+          },
+          "notes": {
+            "type": "string",
+            "default": ""
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "review_id": {
+            "type": "string"
+          },
+          "recorded_at": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "required_roles": [
+        "PLACEMENT_OFFICER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 10,
+      "timeout_seconds": 10.0,
+      "read_only": false
+    },
+    {
+      "server": "analytics",
+      "name": "get_cohort_summary",
+      "description": "Retrieve aggregate cohort readiness distributions with DPDP small-cell suppression (< 5 students). Restricted to placement officers and admins.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "cohort_id": {
+            "type": "string",
+            "default": "cohort-2027-cs"
+          },
+          "min_k_anonymity": {
+            "type": "integer",
+            "default": 5
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "total_cohort_size": {
+            "type": "integer"
+          },
+          "readiness_tiers": {
+            "type": "object"
+          },
+          "k_anonymity_applied": {
+            "type": "boolean"
+          }
+        }
+      },
+      "required_roles": [
+        "PLACEMENT_OFFICER",
+        "ADMIN"
+      ],
+      "rate_limit_per_minute": 30,
+      "timeout_seconds": 5.0,
+      "read_only": true
+    }
+  ]
+}

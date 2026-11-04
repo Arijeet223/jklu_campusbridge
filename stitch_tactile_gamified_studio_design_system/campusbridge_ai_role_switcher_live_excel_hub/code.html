@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusBridge AI — Role Switcher & Live Excel Account Hub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            canvas: '#FAF8F6',
+            blossom: '#F0B6D5',
+            sky: '#B6D9EC',
+            mint: '#B6DEC9',
+            plum: '#6D3B56',
+            'plum-dark': '#552940',
+            shell: '#F1EFEA',
+            ink: '#232224',
+            muted: '#5A585C',
+            borderSubtle: '#E2DFD9'
+          },
+          boxShadow: {
+            'tactile': '0 4px 0 #CBD5E1',
+            'tactile-plum': '0 4px 0 #4B2439',
+            'tactile-subtle': '0 3px 0 #D8D4CC',
+            'game-card': '0 6px 0 #E2DFD9, 0 14px 25px -6px rgba(109, 59, 86, 0.06)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #FAF8F6;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #232224;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Spring micro-interactions */
+    .game-pressable {
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    }
+    .game-pressable:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.15) !important;
+    }
+
+    .badge-float {
+      animation: float 4s ease-in-out infinite alternate;
+    }
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      100% { transform: translateY(-5px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen relative pb-16 selection:bg-[#F0B6D5] selection:text-[#6D3B56]">
+
+  <!-- Playful Curved Dashed Trajectory Line Sweeping Across Top -->
+  <div class="absolute top-0 left-0 right-0 h-44 overflow-hidden pointer-events-none z-0">
+    <svg class="w-full h-full opacity-60" viewBox="0 0 1200 180" fill="none" preserveAspectRatio="none">
+      <path d="M-50,60 C 250,140 500,-20 800,75 C 1000,140 1150,50 1250,90" stroke="#6D3B56" stroke-width="2.5" stroke-dasharray="7 9" stroke-linecap="round"/>
+      <circle cx="280" cy="115" r="4.5" fill="#F0B6D5" />
+      <circle cx="750" cy="55" r="5" fill="#B6DEC9" />
+      <circle cx="1060" cy="95" r="4" fill="#B6D9EC" />
+    </svg>
+  </div>
+
+  <!-- Soft Layered Wave in Bottom Corner -->
+  <div class="fixed bottom-0 right-0 w-80 h-72 pointer-events-none z-0 opacity-75 overflow-hidden">
+    <svg viewBox="0 0 320 280" fill="none" class="w-full h-full">
+      <path d="M60 280 C 130 200 160 140 320 120 L 320 280 Z" fill="#B6D9EC" fill-opacity="0.45"/>
+      <path d="M120 280 C 190 220 220 170 320 160 L 320 280 Z" fill="#F0B6D5" fill-opacity="0.55"/>
+    </svg>
+  </div>
+
+  <main class="relative z-10 max-w-[1160px] mx-auto px-4 sm:px-6 pt-6 sm:pt-10">
+
+    <!-- Top Navigation Bar & Brand Badge -->
+    <header class="flex items-center justify-between mb-6 px-1">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-[#6D3B56] text-white flex items-center justify-center font-extrabold text-lg shadow-[0_3px_0_#4B2439]">
+          CB
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs uppercase tracking-wider font-extrabold text-[#6D3B56] bg-[#F0B6D5]/40 px-2 py-0.5 rounded-full">v2.4 Live Sync</span>
+            <span class="text-xs text-[#5A585C] hidden sm:inline">Tactile Gamified Studio</span>
+          </div>
+          <h2 class="text-sm sm:text-base font-bold text-[#232224] leading-tight">CampusBridge AI</h2>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="inline-flex items-center gap-1.5 bg-white border border-[#E2DFD9] rounded-full px-3 py-1 text-xs font-semibold text-[#232224] shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="font-mono text-[11px]">8.4k Syncs/Day</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Outer Bento Hero Container -->
+    <div class="bg-[#F1EFEA] border-2 border-[#E2DFD9] rounded-3xl p-5 sm:p-8 lg:p-10 shadow-[0_12px_32px_-12px_rgba(109,59,86,0.08)]">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-7">
+
+        <!-- ========================================== -->
+        <!-- LEFT BENTO COLUMN                          -->
+        <!-- ========================================== -->
+        <div class="lg:col-span-5 flex flex-col justify-between gap-6">
+
+          <!-- Main Left Editorial & Vector Illustration Card -->
+          <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-[#E2DFD9] shadow-game-card relative overflow-hidden flex flex-col justify-between flex-1">
+            
+            <!-- Spot Vector Illustration & Floating Badges -->
+            <div class="relative w-full h-56 sm:h-64 bg-[#FAF8F6] rounded-2xl p-4 border border-[#E2DFD9] flex items-center justify-center mb-6 overflow-hidden">
+              
+              <!-- Subtle decorative grid in illustration canvas -->
+              <div class="absolute inset-0 opacity-25" style="background-image: radial-gradient(#6D3B56 0.75px, transparent 0.75px); background-size: 16px 16px;"></div>
+              
+              <!-- Floating Skill Badge 1: DSA -->
+              <div class="absolute top-3 left-4 badge-float bg-white/95 backdrop-blur-sm border-2 border-[#B6D9EC] rounded-2xl px-3 py-1.5 shadow-[0_4px_0_#B6D9EC] flex items-center gap-2 z-20">
+                <span class="text-sm">⚡</span>
+                <div>
+                  <div class="text-[10px] font-extrabold uppercase text-[#2B5B75] tracking-wider leading-none">DSA Speed</div>
+                  <div class="text-xs font-mono font-bold text-[#232224]">O(N log N)</div>
+                </div>
+              </div>
+
+              <!-- Floating Skill Badge 2: 120s Defense -->
+              <div class="absolute top-4 right-3 badge-float bg-white/95 backdrop-blur-sm border-2 border-[#F0B6D5] rounded-2xl px-3 py-1.5 shadow-[0_4px_0_#F0B6D5] flex items-center gap-2 z-20" style="animation-delay: -2s;">
+                <span class="text-sm">⏱️</span>
+                <div>
+                  <div class="text-[10px] font-extrabold uppercase text-[#6D3B56] tracking-wider leading-none">Defense Timer</div>
+                  <div class="text-xs font-mono font-bold text-[#6D3B56]">120s Verified</div>
+                </div>
+              </div>
+
+              <!-- Flat Vector SVG Character Illustration -->
+              <svg viewBox="0 0 360 220" class="w-full h-full max-h-56 z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Desk Surface -->
+                <rect x="30" y="178" width="300" height="8" rx="4" fill="#6D3B56" />
+                <rect x="70" y="186" width="10" height="28" rx="2" fill="#E2DFD9" />
+                <rect x="280" y="186" width="10" height="28" rx="2" fill="#E2DFD9" />
+
+                <!-- Potted Plant on Desk (Mint Sage #B6DEC9 + Deep Plum accents) -->
+                <g id="plant">
+                  <!-- Pot -->
+                  <path d="M52 152 L78 152 L73 178 L57 178 Z" fill="#6D3B56" />
+                  <rect x="50" y="149" width="30" height="4" rx="2" fill="#F0B6D5" />
+                  <!-- Leaves -->
+                  <path d="M65 149 C 55 130 40 135 42 145 C 44 149 58 150 65 149 Z" fill="#B6DEC9" stroke="#6D3B56" stroke-width="1.5"/>
+                  <path d="M65 149 C 75 125 90 128 88 138 C 86 144 72 148 65 149 Z" fill="#B6DEC9" stroke="#6D3B56" stroke-width="1.5"/>
+                  <path d="M65 140 C 62 118 72 110 70 125 Z" fill="#A2D1B8" stroke="#6D3B56" stroke-width="1.5"/>
+                  <!-- Leaf veins -->
+                  <path d="M54 140 Q 60 144 65 148" stroke="#6D3B56" stroke-width="1" stroke-linecap="round"/>
+                  <path d="M76 138 Q 71 143 66 148" stroke="#6D3B56" stroke-width="1" stroke-linecap="round"/>
+                </g>
+
+                <!-- Student Coding Character -->
+                <g id="student">
+                  <!-- Stool / Chair -->
+                  <ellipse cx="215" cy="180" rx="24" ry="5" fill="#E2DFD9" />
+                  <path d="M215 180 L215 210" stroke="#6D3B56" stroke-width="4" stroke-linecap="round"/>
+
+                  <!-- Torso & Blossom Pink Shirt (#F0B6D5) -->
+                  <path d="M192 126 C 182 145 180 180 205 180 C 228 180 236 148 226 126 Z" fill="#F0B6D5" stroke="#6D3B56" stroke-width="2"/>
+                  <!-- Collar & Tie Accent -->
+                  <path d="M205 126 L208 142 L213 126" stroke="#6D3B56" stroke-width="2" fill="#FAF8F6"/>
+
+                  <!-- Head & Hair (Deep Plum #6D3B56) -->
+                  <circle cx="210" cy="100" r="16" fill="#FCEAD4" stroke="#6D3B56" stroke-width="2"/>
+                  <!-- Hair -->
+                  <path d="M194 98 C 194 84 212 78 224 86 C 228 92 227 101 224 103 C 220 98 214 96 206 97 C 200 97 197 101 194 98 Z" fill="#6D3B56"/>
+                  <!-- Ear & glasses -->
+                  <circle cx="216" cy="101" r="5" stroke="#6D3B56" stroke-width="2" fill="none"/>
+                  <path d="M211 101 L213 101" stroke="#6D3B56" stroke-width="2"/>
+
+                  <!-- Arm extending to Laptop -->
+                  <path d="M196 135 Q 170 148 152 162" stroke="#F0B6D5" stroke-width="10" stroke-linecap="round"/>
+                  <path d="M196 135 Q 170 148 152 162" stroke="#6D3B56" stroke-width="2" stroke-linecap="round" fill="none"/>
+                  <!-- Hand on keyboard -->
+                  <ellipse cx="148" cy="164" rx="5" ry="3.5" fill="#FCEAD4" stroke="#6D3B56" stroke-width="1.5"/>
+
+                  <!-- Laptop (Deep Plum & Sky Blue glow) -->
+                  <!-- Screen -->
+                  <path d="M125 132 L158 132 L150 165 L118 165 Z" fill="#6D3B56" stroke="#6D3B56" stroke-width="1.5"/>
+                  <path d="M127 135 L155 135 L148 162 L121 162 Z" fill="#B6D9EC" />
+                  <!-- Code lines on screen -->
+                  <line x1="126" y1="140" x2="148" y2="140" stroke="#2B5B75" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="128" y1="146" x2="144" y2="146" stroke="#6D3B56" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="125" y1="152" x2="146" y2="152" stroke="#2B5B75" stroke-width="1.5" stroke-linecap="round"/>
+                  <!-- Laptop Base -->
+                  <rect x="110" y="165" width="52" height="5" rx="2" fill="#E2DFD9" stroke="#6D3B56" stroke-width="1.5"/>
+                </g>
+
+                <!-- Floating Dotted Trajectory Connecting to Student -->
+                <path d="M90 70 Q 150 40 200 70" stroke="#6D3B56" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <circle cx="90" cy="70" r="3.5" fill="#B6DEC9" stroke="#6D3B56" stroke-width="1.5"/>
+                <circle cx="200" cy="70" r="3" fill="#F0B6D5" stroke="#6D3B56" stroke-width="1.5"/>
+
+                <!-- Ceramic Coffee Mug -->
+                <rect x="238" y="162" width="12" height="15" rx="3" fill="#B6DEC9" stroke="#6D3B56" stroke-width="1.5"/>
+                <path d="M250 166 C 254 166 254 172 250 172" stroke="#6D3B56" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+
+            <!-- Headline & High-Impact Copy -->
+            <div class="space-y-3">
+              <h1 class="text-3xl sm:text-[38px] font-extrabold text-[#232224] leading-[1.12] tracking-tight">
+                Make Your Capabilities Visible.
+              </h1>
+              <p class="text-sm sm:text-base font-normal text-[#5A585C] leading-relaxed">
+                Practice DSA &amp; SQL, defend your code in 120 seconds, and simulate your campus placement fit with zero black-box anxiety.
+              </p>
+            </div>
+
+            <!-- Feature Tags -->
+            <div class="flex flex-wrap gap-2 pt-5 border-t border-[#E2DFD9] mt-6">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#FAF8F6] border border-[#E2DFD9] text-[#232224]">
+                🎯 120s Defense
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F0B6D5]/30 border border-[#F0B6D5] text-[#6D3B56]">
+                ⚡ AI Proctor
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#B6DEC9]/35 border border-[#B6DEC9] text-[#232224]">
+                📊 Transparent Fit
+              </span>
+            </div>
+          </div>
+
+          <!-- Bottom Card: Tactile Mint Sage & White Status Pill Bar -->
+          <div class="bg-white rounded-3xl p-5 sm:p-6 border-2 border-[#B6DEC9] shadow-[0_6px_0_#B6DEC9,0_12px_20px_-8px_rgba(182,222,201,0.4)] space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="inline-flex items-center gap-2.5 bg-[#B6DEC9]/40 border border-[#B6DEC9] px-3.5 py-1.5 rounded-full text-xs font-bold text-[#1F4634]">
+                <span class="relative flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-600"></span>
+                </span>
+                <span>Live Excel DB Connected</span>
+              </div>
+              <span class="font-mono text-xs font-semibold text-[#5A585C] bg-[#FAF8F6] px-2.5 py-1 rounded-lg border border-[#E2DFD9]">
+                8 Sheets • Auto-Sync
+              </span>
+            </div>
+
+            <div class="font-mono text-xs text-[#232224] bg-[#FAF8F6] p-2.5 rounded-xl border border-[#E2DFD9] flex items-center justify-between">
+              <span class="truncate">📁 campusbridge_db.xlsx</span>
+              <span class="text-[11px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded">Synced 14s ago</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <!-- Primary Deep Plum Pill Button -->
+              <button type="button" class="game-pressable w-full py-3 px-3 bg-[#6D3B56] hover:bg-[#5A2E44] text-white rounded-full text-xs sm:text-sm font-bold shadow-[0_4px_0_#482136] flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>⬇</span>
+                <span>Download .xlsx</span>
+              </button>
+              
+              <!-- Outlined Pill Button -->
+              <button type="button" class="game-pressable w-full py-3 px-3 bg-white hover:bg-[#FAF8F6] text-[#232224] border-2 border-[#E2DFD9] rounded-full text-xs sm:text-sm font-bold shadow-[0_3px_0_#D8D4CC] flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>⬆</span>
+                <span>Upload &amp; Sync</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- RIGHT BENTO COLUMN                         -->
+        <!-- ========================================== -->
+        <div class="lg:col-span-7 flex flex-col gap-6">
+
+          <!-- Top Floating Pill Role Switcher -->
+          <div class="bg-[#F1EFEA] p-1.5 rounded-full border-2 border-[#E2DFD9] shadow-sm flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <!-- Active Student Capsule -->
+            <button class="game-pressable whitespace-nowrap px-4 sm:px-5 py-2.5 rounded-full bg-[#6D3B56] text-white text-xs sm:text-sm font-bold shadow-[0_3px_0_#482136] flex items-center gap-2">
+              <span>🎓</span>
+              <span>Student</span>
+              <span class="bg-[#F0B6D5] text-[#6D3B56] text-[10px] font-extrabold px-1.5 py-0.2 rounded-full ml-1">Active</span>
+            </button>
+
+            <!-- Teacher / TPO -->
+            <button class="game-pressable whitespace-nowrap px-3.5 sm:px-4 py-2.5 rounded-full bg-white hover:bg-[#FAF8F6] text-[#232224] text-xs sm:text-sm font-semibold border border-[#E2DFD9] shadow-sm flex items-center gap-1.5">
+              <span>👩‍🏫</span>
+              <span>Teacher / TPO</span>
+            </button>
+
+            <!-- AI & MCP Health -->
+            <button class="game-pressable whitespace-nowrap px-3.5 sm:px-4 py-2.5 rounded-full bg-white hover:bg-[#FAF8F6] text-[#232224] text-xs sm:text-sm font-semibold border border-[#E2DFD9] shadow-sm flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>AI &amp; MCP Health</span>
+            </button>
+
+            <!-- New Account -->
+            <button class="game-pressable whitespace-nowrap px-3.5 sm:px-4 py-2.5 rounded-full bg-white hover:bg-[#FAF8F6] text-[#6D3B56] text-xs sm:text-sm font-bold border border-[#E2DFD9] shadow-sm flex items-center gap-1">
+              <span>➕</span>
+              <span>New</span>
+            </button>
+          </div>
+
+          <!-- Section Label -->
+          <div class="flex items-center justify-between px-1">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-[#6D3B56]">1-Click Persona Deck</span>
+              <span class="text-xs text-[#5A585C]">• Press tile to switch session context</span>
+            </div>
+            <span class="text-xs font-mono font-bold text-[#6D3B56] bg-white px-2 py-0.5 rounded-md border border-[#E2DFD9]">3 Pre-Loaded</span>
+          </div>
+
+          <!-- 3 Spacious Persona Game Tiles -->
+          <div class="space-y-4">
+            
+            <!-- Persona 1: Aarav Sharma -->
+            <div class="game-pressable bg-white rounded-3xl p-5 sm:p-6 border-2 border-[#E2DFD9] shadow-game-card hover:border-[#F0B6D5] transition-all cursor-pointer group">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5 sm:gap-4">
+                  <!-- Avatar Token -->
+                  <div class="w-12 h-12 rounded-2xl bg-[#F0B6D5]/40 border-2 border-[#F0B6D5] flex items-center justify-center font-extrabold text-[#6D3B56] text-lg shadow-[0_3px_0_#F0B6D5] flex-shrink-0 group-hover:scale-105 transition-transform">
+                    AS
+                  </div>
+                  <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="text-base sm:text-lg font-extrabold text-[#232224] tracking-tight group-hover:text-[#6D3B56] transition-colors">
+                        Aarav Sharma
+                      </h3>
+                      <span class="font-mono text-xs font-medium text-[#5A585C] bg-[#FAF8F6] px-2 py-0.5 rounded-md border border-[#E2DFD9]">
+                        B.Tech CSE '26 • 8.42 CGPA
+                      </span>
+                    </div>
+
+                    <!-- Blossom Pink label pill -->
+                    <div>
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#F0B6D5] text-[#552940] shadow-[0_2px_0_#DDA0C0]">
+                        <span>✏️</span>
+                        <span>72h Sprint Active</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Circular Action Button in Deep Plum (#6D3B56) -->
+                <button class="w-11 h-11 rounded-full bg-[#6D3B56] group-hover:bg-[#552940] text-white flex items-center justify-center font-bold text-base shadow-[0_3px_0_#482136] flex-shrink-0 group-hover:translate-x-0.5 transition-all" title="Switch to Aarav">
+                  →
+                </button>
+              </div>
+
+              <!-- Quick Meta Footer -->
+              <div class="mt-4 pt-3 border-t border-[#F1EFEA] flex items-center justify-between text-xs text-[#5A585C]">
+                <span class="font-medium">Recent: Graph Traversal Defense (Score: 94/100)</span>
+                <span class="font-mono text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Ready for Google Prep</span>
+              </div>
+            </div>
+
+            <!-- Persona 2: Prof. Rajesh Menon & Dr. Kavita Iyer -->
+            <div class="game-pressable bg-white rounded-3xl p-5 sm:p-6 border-2 border-[#E2DFD9] shadow-game-card hover:border-[#B6D9EC] transition-all cursor-pointer group">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5 sm:gap-4">
+                  <!-- Avatar Token -->
+                  <div class="w-12 h-12 rounded-2xl bg-[#B6D9EC]/40 border-2 border-[#B6D9EC] flex items-center justify-center font-extrabold text-[#2B5B75] text-lg shadow-[0_3px_0_#B6D9EC] flex-shrink-0 group-hover:scale-105 transition-transform">
+                    TPO
+                  </div>
+                  <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="text-base sm:text-lg font-extrabold text-[#232224] tracking-tight group-hover:text-[#2B5B75] transition-colors">
+                        Prof. Rajesh Menon &amp; Dr. Kavita Iyer
+                      </h3>
+                      <span class="font-mono text-xs font-medium text-[#5A585C] bg-[#FAF8F6] px-2 py-0.5 rounded-md border border-[#E2DFD9]">
+                        TPO Cell &amp; CSE Faculty
+                      </span>
+                    </div>
+
+                    <!-- Sky Blue label pill -->
+                    <div>
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#B6D9EC] text-[#1E4357] shadow-[0_2px_0_#9DC6DC]">
+                        <span>📊</span>
+                        <span>TPO Liquidity &amp; Faculty Mentor</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Circular Action Button in Slate-Teal (#2B5B75) -->
+                <button class="w-11 h-11 rounded-full bg-[#2B5B75] group-hover:bg-[#1E4357] text-white flex items-center justify-center font-bold text-base shadow-[0_3px_0_#1E4357] flex-shrink-0 group-hover:translate-x-0.5 transition-all" title="Switch to Faculty">
+                  →
+                </button>
+              </div>
+
+              <!-- Quick Meta Footer -->
+              <div class="mt-4 pt-3 border-t border-[#F1EFEA] flex items-center justify-between text-xs text-[#5A585C]">
+                <span class="font-medium">142 Candidate Verification Dossiers Ready</span>
+                <span class="font-mono text-[11px] font-bold text-sky-800 bg-sky-50 px-2 py-0.5 rounded">TPO Authority</span>
+              </div>
+            </div>
+
+            <!-- Persona 3: Rohan Verma -->
+            <div class="game-pressable bg-white rounded-3xl p-5 sm:p-6 border-2 border-[#E2DFD9] shadow-game-card hover:border-[#B6DEC9] transition-all cursor-pointer group">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5 sm:gap-4">
+                  <!-- Avatar Token -->
+                  <div class="w-12 h-12 rounded-2xl bg-[#B6DEC9]/40 border-2 border-[#B6DEC9] flex items-center justify-center font-extrabold text-[#255C45] text-lg shadow-[0_3px_0_#B6DEC9] flex-shrink-0 group-hover:scale-105 transition-transform">
+                    RV
+                  </div>
+                  <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="text-base sm:text-lg font-extrabold text-[#232224] tracking-tight group-hover:text-[#255C45] transition-colors">
+                        Rohan Verma
+                      </h3>
+                      <span class="font-mono text-xs font-medium text-[#5A585C] bg-[#FAF8F6] px-2 py-0.5 rounded-md border border-[#E2DFD9]">
+                        B.Tech ECE '26 • 7.45 CGPA
+                      </span>
+                    </div>
+
+                    <!-- Mint Sage label pill -->
+                    <div>
+                      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#B6DEC9] text-[#194734] shadow-[0_2px_0_#9ECAB2]">
+                        <span>🛡️</span>
+                        <span>1 Eligibility Clarification Pending</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Circular Action Button in Forest Sage (#255C45) -->
+                <button class="w-11 h-11 rounded-full bg-[#255C45] group-hover:bg-[#1A4231] text-white flex items-center justify-center font-bold text-base shadow-[0_3px_0_#1A4231] flex-shrink-0 group-hover:translate-x-0.5 transition-all" title="Switch to Rohan">
+                  →
+                </button>
+              </div>
+
+              <!-- Quick Meta Footer -->
+              <div class="mt-4 pt-3 border-t border-[#F1EFEA] flex items-center justify-between text-xs text-[#5A585C]">
+                <span class="font-medium">Action: Upload Semiconductor Miniproject Certificate</span>
+                <span class="font-mono text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded">Action Required</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom Card: Quick Create Student / Teacher Account (Saves to Excel) -->
+          <div class="bg-white rounded-3xl p-6 sm:p-7 border-2 border-[#E2DFD9] shadow-game-card">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base sm:text-lg font-extrabold text-[#232224] tracking-tight">
+                  Quick Create Student / Teacher Account
+                </h3>
+                <p class="text-xs text-[#5A585C] mt-0.5">
+                  Appends new rows directly into <code class="font-mono text-[#6D3B56] font-bold bg-[#FAF8F6] px-1 py-0.5 rounded">campusbridge_db.xlsx</code> with schema validation.
+                </p>
+              </div>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-[#FAF8F6] border border-[#E2DFD9] text-[#6D3B56] hidden sm:inline-block">
+                Auto-Commit
+              </span>
+            </div>
+
+            <!-- Role Selector Pills -->
+            <div class="mb-4">
+              <label class="block text-xs font-bold text-[#5A585C] uppercase tracking-wider mb-2">Select Account Role</label>
+              <div class="flex flex-wrap gap-2">
+                <label class="cursor-pointer">
+                  <input type="radio" name="role" value="student" checked class="peer sr-only">
+                  <div class="px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-[#E2DFD9] bg-[#FAF8F6] text-[#5A585C] peer-checked:bg-[#F0B6D5] peer-checked:border-[#6D3B56] peer-checked:text-[#6D3B56] transition-all">
+                    🎓 Candidate Student
+                  </div>
+                </label>
+
+                <label class="cursor-pointer">
+                  <input type="radio" name="role" value="faculty" class="peer sr-only">
+                  <div class="px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-[#E2DFD9] bg-[#FAF8F6] text-[#5A585C] peer-checked:bg-[#B6D9EC] peer-checked:border-[#2B5B75] peer-checked:text-[#1E4357] transition-all">
+                    👩‍🏫 Faculty Mentor
+                  </div>
+                </label>
+
+                <label class="cursor-pointer">
+                  <input type="radio" name="role" value="tpo" class="peer sr-only">
+                  <div class="px-3.5 py-1.5 rounded-full text-xs font-bold border-2 border-[#E2DFD9] bg-[#FAF8F6] text-[#5A585C] peer-checked:bg-[#B6DEC9] peer-checked:border-[#255C45] peer-checked:text-[#1A4231] transition-all">
+                    🏢 Placement Officer
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Rounded-Full Search-Style Inputs (border: 1.5px solid #E2DFD9) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+              <div>
+                <label class="block text-xs font-bold text-[#5A585C] mb-1">Full Legal Name</label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Ananya Sen" 
+                    class="w-full px-4 py-2.5 rounded-full bg-[#FAF8F6] focus:bg-white text-xs sm:text-sm text-[#232224] placeholder-[#8A888C] border-[1.5px] border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-none transition-colors"
+                  />
+                  <span class="absolute right-3.5 top-2.5 text-xs text-[#8A888C]">👤</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-[#5A585C] mb-1">Institutional Email / Roll No.</label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    placeholder="e.g. ananya@campus.edu" 
+                    class="w-full px-4 py-2.5 rounded-full bg-[#FAF8F6] focus:bg-white text-xs sm:text-sm text-[#232224] placeholder-[#8A888C] border-[1.5px] border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-none transition-colors font-mono"
+                  />
+                  <span class="absolute right-3.5 top-2.5 text-xs text-[#8A888C]">✉️</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-[#5A585C] mb-1">Department &amp; Batch</label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    placeholder="B.Tech AI &amp; DS '26" 
+                    class="w-full px-4 py-2.5 rounded-full bg-[#FAF8F6] focus:bg-white text-xs sm:text-sm text-[#232224] placeholder-[#8A888C] border-[1.5px] border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-none transition-colors"
+                  />
+                  <span class="absolute right-3.5 top-2.5 text-xs text-[#8A888C]">🏫</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-[#5A585C] mb-1">Initial CGPA / Verified Scale</label>
+                <div class="relative">
+                  <input 
+                    type="text" 
+                    placeholder="8.90 / 10.0" 
+                    class="w-full px-4 py-2.5 rounded-full bg-[#FAF8F6] focus:bg-white text-xs sm:text-sm text-[#232224] placeholder-[#8A888C] border-[1.5px] border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-none transition-colors font-mono"
+                  />
+                  <span class="absolute right-3.5 top-2.5 text-xs text-[#8A888C]">📈</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Full-width Primary Deep Plum (#6D3B56) Capsule Button -->
+            <button type="button" class="game-pressable w-full py-3.5 px-6 bg-[#6D3B56] hover:bg-[#552940] text-white rounded-full font-bold text-sm sm:text-base shadow-[0_4px_0_#482136] flex items-center justify-center gap-2 cursor-pointer">
+              <span>Create Account in Excel DB</span>
+              <span class="text-lg leading-none">→</span>
+            </button>
+
+            <!-- Excel Schema Note -->
+            <p class="text-center text-[11px] font-mono text-[#8A888C] mt-2.5">
+              Writes into sheet <span class="text-[#6D3B56] font-bold">'Master_Roster'</span> with 256-bit hash key verification.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Bottom Footer Micro-Bar -->
+    <footer class="mt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#5A585C] gap-3 px-2">
+      <div class="flex items-center gap-3">
+        <span>© 2025 CampusBridge AI</span>
+        <span>•</span>
+        <span>Tactile Studio Environment</span>
+        <span>•</span>
+        <span class="font-mono text-[11px] text-[#6D3B56]">Excel ODBC v4.2</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span class="text-[11px] font-bold">Latency: 42ms (Local MCP Bridge)</span>
+      </div>
+    </footer>
+
+  </main>
+
+</body>
+</html>

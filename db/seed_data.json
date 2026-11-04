@@ -1,0 +1,397 @@
+{
+    "accounts_students": [
+        {
+            "student_id": "STU-101",
+            "full_name": "Aarav Sharma",
+            "email": "aarav.sharma@university.edu.in",
+            "role": "STUDENT",
+            "roll_no": "22BCON104",
+            "program": "B.Tech CSE",
+            "cohort_year": 2026,
+            "cgpa": 8.42,
+            "active_backlogs": 0,
+            "privacy_shield_mode": "OPT_IN_DRIVES",
+            "target_roles": [
+                "Backend Engineer",
+                "AI Engineer"
+            ],
+            "readiness_index": 74,
+            "sprint_mode_active": true
+        },
+        {
+            "student_id": "STU-102",
+            "full_name": "Priya Nair",
+            "email": "priya.nair@university.edu.in",
+            "role": "STUDENT",
+            "roll_no": "22BCON118",
+            "program": "B.Tech CSE (AI & DS)",
+            "cohort_year": 2026,
+            "cgpa": 8.95,
+            "active_backlogs": 0,
+            "privacy_shield_mode": "OPT_IN_DRIVES",
+            "target_roles": [
+                "Data Scientist",
+                "ML Engineer"
+            ],
+            "readiness_index": 86,
+            "sprint_mode_active": false
+        },
+        {
+            "student_id": "STU-103",
+            "full_name": "Rohan Verma",
+            "email": "rohan.verma@university.edu.in",
+            "role": "STUDENT",
+            "roll_no": "22BECE045",
+            "program": "B.Tech ECE (Minor in CS)",
+            "cohort_year": 2026,
+            "cgpa": 7.45,
+            "active_backlogs": 0,
+            "privacy_shield_mode": "PRIVATE",
+            "target_roles": [
+                "Full-Stack Developer",
+                "Backend Engineer"
+            ],
+            "readiness_index": 62,
+            "sprint_mode_active": true
+        },
+        {
+            "student_id": "STU-104",
+            "full_name": "Ananya Gupta",
+            "email": "ananya.gupta@university.edu.in",
+            "role": "STUDENT",
+            "roll_no": "22BCON162",
+            "program": "B.Tech CSE",
+            "cohort_year": 2026,
+            "cgpa": 7.90,
+            "active_backlogs": 0,
+            "privacy_shield_mode": "OPT_IN_DRIVES",
+            "target_roles": [
+                "Data Analyst",
+                "Backend Engineer"
+            ],
+            "readiness_index": 69,
+            "sprint_mode_active": false
+        },
+        {
+            "student_id": "STU-105",
+            "full_name": "Vikramaditya Rathore",
+            "email": "vikram.rathore@university.edu.in",
+            "role": "STUDENT",
+            "roll_no": "22BCON209",
+            "program": "B.Tech CSE",
+            "cohort_year": 2026,
+            "cgpa": 6.85,
+            "active_backlogs": 0,
+            "privacy_shield_mode": "OPT_IN_DRIVES",
+            "target_roles": [
+                "DevOps Engineer",
+                "Backend Engineer"
+            ],
+            "readiness_index": 78,
+            "sprint_mode_active": true
+        }
+    ],
+    "accounts_teachers": [
+        {
+            "staff_id": "TPO-001",
+            "full_name": "Prof. Rajesh Menon",
+            "email": "rajesh.menon@university.edu.in",
+            "role": "PLACEMENT_OFFICER",
+            "department": "Central Placement Cell",
+            "assigned_cohort": "All 2026 Graduating Cohorts",
+            "permissions_scope": "INSTITUTION_WIDE_TPO"
+        },
+        {
+            "staff_id": "FAC-014",
+            "full_name": "Dr. Kavita Iyer",
+            "email": "kavita.iyer@university.edu.in",
+            "role": "FACULTY_MENTOR",
+            "department": "Computer Science & Engineering",
+            "assigned_cohort": "B.Tech CSE 2026 - Section A",
+            "permissions_scope": "DEPARTMENT_ADVISEES_ONLY"
+        },
+        {
+            "staff_id": "FAC-022",
+            "full_name": "Prof. Siddharth Joshi",
+            "email": "siddharth.joshi@university.edu.in",
+            "role": "FACULTY_MENTOR",
+            "department": "AI & Data Science",
+            "assigned_cohort": "B.Tech AI/DS 2026",
+            "permissions_scope": "DEPARTMENT_ADVISEES_ONLY"
+        },
+        {
+            "staff_id": "ADM-001",
+            "full_name": "Neha Kulkarni",
+            "email": "sysadmin@university.edu.in",
+            "role": "ADMIN",
+            "department": "Campus IT & AI Governance",
+            "assigned_cohort": "System Operations",
+            "permissions_scope": "INFRA_AND_MCP_DIAGNOSTICS"
+        }
+    ],
+    "dsa_practice_bank": [
+        {
+            "problem_id": "DSA-01",
+            "title": "Idempotent Webhook Rate-Limiter Window (Sliding Window)",
+            "topic": "Arrays & Sliding Window",
+            "difficulty": "Medium",
+            "company_tags": [
+                "Razorpay",
+                "Atlassian",
+                "Juspay"
+            ],
+            "problem_statement": "Given an array of incoming webhook timestamps (in seconds) and a window W, return the maximum number of requests processed without dropping if at most K requests are allowed in any sliding window of length W.",
+            "starter_code_python": "def max_allowed_webhooks(timestamps: list[int], W: int, K: int) -> int:\n    # Write your O(N) sliding window solution here\n    pass",
+            "test_cases": [
+                {
+                    "input": {
+                        "timestamps": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            10,
+                            11
+                        ],
+                        "W": 5,
+                        "K": 3
+                    },
+                    "expected": 5
+                },
+                {
+                    "input": {
+                        "timestamps": [
+                            1,
+                            1,
+                            1,
+                            1,
+                            2
+                        ],
+                        "W": 10,
+                        "K": 2
+                    },
+                    "expected": 2
+                }
+            ],
+            "optimal_time_complexity": "O(N)",
+            "unlocks_skill": "Data Structures & Algorithms",
+            "alignment_boost_pct": 8
+        },
+        {
+            "problem_id": "DSA-02",
+            "title": "Microservice Dependency Deadlock Detector (Cycle in Directed Graph)",
+            "topic": "Graphs & Topological Sort",
+            "difficulty": "Medium",
+            "company_tags": [
+                "Amazon",
+                "Uber",
+                "Flipkart"
+            ],
+            "problem_statement": "You are given N microservices labeled 0 to N-1 and a list of directed RPC dependencies [u, v] meaning service u calls service v. Return True if the deployment order is valid (no circular dependency), or False if a deadlock cycle exists.",
+            "starter_code_python": "def can_deploy_services(num_services: int, dependencies: list[list[int]]) -> bool:\n    # Implement Kahn's BFS or 3-color DFS cycle detection\n    pass",
+            "test_cases": [
+                {
+                    "input": {
+                        "num_services": 4,
+                        "dependencies": [
+                            [
+                                1,
+                                0
+                            ],
+                            [
+                                2,
+                                1
+                            ],
+                            [
+                                3,
+                                2
+                            ]
+                        ]
+                    },
+                    "expected": true
+                },
+                {
+                    "input": {
+                        "num_services": 3,
+                        "dependencies": [
+                            [
+                                0,
+                                1
+                            ],
+                            [
+                                1,
+                                2
+                            ],
+                            [
+                                2,
+                                0
+                            ]
+                        ]
+                    },
+                    "expected": false
+                }
+            ],
+            "optimal_time_complexity": "O(V + E)",
+            "unlocks_skill": "Graph Algorithms & Distributed Systems",
+            "alignment_boost_pct": 10
+        },
+        {
+            "problem_id": "DSA-03",
+            "title": "GPU Batch Inference Scheduler (Min-Heap / Priority Queue)",
+            "topic": "Heaps & Greedy",
+            "difficulty": "Hard",
+            "company_tags": [
+                "NVIDIA",
+                "Microsoft",
+                "Rubrik"
+            ],
+            "problem_statement": "Given N inference jobs where jobs[i] = [arrival_time, execution_tokens] and K identical local GPU workers, return the minimum total turnaround time to finish all prompts using shortest-job-first scheduling.",
+            "starter_code_python": "import heapq\ndef min_turnaround_time(jobs: list[list[int]], k_gpus: int) -> int:\n    pass",
+            "test_cases": [
+                {
+                    "input": {
+                        "jobs": [
+                            [
+                                0,
+                                10
+                            ],
+                            [
+                                1,
+                                4
+                            ],
+                            [
+                                2,
+                                2
+                            ]
+                        ],
+                        "k_gpus": 1
+                    },
+                    "expected": 29
+                }
+            ],
+            "optimal_time_complexity": "O(N log N)",
+            "unlocks_skill": "Algorithmic Optimization",
+            "alignment_boost_pct": 12
+        },
+        {
+            "problem_id": "DSA-04",
+            "title": "Minimum Cost Cloud Checkpoint Storage (Dynamic Programming)",
+            "topic": "Dynamic Programming",
+            "difficulty": "Medium",
+            "company_tags": [
+                "Google",
+                "Intuit",
+                "Oracle"
+            ],
+            "problem_statement": "Given daily snapshot sizes and 1-day, 7-day, and 30-day retention pass costs, compute the minimum cost to cover all training checkpoint days.",
+            "starter_code_python": "def min_checkpoint_cost(days: list[int], costs: list[int]) -> int:\n    pass",
+            "test_cases": [
+                {
+                    "input": {
+                        "days": [
+                            1,
+                            4,
+                            6,
+                            7,
+                            8,
+                            20
+                        ],
+                        "costs": [
+                            2,
+                            7,
+                            15
+                        ]
+                    },
+                    "expected": 11
+                }
+            ],
+            "optimal_time_complexity": "O(N)",
+            "unlocks_skill": "Dynamic Programming",
+            "alignment_boost_pct": 9
+        }
+    ],
+    "sql_practice_bank": [
+        {
+            "sql_id": "SQL-01",
+            "title": "Top-3 Placed Cohorts by Department Using DENSE_RANK()",
+            "concept": "Window Functions",
+            "difficulty": "Medium",
+            "schema_ddl": "CREATE TABLE placement_offers (offer_id INT, student_id VARCHAR, department VARCHAR, company VARCHAR, ctc_lpa DECIMAL(5,2));",
+            "question_prompt": "Write a query to return the top 2 highest CTC offers per department using DENSE_RANK(). Output columns: department, student_id, company, ctc_lpa, rnk.",
+            "expected_query": "WITH RankedOffers AS (SELECT department, student_id, company, ctc_lpa, DENSE_RANK() OVER (PARTITION BY department ORDER BY ctc_lpa DESC) as rnk FROM placement_offers) SELECT * FROM RankedOffers WHERE rnk <= 2;",
+            "unlocks_skill": "SQL & Query Optimization",
+            "alignment_boost_pct": 9
+        },
+        {
+            "sql_id": "SQL-02",
+            "title": "Identify Stale Skill Evidence Without Recent Micro-Defenses",
+            "concept": "LEFT JOIN & Date Filtering",
+            "difficulty": "Easy",
+            "schema_ddl": "CREATE TABLE skill_evidence (evidence_id INT, student_id VARCHAR, skill_name VARCHAR, status VARCHAR); CREATE TABLE defense_attempts (attempt_id INT, evidence_id INT, score INT, attempted_at DATE);",
+            "question_prompt": "Find all skill_evidence records currently in 'ARTIFACT_LINKED' status that have zero defense_attempts with a score >= 75.",
+            "expected_query": "SELECT e.student_id, e.skill_name FROM skill_evidence e LEFT JOIN defense_attempts d ON e.evidence_id = d.evidence_id AND d.score >= 75 WHERE e.status = 'ARTIFACT_LINKED' AND d.attempt_id IS NULL;",
+            "unlocks_skill": "Relational Data Modeling",
+            "alignment_boost_pct": 7
+        },
+        {
+            "sql_id": "SQL-03",
+            "title": "Rolling 7-Day API P95 Latency Anomaly Detection",
+            "concept": "CTEs & Moving Averages",
+            "difficulty": "Hard",
+            "schema_ddl": "CREATE TABLE mcp_telemetry (log_date DATE, tool_name VARCHAR, p95_ms INT);",
+            "question_prompt": "Using a window frame of ROWS BETWEEN 6 PRECEDING AND CURRENT ROW, flag days where tool p95_ms exceeds 1.5x its 7-day rolling average.",
+            "expected_query": "WITH RollingStats AS (SELECT log_date, tool_name, p95_ms, AVG(p95_ms) OVER (PARTITION BY tool_name ORDER BY log_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_7d FROM mcp_telemetry) SELECT * FROM RollingStats WHERE p95_ms > 1.5 * avg_7d;",
+            "unlocks_skill": "Analytical SQL & Windowing",
+            "alignment_boost_pct": 11
+        }
+    ],
+    "opportunities_jds": [
+        {
+            "job_id": "JOB-2026-01",
+            "company_name": "RazorpayX Labs",
+            "role_title": "SDE-1 (Backend & Distributed Systems)",
+            "ctc_band": "18 - 22 LPA",
+            "deadline_hours": 48,
+            "min_cgpa": 7.5,
+            "max_backlogs": 0,
+            "allowed_branches": [
+                "B.Tech CSE",
+                "B.Tech CSE (AI & DS)",
+                "B.Tech ECE (Minor in CS)"
+            ],
+            "mandatory_skills": [
+                "Python/FastAPI",
+                "SQL & Query Optimization",
+                "Data Structures & Algorithms"
+            ],
+            "preferred_skills": [
+                "Docker & Linux",
+                "Redis Caching"
+            ],
+            "approved_by_officer": "TPO-001"
+        },
+        {
+            "job_id": "JOB-2026-02",
+            "company_name": "Sarvam Sovereign AI",
+            "role_title": "Applied AI & RAG Engineer",
+            "ctc_band": "20 - 26 LPA",
+            "deadline_hours": 360,
+            "min_cgpa": 8.0,
+            "max_backlogs": 0,
+            "allowed_branches": [
+                "B.Tech CSE",
+                "B.Tech CSE (AI & DS)"
+            ],
+            "mandatory_skills": [
+                "Python/FastAPI",
+                "Hybrid RAG & Vector Search",
+                "LLM Evaluation"
+            ],
+            "preferred_skills": [
+                "LangGraph Orchestration",
+                "vLLM / Local Inference"
+            ],
+            "approved_by_officer": "TPO-001"
+        }
+    ]
+}

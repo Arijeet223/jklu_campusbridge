@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CampusBridge AI — Practice &amp; 120-Second Proof-of-Work Arena</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-low": "#f5f3f1",
+            "on-tertiary-container": "#365a4a",
+            "primary-container": "#f0b6d5",
+            "surface-container-high": "#eae8e6",
+            "on-surface": "#1b1c1b",
+            "on-tertiary": "#ffffff",
+            "surface": "#fbf9f7",
+            "on-background": "#1b1c1b",
+            "outline-variant": "#d3c2c9",
+            "on-secondary-container": "#456778",
+            "on-tertiary-fixed-variant": "#2a4e3e",
+            "background": "#fbf9f7",
+            "error": "#ba1a1a",
+            "surface-tint": "#7e506b",
+            "secondary-container": "#c1e5f8",
+            "on-primary-container": "#71445f",
+            "secondary-fixed-dim": "#a8ccde",
+            "surface-bright": "#fbf9f7",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-highest": "#e4e2e0",
+            "on-primary-fixed": "#320e26",
+            "inverse-on-surface": "#f2f0ee",
+            "inverse-surface": "#30302f",
+            "on-error-container": "#93000a",
+            "error-container": "#ffdad6",
+            "secondary-fixed": "#c4e8fb",
+            "on-primary": "#ffffff",
+            "on-secondary-fixed-variant": "#284b5b",
+            "on-error": "#ffffff",
+            "on-secondary": "#ffffff",
+            "tertiary": "#416655",
+            "secondary": "#406373",
+            "outline": "#817379",
+            "on-primary-fixed-variant": "#643953",
+            "tertiary-fixed-dim": "#a8cfbb",
+            "primary": "#7e506b",
+            "tertiary-container": "#a8d0bb",
+            "on-secondary-fixed": "#001f2a",
+            "on-surface-variant": "#4f4449",
+            "primary-fixed": "#ffd8eb",
+            "surface-dim": "#dbdad8",
+            "inverse-primary": "#f0b6d5",
+            "on-tertiary-fixed": "#002115",
+            "primary-fixed-dim": "#f0b6d5",
+            "surface-container": "#efedec",
+            "tertiary-fixed": "#c3ecd6",
+            "surface-variant": "#e4e2e0"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "margin": "2.5rem",
+            "gutter": "1.5rem",
+            "space-xl": "2.5rem",
+            "space-lg": "1.5rem",
+            "space-sm": "0.5rem",
+            "space-md": "1rem",
+            "gutter-mobile": "1rem",
+            "margin-mobile": "1.25rem"
+          },
+          "fontFamily": {
+            "label-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "headline-xl": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-xl-mobile": ["Plus Jakarta Sans"],
+            "mono": ["JetBrains Mono", "monospace"]
+          },
+          "fontSize": {
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "700" }],
+            "headline-xl-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      line-height: 1;
+    }
+    .tactile-card {
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+    .tactile-card-sky {
+      box-shadow: 0 4px 0 #85B5CE;
+    }
+    .tactile-card-mint {
+      box-shadow: 0 4px 0 #8CBDA2;
+    }
+    .tactile-card-plum {
+      box-shadow: 0 5px 0 #4B273A;
+    }
+    .tactile-card-dock {
+      box-shadow: 0 4px 0 #E3D9D5;
+    }
+    .tactile-btn-plum {
+      box-shadow: 0 4px 0 #4B273A;
+    }
+    .tactile-btn-plum:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #4B273A;
+    }
+    .tactile-btn-neutral {
+      box-shadow: 0 4px 0 #D4CEC9;
+    }
+    .tactile-btn-neutral:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #D4CEC9;
+    }
+    .tactile-btn-mint {
+      box-shadow: 0 4px 0 #8CBDA2;
+    }
+    .tactile-btn-mint:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #8CBDA2;
+    }
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+    .pulse-dot {
+      animation: subtlePulse 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#FAF8F6] text-on-surface antialiased min-h-screen selection:bg-[#F0B6D5] selection:text-[#6D3B56] pb-12">
+<!-- TOP BRAND & FLOATING DOCK HEADER (Shared TopNavBar Architecture) -->
+<header class="w-full px-space-lg pt-4 pb-2 max-w-7xl mx-auto">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-full px-5 py-3 shadow-[0_4px_0_#EAD7E2] flex items-center justify-between gap-4">
+<!-- Brand & User Identity Tag -->
+<div class="flex items-center gap-3 shrink-0">
+<div class="flex items-center gap-2">
+<div class="w-10 h-10 rounded-full bg-[#6D3B56] flex items-center justify-center text-white shadow-[0_2px_0_#4B273A]">
+<span class="material-symbols-outlined text-[22px]">smart_toy</span>
+</div>
+<div>
+<span class="font-headline-md text-headline-sm font-black text-on-surface tracking-tight block leading-none">CampusBridge AI</span>
+<span class="font-label-sm text-label-sm text-[#7e506b] font-semibold tracking-wide uppercase">Proof-of-Work Arena</span>
+</div>
+</div>
+<div class="h-6 w-px bg-surface-variant mx-1"></div>
+<!-- Student Pill Container -->
+<div class="flex items-center gap-2 bg-[#F1EFEA] border border-[#E4E0D9] rounded-full px-3 py-1.5 shadow-[0_2px_0_#E0DAD3]">
+<div class="w-6 h-6 rounded-full bg-[#F0B6D5] border border-[#DE95BE] flex items-center justify-center text-[#6D3B56] font-bold text-[11px]">
+            AS
+          </div>
+<span class="font-label-md text-label-md text-[#4A4247] font-bold">Aarav Sharma • CSE '26</span>
+<span class="inline-block w-2 h-2 rounded-full bg-[#255C45]"></span>
+</div>
+</div>
+<!-- Centered Navigation Pill Dock -->
+<nav class="hidden lg:flex items-center bg-[#F1EFEA] border border-[#E3DFD7] rounded-full p-1.5 shadow-[0_2px_0_#DDD7CE] gap-1">
+<a class="flex items-center gap-1.5 bg-[#6D3B56] text-white px-3.5 py-1.5 rounded-full font-label-md text-label-md font-bold shadow-[0_2px_0_#4B273A] transition-all" href="#arena">
+<span class="material-symbols-outlined text-[17px]">swords</span>
+          Practice Arena
+        </a>
+<a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-[#4F4449] hover:bg-[#E7E4DC] transition-colors font-semibold" href="#studio">
+          Studio
+        </a>
+<a class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-[#4F4449] hover:bg-[#E7E4DC] transition-colors font-semibold" href="#whatif">
+          What-If Sandbox
+        </a>
+<a class="flex items-center gap-1 px-3 py-1.5 rounded-full font-label-md text-label-md text-[#4F4449] hover:bg-[#E7E4DC] transition-colors font-semibold" href="#health">
+<span class="material-symbols-outlined text-[15px] text-[#416655]">memory</span>
+          AI/MCP Health
+        </a>
+</nav>
+<!-- Trailing Cluster: Search & Privacy Shield -->
+<div class="flex items-center gap-2.5 shrink-0">
+<!-- Tactile Pill Search -->
+<div class="relative hidden md:block w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[18px] text-[#817379]">search</span>
+<input class="w-full bg-[#F5F3F1] border border-[#E5D9E8] rounded-full pl-9 pr-3 py-1.5 text-body-sm font-body-sm text-[#2D2633] placeholder-[#9E92A6] focus:outline-none focus:ring-2 focus:ring-[#F0B6D5] focus:border-[#DE95BE] transition-all" placeholder="Search quests, algorithms..." type="text"/>
+</div>
+<!-- Privacy Shield Badge -->
+<div class="flex items-center gap-1.5 bg-[#B6DEC9] border border-[#8CBDA2] text-[#255C45] px-3.5 py-1.5 rounded-full font-label-md text-label-md shadow-[0_2px_0_#8CBDA2]">
+<span class="material-symbols-outlined text-[17px] text-[#255C45]" data-icon="shield">shield</span>
+<span class="tracking-tight">🛡️ Privacy Shield: Active</span>
+</div>
+<button class="w-9 h-9 rounded-full bg-white border border-[#EADECE] flex items-center justify-center text-[#4F4449] shadow-[0_2px_0_#E3D3C3] active:translate-y-[1px]">
+<span class="material-symbols-outlined text-[19px]">notifications</span>
+</button>
+</div>
+</div>
+</header>
+<!-- MAIN WRAPPER -->
+<main class="max-w-7xl mx-auto px-space-lg mt-5 space-y-6">
+<!-- TOP QUEST MODE SELECTOR (3 Pastel Bento Pill Cards) -->
+<section>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+<!-- Mode Card 1: Sky Blue -->
+<div class="bg-[#B6D9EC] border-2 border-[#96C4DC] rounded-3xl p-5 tactile-card-sky transition-transform hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-2xl bg-white/70 flex items-center justify-center text-[#2B5B75] shadow-[0_2px_0_rgba(43,91,117,0.15)]">
+<span class="text-xl">🧩</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-[#2B5B75] leading-tight">DSA Quest Island</h2>
+<span class="font-label-sm text-label-sm text-[#2B5B75]/80 font-bold">12 Problems • +8% to +12% Boost</span>
+</div>
+</div>
+<span class="bg-white/80 text-[#2B5B75] border border-[#96C4DC] text-label-sm font-label-sm px-2.5 py-0.5 rounded-full">Island 1</span>
+</div>
+<div class="mt-4 pt-3 border-t border-[#96C4DC]/50 flex items-center justify-between">
+<p class="font-body-sm text-body-sm text-[#2B5B75] font-medium">Arrays, Sliding Window, DP &amp; Graphs</p>
+<span class="material-symbols-outlined text-[#2B5B75] text-[18px]">arrow_forward</span>
+</div>
+</div>
+<!-- Mode Card 2: Mint Sage -->
+<div class="bg-[#B6DEC9] border-2 border-[#8CBDA2] rounded-3xl p-5 tactile-card-mint transition-transform hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-2xl bg-white/70 flex items-center justify-center text-[#255C45] shadow-[0_2px_0_rgba(37,92,69,0.15)]">
+<span class="text-xl">🗄️</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-[#255C45] leading-tight">SQL Live Playground</h2>
+<span class="font-label-sm text-label-sm text-[#255C45]/80 font-bold">Windowing &amp; CTEs • +9% Boost</span>
+</div>
+</div>
+<span class="bg-white/80 text-[#255C45] border border-[#8CBDA2] text-label-sm font-label-sm px-2.5 py-0.5 rounded-full">Interactive</span>
+</div>
+<div class="mt-4 pt-3 border-t border-[#8CBDA2]/50 flex items-center justify-between">
+<p class="font-body-sm text-body-sm text-[#255C45] font-medium">PostgreSQL &amp; SQLite dialect sandboxes</p>
+<span class="material-symbols-outlined text-[#255C45] text-[18px]">arrow_forward</span>
+</div>
+</div>
+<!-- Mode Card 3: Active Blossom Pink -->
+<div class="bg-[#F0B6D5] border-[2.5px] border-[#6D3B56] rounded-3xl p-5 tactile-card-plum relative overflow-hidden flex flex-col justify-between ring-2 ring-[#6D3B56]/20">
+<div class="absolute -top-3 -right-3 w-14 h-14 bg-[#6D3B56]/10 rounded-full pointer-events-none"></div>
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-10 h-10 rounded-2xl bg-[#6D3B56] flex items-center justify-center text-white shadow-[0_2px_0_#4B273A]">
+<span class="text-xl">⏱️</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-sm text-headline-sm font-bold text-[#6D3B56] leading-tight">120s Proof-of-Work</h2>
+<span class="bg-[#6D3B56] text-white font-label-sm text-label-sm px-2 py-0.5 rounded-full">Active</span>
+</div>
+<span class="font-label-sm text-label-sm text-[#6D3B56] font-bold">Micro-Defense • Artifact 0.75x → 1.0x</span>
+</div>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-[#6D3B56]/20 flex items-center justify-between">
+<p class="font-body-sm text-body-sm text-[#4A2037] font-semibold">Fast low-stress audio &amp; code justification</p>
+<span class="material-symbols-outlined text-[#6D3B56] text-[20px] font-bold">verified_user</span>
+</div>
+</div>
+</div>
+</section>
+<!-- SPLIT 12-COLUMN STUDIO WORKSPACE (28px gap) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+<!-- LEFT 5 COLUMNS (Quest Deck & Multiplier Rewards) -->
+<section class="lg:col-span-5 space-y-4">
+<!-- Character Spot-Illustration & Motivation Bento -->
+<div class="bg-[#FFFFFF] border border-[#EADECE] rounded-3xl p-5 tactile-card relative overflow-hidden">
+<div class="flex items-center gap-4">
+<!-- Vector Illustration Spot -->
+<div class="w-24 h-24 rounded-2xl bg-[#FAF6F8] border border-[#EADECE] flex items-center justify-center relative shrink-0 overflow-hidden">
+<!-- Stylized tactile monstera & coder elements -->
+<div class="absolute -bottom-2 -left-2 w-12 h-12 bg-[#B6DEC9]/40 rounded-full"></div>
+<div class="absolute -top-3 -right-3 w-10 h-10 bg-[#F0B6D5]/40 rounded-full"></div>
+<div class="relative z-10 flex flex-col items-center">
+<span class="text-3xl">🧑‍💻</span>
+<span class="text-xs mt-1">🌿 ✨</span>
+</div>
+</div>
+<!-- Content & Badges -->
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="bg-[#F0B6D5] text-[#6D3B56] font-label-sm text-label-sm px-2.5 py-0.5 rounded-full border border-[#DE95BE] font-bold">
+                  Sprint Streak: 5 Days
+                </span>
+<span class="bg-[#B6DEC9] text-[#255C45] font-label-sm text-label-sm px-2 py-0.5 rounded-full border border-[#8CBDA2] font-bold">
+                  +1.0x Certified
+                </span>
+</div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface mt-1.5 leading-snug">
+                Earn Unforgeable Multipliers
+              </h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+                Each 120s defense stamps your verifiable repository ledger entry for hiring partners.
+              </p>
+</div>
+</div>
+</div>
+<!-- Section Header -->
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px] text-[#6D3B56]">view_kanban</span>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">Available Quests &amp; Defenses</h4>
+</div>
+<span class="bg-[#FAF8F6] border border-[#EADECE] font-label-md text-label-md px-2.5 py-0.5 rounded-full text-[#6D3B56] font-bold">
+            3 Ready
+          </span>
+</div>
+<!-- Quest Tile 1 -->
+<article class="bg-[#FFFFFF] border-2 border-[#EFE4DF] rounded-3xl p-5 tactile-card transition-all hover:border-[#B6D9EC] hover:-translate-y-0.5">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h5 class="font-headline-sm text-headline-sm font-bold text-on-surface hover:text-[#6D3B56] transition-colors cursor-pointer">
+                Webhook Rate-Limiter (Sliding Window)
+              </h5>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#817379]">hub</span>
+                Tied to GitHub repo: <span class="font-mono text-[13px] bg-[#FAF8F6] px-1.5 py-0.5 rounded border border-[#EFE4DF]">campus-cache</span>
+</p>
+</div>
+<button class="w-8 h-8 rounded-full bg-[#FAF8F6] border border-[#EADECE] flex items-center justify-center text-[#4F4449] hover:bg-[#B6D9EC] hover:text-[#2B5B75] transition-colors">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+</button>
+</div>
+<div class="mt-4 pt-3 border-t border-dashed border-[#F2E8E4] flex flex-wrap items-center gap-2">
+<!-- Sky Blue Tag -->
+<span class="bg-[#B6D9EC] text-[#2B5B75] border border-[#96C4DC] font-label-md text-label-md px-3 py-1 rounded-full font-bold">
+              Medium • O(N)
+            </span>
+<!-- Mint Sage Multiplier -->
+<span class="bg-[#B6DEC9] text-[#255C45] border border-[#8CBDA2] font-label-md text-label-md px-3 py-1 rounded-full font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">trending_up</span>
+              DSA: 0.5x → 1.0x
+            </span>
+<span class="ml-auto font-label-sm text-label-sm text-[#817379]">Est. 15m</span>
+</div>
+</article>
+<!-- Quest Tile 2 -->
+<article class="bg-[#FFFFFF] border-2 border-[#EFE4DF] rounded-3xl p-5 tactile-card transition-all hover:border-[#B6DEC9] hover:-translate-y-0.5">
+<div class="flex items-start justify-between gap-2">
+<div>
+<h5 class="font-headline-sm text-headline-sm font-bold text-on-surface hover:text-[#6D3B56] transition-colors cursor-pointer">
+                Top-3 Cohort Offers via DENSE_RANK()
+              </h5>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#817379]">lock_open</span>
+                Unlocks placement eligibility filter
+              </p>
+</div>
+<button class="w-8 h-8 rounded-full bg-[#FAF8F6] border border-[#EADECE] flex items-center justify-center text-[#4F4449] hover:bg-[#B6DEC9] hover:text-[#255C45] transition-colors">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+</button>
+</div>
+<div class="mt-4 pt-3 border-t border-dashed border-[#F2E8E4] flex flex-wrap items-center gap-2">
+<!-- Sky Blue Tag -->
+<span class="bg-[#B6D9EC] text-[#2B5B75] border border-[#96C4DC] font-label-md text-label-md px-3 py-1 rounded-full font-bold">
+              SQL Windowing
+            </span>
+<!-- Mint Sage Multiplier -->
+<span class="bg-[#B6DEC9] text-[#255C45] border border-[#8CBDA2] font-label-md text-label-md px-3 py-1 rounded-full font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">verified</span>
+              SQL: 0.0x → 1.0x
+            </span>
+<span class="ml-auto font-label-sm text-label-sm text-[#817379]">Est. 10m</span>
+</div>
+</article>
+<!-- Quest Tile 3 (Selected / Active State) -->
+<article class="bg-[#FAF4F7] border-[2.5px] border-[#6D3B56] rounded-3xl p-5 tactile-card-plum relative shadow-md">
+<div class="absolute -top-3 left-6 bg-[#6D3B56] text-white font-label-sm text-label-sm px-3 py-0.5 rounded-full font-bold tracking-wider uppercase">
+            Current Active Arena Challenge
+          </div>
+<div class="flex items-start justify-between gap-2 mt-1">
+<div>
+<h5 class="font-headline-sm text-headline-sm font-bold text-[#4B273A] leading-tight">
+                Defend order_service.py Idempotency
+              </h5>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1.5 flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-[#6D3B56]">corporate_fare</span>
+                Target: 48h Drive Sprint • Google &amp; Microsoft
+              </p>
+</div>
+<div class="w-8 h-8 rounded-full bg-[#6D3B56] text-white flex items-center justify-center shadow-[0_2px_0_#4B273A]">
+<span class="material-symbols-outlined text-[18px]">mic</span>
+</div>
+</div>
+<div class="mt-4 pt-3 border-t border-[#DE95BE]/60 flex flex-wrap items-center gap-2">
+<!-- Blossom Pink Tag -->
+<span class="bg-[#F0B6D5] text-[#6D3B56] border border-[#DE95BE] font-label-md text-label-md px-3 py-1 rounded-full font-bold flex items-center gap-1">
+              ✏️ 120s Micro-Defense
+            </span>
+<!-- Mint Sage Multiplier -->
+<span class="bg-[#B6DEC9] text-[#255C45] border border-[#8CBDA2] font-label-md text-label-md px-3 py-1 rounded-full font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[15px]">military_tech</span>
+              FastAPI: 0.75x → 1.0x Solid
+            </span>
+<span class="ml-auto font-label-sm text-label-sm text-[#6D3B56] font-bold">120s Timer Ready</span>
+</div>
+</article>
+</section>
+<!-- RIGHT 7 COLUMNS (Interactive Code / SQL / 120s Defense Stage) -->
+<section class="lg:col-span-7">
+<!-- Outer Bento Tray -->
+<div class="bg-[#F1EFEA] border-2 border-[#E4E0D8] rounded-3xl p-3 sm:p-5 shadow-[0_6px_0_#DFD9D0]">
+<!-- Pristine White Interior Stage -->
+<div class="bg-[#FFFFFF] border-2 border-[#EFE4DF] rounded-3xl p-6 sm:p-8 tactile-card space-y-6">
+<!-- Stage Header Bar -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#F2E8E4]">
+<!-- Mode Toggle Pill Switch -->
+<div class="bg-[#F5F3F1] border border-[#E5D9E8] p-1 rounded-full inline-flex items-center gap-1">
+<button class="px-4 py-2 rounded-full font-label-md text-label-md text-[#4F4449] hover:text-on-surface transition-colors font-medium flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+                  💻 DSA / SQL Runner
+                </button>
+<button class="bg-[#6D3B56] text-white px-4 py-2 rounded-full font-label-md text-label-md font-bold shadow-[0_2px_0_#4B273A] flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">record_voice_over</span>
+                  💬 120s Artifact Defense
+                </button>
+</div>
+<!-- Animated Timer Badge -->
+<div class="bg-[#B6DEC9] border-2 border-[#8CBDA2] text-[#255C45] px-4 py-2 rounded-full flex items-center gap-2.5 shadow-[0_2px_0_#8CBDA2]">
+<div class="w-3 h-3 rounded-full bg-[#255C45] pulse-dot"></div>
+<span class="font-label-lg text-label-lg font-extrabold tracking-tight">⏱️ 01:38 left</span>
+<span class="text-xs opacity-80 hidden md:inline">• Low-Stress Coaching Mode</span>
+</div>
+</div>
+<!-- Coach Question Box -->
+<div class="bg-[#FAF8F6] border-2 border-[#EADECE] rounded-2xl p-5 space-y-3">
+<div class="flex items-center justify-between flex-wrap gap-2">
+<!-- Citation Pill -->
+<span class="bg-[#F0B6D5] text-[#6D3B56] border border-[#DE95BE] font-label-sm text-label-sm px-3 py-1 rounded-full font-bold tracking-tight inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">description</span>
+                  📄 order_service.py:L42-68 • GitHub Hash 89b2c
+                </span>
+<span class="font-label-sm text-label-sm text-[#416655] bg-[#B6DEC9]/40 border border-[#8CBDA2] px-2.5 py-0.5 rounded-full font-semibold">
+                  Audio or Written Defense
+                </span>
+</div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-[#232224] leading-snug">
+                "When Razorpay retries a webhook twice within 50ms, how does your FastAPI route prevent duplicate row insertion?"
+              </h4>
+<div class="flex items-center gap-2 text-body-sm font-body-sm text-on-surface-variant bg-white/80 p-2.5 rounded-xl border border-[#EADECE]/60">
+<span class="material-symbols-outlined text-[#7e506b] text-[18px]">psychology</span>
+<span><strong class="text-on-surface font-semibold">AI Coach note:</strong> Defend your design pattern in ~2-3 sentences or inspect code logic below.</span>
+</div>
+</div>
+<!-- Interactive Code / Defense Answer Stage -->
+<div class="space-y-3">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-sm text-label-sm text-[#817379] font-bold uppercase tracking-wider">
+                  Live Proof Artifact Editor (Python 3.11 / Redis Async)
+                </span>
+<span class="font-label-sm text-label-sm text-[#255C45] font-semibold flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-[#255C45]"></span>
+                  Sandboxed Virtual Machine Running
+                </span>
+</div>
+<!-- Code Editor Mock -->
+<div class="bg-[#2D2633] text-[#F5F3F1] rounded-2xl p-4 font-mono text-[13px] leading-relaxed border-2 border-[#4A3D54] shadow-inner overflow-x-auto">
+<div class="flex items-center justify-between pb-3 mb-3 border-b border-[#4A3D54] text-xs text-[#C4B6C9]">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-[#FF5F56]"></span>
+<span class="w-3 h-3 rounded-full bg-[#FFBD2E]"></span>
+<span class="w-3 h-3 rounded-full bg-[#27C93F]"></span>
+<span class="ml-2 font-mono text-white/80">order_service.py</span>
+</div>
+<span class="bg-[#4A3D54] text-[#F0B6D5] px-2 py-0.5 rounded text-[11px]">Async Safe</span>
+</div>
+<pre class="font-mono"><span class="text-[#9E92A6]"># Redis SETNX with transaction lock &amp; DB unique idempotency key</span>
+<span class="text-[#F0B6D5]">async def</span> <span class="text-[#B6D9EC]">handle_razorpay_webhook</span>(event: WebhookEvent, db: AsyncSession):
+    <span class="text-[#9E92A6]"># 1. Acquire distributed lock with 60-second TTL</span>
+    lock_acquired = <span class="text-[#F0B6D5]">await</span> redis.set(<span class="text-[#B6DEC9]">f"lock:pay:{event.id}"</span>, <span class="text-[#B6DEC9]">"1"</span>, nx=<span class="text-[#B6D9EC]">True</span>, ex=<span class="text-[#B6DEC9]">60</span>)
+    <span class="text-[#F0B6D5]">if not</span> lock_acquired:
+        <span class="text-[#F0B6D5]">return</span> {<span class="text-[#B6DEC9]">"status"</span>: <span class="text-[#B6DEC9]">"ignored"</span>, <span class="text-[#B6DEC9]">"reason"</span>: <span class="text-[#B6DEC9]">"duplicate_webhook"</span>}
+    
+    <span class="text-[#9E92A6]"># 2. Database unique constraint idempotency check</span>
+    existing_txn = <span class="text-[#F0B6D5]">await</span> db.execute(select(Payment).where(Payment.gateway_id == event.id))
+    <span class="text-[#F0B6D5]">if</span> existing_txn.scalar_one_or_none():
+        <span class="text-[#F0B6D5]">return</span> {<span class="text-[#B6DEC9]">"status"</span>: <span class="text-[#B6DEC9]">"already_processed"</span>}
+    
+    <span class="text-[#9E92A6]"># 3. Commit ledger state</span>
+    <span class="text-[#F0B6D5]">await</span> db.commit()</pre>
+</div>
+<!-- Automated Test Harness Verification Pills -->
+<div class="flex flex-wrap items-center gap-2 pt-1">
+<div class="bg-[#B6DEC9] border border-[#8CBDA2] text-[#255C45] px-3 py-1.5 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 shadow-[0_2px_0_#8CBDA2]">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                  Test 1: PASS ✓ (Concurrent Retry 20ms)
+                </div>
+<div class="bg-[#B6DEC9] border border-[#8CBDA2] text-[#255C45] px-3 py-1.5 rounded-full font-label-md text-label-md font-bold flex items-center gap-1.5 shadow-[0_2px_0_#8CBDA2]">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                  Test 2: PASS ✓ (Ledger Commit Verified)
+                </div>
+</div>
+<!-- Student Justification Input Field -->
+<div class="pt-2">
+<label class="block font-label-md text-label-md text-on-surface font-bold mb-1.5">
+                  Audio Defense Transcript / Written Argument:
+                </label>
+<div class="relative">
+<textarea class="w-full bg-[#FAF8F6] border-2 border-[#E5D9E8] rounded-2xl p-3.5 text-body-md font-body-md text-on-surface placeholder-[#9E92A6] focus:outline-none focus:ring-2 focus:ring-[#F0B6D5] focus:border-[#DE95BE] transition-all resize-none shadow-sm" placeholder="E.g., I implemented a Redis SETNX lock as a first-line perimeter guard before touching PostgreSQL, preventing duplicate queries even under sub-10ms burst retry windows..." rows="3">I implemented a two-tier defense: First, an atomic Redis SETNX distributed key acts as a fast mutual-exclusion barrier with a 60-second expiration. Second, the database payment table enforces a unique index on 'gateway_id', ensuring atomicity even if the Redis node restarts mid-execution.</textarea>
+<span class="absolute bottom-3 right-3 font-label-sm text-label-sm text-[#416655] bg-[#B6DEC9]/60 px-2 py-0.5 rounded-md border border-[#8CBDA2]">
+                    Clear &amp; Defensible ✓
+                  </span>
+</div>
+</div>
+</div>
+<!-- Bottom Action Toolbar (Tactile Studio Style) -->
+<div class="pt-3 border-t border-[#F2E8E4] space-y-4">
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+<!-- Left Secondary Controls & FAB -->
+<div class="flex items-center gap-2.5">
+<!-- Circular Mic FAB -->
+<button class="w-12 h-12 rounded-full bg-[#B6DEC9] border-2 border-[#8CBDA2] text-[#255C45] flex items-center justify-center tactile-btn-mint active:scale-95 transition-all shadow-md group" title="Toggle Audio Defense Mic">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform">mic</span>
+</button>
+<!-- Secondary Button -->
+<button class="bg-[#ECEAE4] border-2 border-[#DDD8CF] text-[#4F4449] hover:text-on-surface px-5 py-3 rounded-full font-label-lg text-label-lg font-bold tactile-btn-neutral transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">play_circle</span>
+                    ▶ Run SQL / Python Tests
+                  </button>
+</div>
+<!-- Primary Action Button -->
+<button class="bg-[#6D3B56] border-2 border-[#4B273A] text-white hover:bg-[#5C3249] px-7 py-3 rounded-full font-label-lg text-label-lg font-extrabold tactile-btn-plum transition-all flex items-center justify-center gap-2 shadow-md">
+<span>Submit &amp; Upgrade Skill to 1.0x Solid</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+<!-- Ledger Verification Cryptographic Footer Note -->
+<div class="flex items-center justify-center gap-2 text-center text-label-sm font-label-sm text-[#817379] bg-[#FAF8F6] border border-[#EADECE] rounded-xl py-2 px-3">
+<span class="material-symbols-outlined text-[15px] text-[#416655]">verified</span>
+<span>Cryptographic SHA-256 Ledger Record Generated Upon Submission • Node <span class="font-mono text-[#2D2633] font-bold">#CB-2026-IIT-881</span></span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- FOOTER -->
+<footer class="max-w-7xl mx-auto px-space-lg mt-12 text-center">
+<div class="border-t border-[#EADECE] pt-6 flex flex-col sm:flex-row items-center justify-between text-body-sm font-body-sm text-[#817379] gap-4">
+<div class="flex items-center gap-2">
+<span class="font-bold text-[#6D3B56]">CampusBridge AI</span>
+<span>•</span>
+<span>Pastel Tactile Studio v3.2</span>
+</div>
+<div class="flex items-center gap-4 text-label-sm font-label-sm">
+<span class="flex items-center gap-1 text-[#255C45]">
+<span class="w-2 h-2 rounded-full bg-[#255C45]"></span>
+          MCP Server Cluster: 18ms latency
+        </span>
+<span>•</span>
+<span>AES-256 Verified Student Vault</span>
+<span>•</span>
+<a class="hover:underline text-[#6D3B56]" href="#help">Candidate Guidelines</a>
+</div>
+</div>
+</footer>
+</body></html>

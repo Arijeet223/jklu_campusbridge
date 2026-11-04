@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-canvas: #FAF8F5;
+    --bg-surface: #FFFFFF;
+    --bg-subtle: #F3F1EC;
+    --bg-ai-ghost: #F5F3FF;
+    --border-hairline: #E6E3DC;
+    --border-ai-dashed: #C4B5FD;
+    --ink-primary: #111827;
+    --ink-secondary: #4B5563;
+    --ink-muted: #6B7280;
+    --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  body {
+    @apply bg-canvas text-ink-primary font-sans text-body antialiased;
+  }
+}

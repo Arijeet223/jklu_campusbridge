@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CampusBridge AI - Role Gateway</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Plus Jakarta Sans Font -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "secondary-fixed-dim": "#a8ccde",
+            "on-primary-fixed-variant": "#643953",
+            "tertiary": "#416655",
+            "on-tertiary": "#ffffff",
+            "on-error-container": "#93000a",
+            "secondary": "#406373",
+            "secondary-container": "#c1e5f8",
+            "tertiary-container": "#a8d0bb",
+            "error-container": "#ffdad6",
+            "inverse-on-surface": "#f2f0ee",
+            "on-secondary": "#ffffff",
+            "error": "#ba1a1a",
+            "primary": "#7e506b",
+            "on-surface-variant": "#4f4449",
+            "secondary-fixed": "#c4e8fb",
+            "background": "#fbf9f7",
+            "surface-variant": "#e4e2e0",
+            "surface-dim": "#dbdad8",
+            "outline": "#817379",
+            "on-background": "#1b1c1b",
+            "tertiary-fixed-dim": "#a8cfbb",
+            "surface-container-highest": "#e4e2e0",
+            "tertiary-fixed": "#c3ecd6",
+            "surface-container": "#efedec",
+            "on-primary-container": "#71445f",
+            "on-error": "#ffffff",
+            "surface-container-low": "#f5f3f1",
+            "surface-bright": "#fbf9f7",
+            "inverse-surface": "#30302f",
+            "on-primary-fixed": "#320e26",
+            "primary-container": "#f0b6d5",
+            "inverse-primary": "#f0b6d5",
+            "primary-fixed": "#ffd8eb",
+            "on-secondary-fixed-variant": "#284b5b",
+            "on-surface": "#1b1c1b",
+            "on-primary": "#ffffff",
+            "outline-variant": "#d3c2c9",
+            "primary-fixed-dim": "#f0b6d5",
+            "surface-container-lowest": "#ffffff",
+            "surface": "#fbf9f7",
+            "on-tertiary-fixed": "#002115",
+            "on-tertiary-fixed-variant": "#2a4e3e",
+            "on-secondary-container": "#456778",
+            "surface-container-high": "#eae8e6",
+            "on-secondary-fixed": "#001f2a",
+            "surface-tint": "#7e506b",
+            "on-tertiary-container": "#365a4a"
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "gutter": "1.5rem",
+            "gutter-mobile": "1rem",
+            "margin-mobile": "1.25rem",
+            "space-xl": "2.5rem",
+            "space-sm": "0.5rem",
+            "space-xs": "0.25rem",
+            "space-md": "1rem",
+            "space-lg": "1.5rem",
+            "margin": "2.5rem"
+          },
+          fontFamily: {
+            "headline-lg": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-xl-mobile": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "headline-xl": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"]
+          },
+          fontSize: {
+            "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.015em", fontWeight: "700" }],
+            "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "headline-xl-mobile": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "800" }],
+            "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "700" }],
+            "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.02em", fontWeight: "700" }],
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "700" }],
+            "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "800" }],
+            "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Soft tactile grid background */
+    .bg-tactile-pattern {
+      background-color: #FAF8F6;
+      background-image: 
+        radial-gradient(#EAD7E2 1px, transparent 1px),
+        radial-gradient(#C1E5F8 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: 0 0, 16px 16px;
+    }
+  </style>
+</head>
+<body class="bg-tactile-pattern text-on-surface min-h-screen flex flex-col justify-between antialiased relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-fixed">
+<!-- Ambient Architectural Bridge & Soft Pastel Orbs Canvas Backdrop -->
+<div class="fixed inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+<!-- Atmospheric Ambient Gradient Spots -->
+<div class="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-primary-container/30 blur-3xl"></div>
+<div class="absolute top-1/3 -right-24 w-80 h-80 rounded-full bg-secondary-container/40 blur-3xl"></div>
+<div class="absolute -bottom-24 left-1/3 w-96 h-96 rounded-full bg-tertiary-container/30 blur-3xl"></div>
+<!-- Tactile Pastel Floating Badge Orbs -->
+<div class="absolute top-28 left-12 lg:left-36 w-16 h-16 rounded-full bg-primary-container border-2 border-outline-variant/60 shadow-[0_6px_0_#DE95BE] flex items-center justify-center animate-bounce duration-[4000ms]">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="school">school</span>
+</div>
+<div class="absolute top-1/2 -left-6 lg:left-24 w-12 h-12 rounded-full bg-secondary-container border-2 border-secondary-fixed-dim shadow-[0_4px_0_#85B5CE] flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-xl" data-icon="hub">hub</span>
+</div>
+<div class="absolute top-40 right-10 lg:right-40 w-14 h-14 rounded-full bg-tertiary-container border-2 border-tertiary-fixed-dim shadow-[0_5px_0_#8DBAA1] flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-2xl" data-icon="verified_user">verified_user</span>
+</div>
+<div class="absolute bottom-28 right-16 lg:right-32 w-16 h-16 rounded-full bg-primary-fixed border-2 border-outline-variant shadow-[0_5px_0_#DE95BE] flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="analytics">analytics</span>
+</div>
+<!-- Stylized Architectural Trajectory Lines (Vector Campus Bridge Graphic) -->
+<svg class="absolute inset-0 w-full h-full stroke-outline-variant/40" fill="none" viewbox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg">
+<path d="M-100 700 C 300 700, 450 480, 720 480 C 990 480, 1140 700, 1540 700" stroke-dasharray="8 8" stroke-width="2"></path>
+<path d="M-100 760 C 350 760, 520 540, 720 540 C 920 540, 1090 760, 1540 760" stroke-dasharray="6 6" stroke-width="1.5"></path>
+<!-- Stylized bridge vertical architectural stays -->
+<line class="stroke-outline-variant/30" stroke-dasharray="4 4" stroke-width="1.5" x1="500" x2="500" y1="520" y2="720"></line>
+<line class="stroke-outline-variant/30" stroke-dasharray="4 4" stroke-width="1.5" x1="600" x2="600" y1="490" y2="700"></line>
+<line class="stroke-primary/30" stroke-dasharray="4 4" stroke-width="2" x1="720" x2="720" y1="480" y2="700"></line>
+<line class="stroke-outline-variant/30" stroke-dasharray="4 4" stroke-width="1.5" x1="840" x2="840" y1="490" y2="700"></line>
+<line class="stroke-outline-variant/30" stroke-dasharray="4 4" stroke-width="1.5" x1="940" x2="940" y1="520" y2="720"></line>
+</svg>
+</div>
+<!-- Top Bar / Institutional Status Header -->
+<header class="relative z-10 w-full px-space-md lg:px-space-xl py-space-md">
+<div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-sm bg-surface-container-lowest/80 backdrop-blur-md rounded-full px-space-lg py-2.5 border border-outline-variant/40 shadow-[0_4px_0_#EAD7E2]">
+<!-- Brand Anchor -->
+<div class="flex items-center gap-space-sm">
+<div class="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-[0_2px_0_#4D293C]">
+<span class="material-symbols-outlined text-lg" data-icon="school">school</span>
+</div>
+<span class="font-headline-sm text-headline-sm font-extrabold text-on-surface tracking-tight">CampusBridge AI</span>
+<span class="hidden md:inline-flex items-center bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm px-2.5 py-0.5 rounded-full border border-outline-variant/50">
+          Pastel Tactile Studio v3.2
+        </span>
+</div>
+<!-- Institutional Badges & DB Status -->
+<div class="flex items-center gap-space-sm flex-wrap justify-center">
+<!-- Zero-Trust FERPA Compliance -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed/50 border border-secondary-fixed-dim/60 text-on-secondary-container font-label-md text-label-md">
+<span class="material-symbols-outlined text-base" data-icon="shield">shield</span>
+<span>Zero-Trust FERPA &amp; SSO Compliant</span>
+</div>
+<!-- Excel DB Live Sync -->
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-fixed/60 border border-tertiary-fixed-dim text-on-tertiary-container font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span>campusbridge_db.xlsx Synced</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content: Centered Tactile Bento Login Card -->
+<main class="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
+<div class="w-full max-w-[550px] bg-surface-container-lowest rounded-3xl border border-[#ECEAE4] shadow-[0_12px_32px_rgba(109,59,86,0.06),0_4px_0_#EAD7E2] p-8 sm:p-10 transition-all">
+<!-- Card Sub-header: Mini Badge & Titles -->
+<div class="text-center mb-6">
+<div class="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary-container/40 border border-primary-container text-on-primary-container font-label-sm text-label-sm mb-3">
+<span class="material-symbols-outlined text-sm" data-icon="lock">lock</span>
+<span>Single Sign-On &amp; Role Gateway</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg font-extrabold text-[#232224] tracking-tight">
+          Sign In to CampusBridge
+        </h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 max-w-sm mx-auto">
+          Select your institutional role to access your verified career proofs, cohort liquidity, or AI command deck.
+        </p>
+</div>
+<!-- Segmented Pill Tab Switcher -->
+<div class="bg-[#F1EFEA] p-1.5 rounded-full flex items-center justify-between gap-1 mb-7 border border-[#E5E1DA]">
+<button class="role-tab flex-1 py-2 px-3 text-center rounded-full font-label-md text-label-md transition-all flex items-center justify-center gap-1.5 bg-[#6D3B56] text-white shadow-sm font-bold" id="tab-student" onclick="setRole('student')" type="button">
+<span class="material-symbols-outlined text-base" data-icon="school">school</span>
+<span>Student</span>
+</button>
+<button class="role-tab flex-1 py-2 px-3 text-center rounded-full font-label-md text-label-md transition-all flex items-center justify-center gap-1.5 text-on-surface-variant hover:text-on-surface font-medium" id="tab-teacher" onclick="setRole('teacher')" type="button">
+<span class="material-symbols-outlined text-base" data-icon="person_celebrate">person_celebrate</span>
+<span>TPO / Mentor</span>
+</button>
+<button class="role-tab flex-1 py-2 px-3 text-center rounded-full font-label-md text-label-md transition-all flex items-center justify-center gap-1.5 text-on-surface-variant hover:text-on-surface font-medium" id="tab-admin" onclick="setRole('admin')" type="button">
+<span class="material-symbols-outlined text-base" data-icon="admin_panel_settings">admin_panel_settings</span>
+<span>Admin &amp; IT</span>
+</button>
+</div>
+<!-- Authentication Form -->
+<form class="space-y-4" onsubmit="event.preventDefault(); handleAuth();">
+<!-- University Email Field -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface font-bold mb-1.5" for="email" id="email-label">
+            University Email Address
+          </label>
+<div class="relative flex items-center">
+<span class="absolute left-4 text-on-surface-variant flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-lg" data-icon="alternate_email">alternate_email</span>
+</span>
+<input class="w-full pl-11 pr-4 py-3 bg-surface-container-lowest border-[1.5px] border-[#E2DFD9] rounded-full text-on-surface font-body-md text-body-md placeholder:text-outline/70 focus:outline-none focus:border-primary-container focus:ring-4 focus:ring-primary-container/30 transition-all shadow-[0_2px_0_#FAF8F6]" id="email" placeholder="aarav.sharma@university.edu.in" required="" type="email"/>
+</div>
+</div>
+<!-- Institutional Password Field -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface font-bold mb-1.5" for="password">
+            Institutional Password
+          </label>
+<div class="relative flex items-center">
+<span class="absolute left-4 text-on-surface-variant flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-lg" data-icon="key">key</span>
+</span>
+<input class="w-full pl-11 pr-12 py-3 bg-surface-container-lowest border-[1.5px] border-[#E2DFD9] rounded-full text-on-surface font-body-md text-body-md placeholder:text-outline/70 focus:outline-none focus:border-primary-container focus:ring-4 focus:ring-primary-container/30 transition-all shadow-[0_2px_0_#FAF8F6]" id="password" placeholder="••••••••••••" required="" type="password"/>
+<button aria-label="Toggle password visibility" class="absolute right-4 text-on-surface-variant hover:text-on-surface transition-colors p-1" onclick="togglePasswordVisibility()" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="visibility" id="eye-icon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Interactive Helpers: Checkbox & Forgot Password -->
+<div class="flex items-center justify-between pt-1 pb-1">
+<label class="flex items-center gap-2 cursor-pointer select-none">
+<div class="relative flex items-center">
+<input checked="" class="w-5 h-5 rounded-lg border-2 border-outline-variant text-primary focus:ring-primary/20 accent-[#6D3B56] cursor-pointer" type="checkbox"/>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Remember campus session</span>
+</label>
+<a class="font-label-md text-label-md text-on-primary-container font-bold hover:underline hover:text-primary transition-colors" href="#">
+            Forgot credentials?
+          </a>
+</div>
+<!-- Primary Tactile Submission Button -->
+<button class="w-full py-3.5 px-6 rounded-full bg-[#6D3B56] hover:bg-[#5C3249] text-white font-label-lg text-label-lg font-bold shadow-[0_4px_0_#4D293C] active:translate-y-[2px] active:shadow-[0_1px_0_#4D293C] transition-all flex items-center justify-center gap-2 group mt-2" id="submit-button" type="submit">
+<span>Sign In to CampusBridge</span>
+<span class="material-symbols-outlined text-lg group-hover:translate-x-1 transition-transform" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</form>
+<!-- Alternative / Quick SSO Divider -->
+<div class="relative my-6 flex items-center justify-center">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-dashed border-[#E5E1DA]"></div>
+</div>
+<div class="relative px-3 bg-surface-container-lowest font-label-sm text-label-sm text-on-surface-variant rounded-full">
+          or continue with institutional identity
+        </div>
+</div>
+<!-- Quick SSO Tactile Action Buttons -->
+<div class="grid grid-cols-2 gap-3">
+<button class="w-full py-2.5 px-3 rounded-full bg-surface-container-lowest border-[1.5px] border-[#E2DFD9] hover:bg-surface-container-low text-on-surface font-label-md text-label-md font-bold shadow-[0_3px_0_#E3D3C3] active:translate-y-[2px] active:shadow-[0_1px_0_#E3D3C3] transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-secondary text-lg" data-icon="apartment">apartment</span>
+<span class="truncate">Campus LDAP / SAML</span>
+</button>
+<button class="w-full py-2.5 px-3 rounded-full bg-surface-container-lowest border-[1.5px] border-[#E2DFD9] hover:bg-surface-container-low text-on-surface font-label-md text-label-md font-bold shadow-[0_3px_0_#E3D3C3] active:translate-y-[2px] active:shadow-[0_1px_0_#E3D3C3] transition-all flex items-center justify-center gap-2" type="button">
+<span class="material-symbols-outlined text-tertiary text-lg" data-icon="table_view">table_view</span>
+<span class="truncate">Excel DB Local Auth</span>
+</button>
+</div>
+<!-- Card Footer Helper Link -->
+<div class="mt-6 pt-5 border-t border-[#ECEAE4] text-center">
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+          Need an account? 
+          <a class="font-bold text-on-primary-container hover:underline ml-1 inline-flex items-center gap-0.5" href="#">
+            Request access via Campus IT or import from Excel DB
+            <span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</a>
+</p>
+</div>
+</div>
+</main>
+<!-- Screen Footer with Institutional Node & Encryption Details -->
+<footer class="relative z-10 w-full py-4 px-6 text-center">
+<div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 font-label-sm text-label-sm text-outline">
+<div class="flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span>© 2025 CampusBridge AI • Pastel Tactile Studio v3.2 • Node #CB-2026-IIT-881</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="enhanced_encryption">enhanced_encryption</span>
+<span>Protected under 256-bit AES Vault &amp; Local FastMCP Encryption</span>
+</div>
+</div>
+</footer>
+<!-- Interactive Logic for Role Switching & Tactile Effects -->
+<script>
+    let currentRole = 'student';
+
+    function setRole(role) {
+      currentRole = role;
+      const tabs = {
+        student: document.getElementById('tab-student'),
+        teacher: document.getElementById('tab-teacher'),
+        admin: document.getElementById('tab-admin')
+      };
+      
+      const emailInput = document.getElementById('email');
+      const emailLabel = document.getElementById('email-label');
+
+      // Reset all tabs to inactive styling
+      Object.keys(tabs).forEach(key => {
+        tabs[key].className = 'role-tab flex-1 py-2 px-3 text-center rounded-full font-label-md text-label-md transition-all flex items-center justify-center gap-1.5 text-on-surface-variant hover:text-on-surface font-medium';
+      });
+
+      // Highlight active tab
+      tabs[role].className = 'role-tab flex-1 py-2 px-3 text-center rounded-full font-label-md text-label-md transition-all flex items-center justify-center gap-1.5 bg-[#6D3B56] text-white shadow-sm font-bold';
+
+      // Update placeholders and labels contextually
+      if (role === 'student') {
+        emailLabel.textContent = 'University Student Email';
+        emailInput.placeholder = 'aarav.sharma@university.edu.in';
+      } else if (role === 'teacher') {
+        emailLabel.textContent = 'TPO / Faculty Email ID';
+        emailInput.placeholder = 'faculty.placement@university.edu.in';
+      } else if (role === 'admin') {
+        emailLabel.textContent = 'Institutional SuperAdmin ID';
+        emailInput.placeholder = 'it.director@university.edu.in';
+      }
+    }
+
+    function togglePasswordVisibility() {
+      const passwordInput = document.getElementById('password');
+      const eyeIcon = document.getElementById('eye-icon');
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.textContent = 'visibility_off';
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.textContent = 'visibility';
+      }
+    }
+
+    function handleAuth() {
+      const btn = document.getElementById('submit-button');
+      const initialText = btn.innerHTML;
+      btn.innerHTML = `<span class="material-symbols-outlined text-lg animate-spin" data-icon="progress_activity">progress_activity</span><span>Verifying with Excel DB...</span>`;
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerHTML = `<span class="material-symbols-outlined text-lg" data-icon="check_circle">check_circle</span><span>Authenticated! Redirecting...</span>`;
+        btn.classList.add('bg-tertiary', 'shadow-[0_4px_0_#2A4E3E]');
+      }, 900);
+    }
+  </script>
+</body></html>

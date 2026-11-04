@@ -1,0 +1,99 @@
+###############################################################################
+# CampusBridge AI — Local Development Stack
+# docker compose -f infra/docker/docker-compose.yml up -d
+###############################################################################
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 + pgvector
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: campusbridge-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: campusbridge
+      POSTGRES_USER: campusbridge
+      POSTGRES_PASSWORD: campusbridge_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../../migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusbridge -d campusbridge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - campusbridge-net
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 — caching & session store
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: campusbridge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+        --appendonly yes
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campusbridge-net
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage (documents & quarantine)
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: campusbridge-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    environment:
+      MINIO_ROOT_USER: campusbridge
+      MINIO_ROOT_PASSWORD: campusbridge_dev
+      MINIO_DEFAULT_BUCKETS: documents,quarantine
+    command: server /data --console-address ":9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - campusbridge-net
+
+# =============================================================================
+# Named volumes
+# =============================================================================
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+  miniodata:
+    driver: local
+
+# =============================================================================
+# Shared network
+# =============================================================================
+networks:
+  campusbridge-net:
+    driver: bridge

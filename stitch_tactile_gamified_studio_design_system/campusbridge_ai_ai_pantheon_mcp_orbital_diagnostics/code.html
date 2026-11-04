@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CampusBridge AI — AI Pantheon &amp; MCP Orbital Diagnostics Command Deck</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "on-surface": "#1b1c1b",
+            "background": "#FAF8F6",
+            "tertiary": "#416655",
+            "on-secondary": "#ffffff",
+            "inverse-primary": "#f0b6d5",
+            "on-surface-variant": "#4f4449",
+            "error": "#ba1a1a",
+            "on-background": "#1b1c1b",
+            "inverse-surface": "#30302f",
+            "secondary": "#406373",
+            "on-secondary-fixed": "#001f2a",
+            "on-error": "#ffffff",
+            "surface-container-high": "#eae8e6",
+            "on-secondary-fixed-variant": "#284b5b",
+            "surface": "#fbf9f7",
+            "on-secondary-container": "#456778",
+            "surface-variant": "#e4e2e0",
+            "secondary-fixed": "#c4e8fb",
+            "surface-container": "#efedec",
+            "primary-fixed": "#ffd8eb",
+            "secondary-fixed-dim": "#a8ccde",
+            "on-primary-fixed-variant": "#643953",
+            "on-tertiary-fixed-variant": "#2a4e3e",
+            "on-tertiary-container": "#365a4a",
+            "on-tertiary": "#ffffff",
+            "surface-bright": "#fbf9f7",
+            "surface-container-highest": "#e4e2e0",
+            "outline": "#817379",
+            "surface-tint": "#7e506b",
+            "primary-container": "#f0b6d5",
+            "surface-container-low": "#f5f3f1",
+            "secondary-container": "#c1e5f8",
+            "primary": "#7e506b",
+            "outline-variant": "#d3c2c9",
+            "primary-fixed-dim": "#f0b6d5",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed": "#002115",
+            "on-primary-fixed": "#320e26",
+            "tertiary-fixed-dim": "#a8cfbb",
+            "on-error-container": "#93000a",
+            "inverse-on-surface": "#f2f0ee",
+            "on-primary-container": "#71445f",
+            "tertiary-container": "#a8d0bb",
+            "tertiary-fixed": "#c3ecd6",
+            "surface-container-lowest": "#ffffff",
+            "surface-dim": "#dbdad8",
+            "on-primary": "#ffffff"
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "space-sm": "0.5rem",
+            "margin-mobile": "1.25rem",
+            "space-md": "1rem",
+            "space-xl": "2.5rem",
+            "gutter": "1.5rem",
+            "gutter-mobile": "1rem",
+            "space-xs": "0.25rem",
+            "margin": "2.5rem",
+            "space-lg": "1.5rem"
+          },
+          fontFamily: {
+            "headline-lg": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "headline-xl": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-xl-mobile": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"]
+          },
+          fontSize: {
+            "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.015em", fontWeight: "700" }],
+            "label-lg": ["14px", { lineHeight: "20px", letterSpacing: "0.02em", fontWeight: "700" }],
+            "headline-lg-mobile": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em", fontWeight: "800" }],
+            "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+            "headline-xl-mobile": ["30px", { lineHeight: "36px", letterSpacing: "-0.02em", fontWeight: "800" }],
+            "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "700" }],
+            "body-sm": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+            "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+            "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.03em", fontWeight: "700" }],
+            "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.04em", fontWeight: "700" }],
+            "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Tactile toy shadow offsets from design system */
+    .tactile-shelf {
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+    .tactile-shelf-strong {
+      box-shadow: 0 6px 0 #E3CFDC;
+    }
+    .tactile-press {
+      box-shadow: 0 4px 0 #D48BB4;
+      transition: all 0.1s ease;
+    }
+    .tactile-press:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #D48BB4;
+    }
+    .tactile-press-dark {
+      box-shadow: 0 4px 0 #4a253a;
+      transition: all 0.1s ease;
+    }
+    .tactile-press-dark:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #4a253a;
+    }
+    .tactile-press-white {
+      box-shadow: 0 3px 0 #E3D3C3;
+      transition: all 0.1s ease;
+    }
+    .tactile-press-white:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #E3D3C3;
+    }
+
+    /* Ambient sci-fi background dot matrix */
+    .dot-matrix {
+      background-image: radial-gradient(#d3c2c9 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+
+    /* Holographic continuous spin */
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes spin-reverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 0.95; transform: scale(1.04); }
+    }
+
+    .holo-spin {
+      animation: spin-slow 18s linear infinite;
+      transform-origin: center;
+    }
+    .holo-spin-reverse {
+      animation: spin-reverse 12s linear infinite;
+      transform-origin: center;
+    }
+    .holo-pulse {
+      animation: pulse-glow 3s ease-in-out infinite;
+      transform-origin: center;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased font-body-md min-h-screen selection:bg-primary-container selection:text-on-primary-container dot-matrix relative overflow-x-hidden">
+<!-- Ambient glowing pastel backdrop halos -->
+<div class="fixed top-0 left-1/4 w-96 h-96 bg-primary-container/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<div class="fixed top-1/3 right-10 w-[30rem] h-[30rem] bg-secondary-container/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<div class="fixed bottom-10 left-10 w-80 h-80 bg-tertiary-container/30 rounded-full blur-3xl pointer-events-none -z-10"></div>
+<!-- TOP APP BAR / FLOATING COMMAND DECK HEADER -->
+<header class="sticky top-space-sm z-50 px-space-md max-w-7xl mx-auto my-space-md">
+<div class="bg-surface-container-lowest/90 backdrop-blur-md rounded-full px-space-lg py-space-sm border border-outline-variant shadow-[0_4px_0_#EAD7E2] flex items-center justify-between gap-space-md">
+<!-- Brand & Status -->
+<div class="flex items-center gap-space-md">
+<div class="w-11 h-11 rounded-full bg-primary-container border-2 border-[#DE95BE] flex items-center justify-center font-headline-md text-headline-md text-on-primary-container font-black shadow-[0_2px_0_#DE95BE]">
+          CB
+        </div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-headline-sm font-extrabold text-on-surface tracking-tight">CampusBridge AI</span>
+<span class="bg-tertiary-fixed text-on-tertiary-container border border-tertiary/20 text-label-sm font-label-sm px-2.5 py-0.5 rounded-full flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-ping"></span>
+              6/6 Cores Active • 11 MCP Tools Green
+            </span>
+</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-1.5">
+<span>🪐 Neural Pantheon &amp; MCP Orbital Diagnostics</span>
+<span class="text-outline-variant">•</span>
+<span class="text-[#7e506b] font-semibold">Studio Command Deck v3.2</span>
+</div>
+</div>
+</div>
+<!-- Center Floating Pill Navigation Dock (Shared Component Pattern) -->
+<nav class="hidden lg:flex items-center bg-surface-container rounded-full p-1 border border-outline-variant/60 shadow-inner">
+<button class="px-space-md py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:text-on-surface transition-colors">Studio</button>
+<button class="px-space-md py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:text-on-surface transition-colors">Practice Arena</button>
+<button class="px-space-md py-1.5 rounded-full text-label-md font-label-md text-on-surface-variant hover:text-on-surface transition-colors">What-If Sandbox</button>
+<button class="px-space-md py-1.5 rounded-full text-label-md font-label-md bg-[#6D3B56] text-white font-bold shadow-[0_2px_0_#4a253a] flex items-center gap-1.5">
+<span>🪐</span> AI/MCP Health
+        </button>
+</nav>
+<!-- Right Controls & Safety -->
+<div class="flex items-center gap-space-sm">
+<button class="tactile-press-dark bg-[#6D3B56] hover:bg-[#5b3047] text-white rounded-full px-space-md py-2 text-label-md font-label-lg flex items-center gap-1.5 border border-[#4a253a]">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+<span>Pulse All 6 Cores &amp; 11 Tools</span>
+</button>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container rounded-full px-3 py-2 text-label-sm font-label-md text-on-surface-variant border border-outline-variant flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">power_settings_new</span>
+<span>Simulate GPU Offline</span>
+</button>
+<div class="bg-primary-fixed text-on-primary-fixed-variant border border-primary-container px-3 py-1.5 rounded-full text-label-sm font-label-sm flex items-center gap-1 shadow-sm" title="Zero-Trust Enforced">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span>Zero-Trust Active</span>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CANVAS CONTAINER -->
+<main class="max-w-7xl mx-auto px-space-md py-space-sm space-y-space-xl">
+<!-- SUBHEADER / STATUS HUD -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-space-md bg-surface-container-lowest/80 border border-outline-variant/80 rounded-3xl p-space-lg tactile-shelf">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="text-label-md font-label-md uppercase tracking-wider text-primary font-bold">Sub-Orbital Distributed Grid</span>
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-label-sm font-label-sm text-on-surface-variant font-medium">Local Fast-Inference Mesh (127.0.0.1:8765)</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg font-black tracking-tight text-on-surface">The 6 Holographic AI Pantheon Pods</h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl mt-1">
+          Real-time telemetry, model routing status, LangGraph state constraints, and Model Context Protocol (MCP) tool execution verification.
+        </p>
+</div>
+<!-- Quick Summary Pills -->
+<div class="flex flex-wrap items-center gap-2">
+<div class="bg-surface-container-low px-3.5 py-2 rounded-2xl border border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[#7e506b]">memory</span>
+<div class="text-left">
+<div class="text-label-sm font-label-sm text-on-surface-variant leading-none">GPU Context</div>
+<div class="text-label-md font-label-md text-on-surface font-bold">24GB VRAM • 68%</div>
+</div>
+</div>
+<div class="bg-surface-container-low px-3.5 py-2 rounded-2xl border border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">speed</span>
+<div class="text-left">
+<div class="text-label-sm font-label-sm text-on-surface-variant leading-none">Avg Bus Latency</div>
+<div class="text-label-md font-label-md text-on-surface font-bold">14.2ms</div>
+</div>
+</div>
+<div class="bg-surface-container-low px-3.5 py-2 rounded-2xl border border-outline-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary" style="font-variation-settings: 'FILL' 1;">verified</span>
+<div class="text-left">
+<div class="text-label-sm font-label-sm text-on-surface-variant leading-none">Audit Guard</div>
+<div class="text-label-md font-label-md text-on-surface font-bold">FERPA Zero-Leak</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SPACIOUS 3x2 BENTO GRID OF 6 HOLOGRAPHIC AI ORB PODS -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
+<!-- POD 1: J.A.R.V.I.S. -->
+<article class="bg-surface-container-lowest border-2 border-outline-variant/60 rounded-3xl p-7 flex flex-col justify-between tactile-shelf hover:border-primary-container transition-all group">
+<div>
+<!-- Header and Identity -->
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">J.A.R.V.I.S.</h2>
+<span class="w-2 h-2 rounded-full bg-[#255C45]"></span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Master Orchestrator &amp; Local LLM Core</p>
+</div>
+<span class="bg-[#F0B6D5]/40 text-[#6D3B56] border border-[#DE95BE] px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold">
+              PRIORITY-1
+            </span>
+</div>
+<div class="mt-2.5 inline-block bg-[#F0B6D5]/30 border border-[#DE95BE]/60 text-[#6D3B56] px-3 py-1 rounded-full text-label-sm font-label-sm font-semibold">
+            Ollama • qwen2.5:7b • LangGraph Router
+          </div>
+<!-- Concentric Holographic Energy Orb Visual (Blossom Pink & Deep Plum) -->
+<div class="relative w-full h-44 my-4 flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-b from-[#F0B6D5]/20 to-transparent rounded-2xl -z-10"></div>
+<svg class="w-40 h-40" viewbox="0 0 160 160">
+<!-- Outer Rotating Dashed Ring -->
+<circle class="holo-spin" cx="80" cy="80" fill="none" r="72" stroke="#F0B6D5" stroke-dasharray="6 8" stroke-width="1.5"></circle>
+<!-- Secondary Gyro Ring -->
+<circle class="holo-spin-reverse opacity-70" cx="80" cy="80" fill="none" r="60" stroke="#DE95BE" stroke-dasharray="3 6" stroke-width="1.5"></circle>
+<!-- Pulsing Soundwave Acoustic Rings -->
+<circle class="holo-pulse" cx="80" cy="80" fill="none" r="48" stroke="#F0B6D5" stroke-width="2"></circle>
+<circle cx="80" cy="80" fill="none" r="38" stroke="#6D3B56" stroke-dasharray="2 4" stroke-width="1.5"></circle>
+<!-- Core Solid Radiant Sphere -->
+<defs>
+<radialgradient cx="40%" cy="40%" id="jarvisCore" r="60%">
+<stop offset="0%" stop-color="#F0B6D5"></stop>
+<stop offset="60%" stop-color="#6D3B56"></stop>
+<stop offset="100%" stop-color="#320e26"></stop>
+</radialgradient>
+</defs>
+<circle class="shadow-inner" cx="80" cy="80" fill="url(#jarvisCore)" r="28"></circle>
+<!-- Text in Core -->
+<text fill="#FFFFFF" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="80" y="84">99.8%</text>
+</svg>
+<span class="absolute bottom-2 right-4 text-label-sm font-label-sm text-[#6D3B56] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#DE95BE]/40">
+              Acoustic Flow
+            </span>
+</div>
+<!-- Health Metrics -->
+<div class="space-y-2.5 pt-1">
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Core Vitality</span>
+<span class="font-bold text-[#6D3B56]">ONLINE • TTFT: 340ms</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#6D3B56] rounded-full w-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Token Stream Velocity</span>
+<span class="font-bold text-[#2B5B75]">44.2 tok/sec</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#2B5B75] rounded-full w-[88%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Step Budget Guard</span>
+<span class="font-bold text-[#255C45]">Max 3 Handoffs Enforced</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#255C45] rounded-full w-[95%]"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-6 pt-4 border-t border-dashed border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-full bg-[#F0B6D5]/40 text-[#6D3B56] flex items-center justify-center hover:bg-[#F0B6D5] transition-colors" title="Pulse Wand">
+<span class="material-symbols-outlined text-[16px]">auto_fix_high</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-secondary-container/40 text-[#2B5B75] flex items-center justify-center hover:bg-secondary-container transition-colors" title="Trace Graph">
+<span class="material-symbols-outlined text-[16px]">schema</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-tertiary-container/40 text-[#255C45] flex items-center justify-center hover:bg-tertiary-container transition-colors" title="Health Check">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-error-container/40 text-error flex items-center justify-center hover:bg-error-container transition-colors" title="Restart Core">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+</button>
+</div>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant text-label-sm font-label-lg text-on-surface">
+            Ping J.A.R.V.I.S.
+          </button>
+</div>
+</article>
+<!-- POD 2: T.E.R.R.A. -->
+<article class="bg-surface-container-lowest border-2 border-outline-variant/60 rounded-3xl p-7 flex flex-col justify-between tactile-shelf hover:border-tertiary-container transition-all group">
+<div>
+<!-- Header and Identity -->
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">T.E.R.R.A.</h2>
+<span class="w-2 h-2 rounded-full bg-[#255C45]"></span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Hybrid RAG, Vector Memory &amp; Excel Sync</p>
+</div>
+<span class="bg-[#B6DEC9]/40 text-[#255C45] border border-[#a8cfbb] px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold">
+              SYNCED
+            </span>
+</div>
+<div class="mt-2.5 inline-block bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-3 py-1 rounded-full text-label-sm font-label-sm font-semibold truncate max-w-full">
+            nomic-embed-text • campusbridge_db.xlsx (8 Sheets)
+          </div>
+<!-- Concentric Holographic Lattice Orb (Mint Sage & Deep Forest) -->
+<div class="relative w-full h-44 my-4 flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-b from-[#B6DEC9]/20 to-transparent rounded-2xl -z-10"></div>
+<svg class="w-40 h-40" viewbox="0 0 160 160">
+<!-- Outer Geometric Diamond Lattice -->
+<polygon class="holo-spin" fill="none" points="80,10 150,80 80,150 10,80" stroke="#B6DEC9" stroke-dasharray="4 4" stroke-width="1.5"></polygon>
+<circle class="holo-spin-reverse" cx="80" cy="80" fill="none" r="62" stroke="#a8cfbb" stroke-width="1"></circle>
+<polygon fill="none" points="80,25 135,80 80,135 25,80" stroke="#255C45" stroke-opacity="0.4" stroke-width="1.5"></polygon>
+<!-- Core Sphere -->
+<defs>
+<radialgradient cx="40%" cy="40%" id="terraCore" r="60%">
+<stop offset="0%" stop-color="#B6DEC9"></stop>
+<stop offset="50%" stop-color="#255C45"></stop>
+<stop offset="100%" stop-color="#002115"></stop>
+</radialgradient>
+</defs>
+<circle cx="80" cy="80" fill="url(#terraCore)" r="28"></circle>
+<text fill="#FFFFFF" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="80" y="84">100%</text>
+</svg>
+<span class="absolute bottom-2 right-4 text-label-sm font-label-sm text-[#255C45] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#a8cfbb]">
+              Vector Lattice
+            </span>
+</div>
+<!-- Health Metrics & MCP Chips -->
+<div class="space-y-2.5 pt-1">
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Vector + BM25 Index</span>
+<span class="font-bold text-[#255C45]">1,420 Chunks • 9ms</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#255C45] rounded-full w-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Live Excel R/W Sync</span>
+<span class="font-bold text-[#2B5B75]">8/8 Sheets Synced • 11ms</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#2B5B75] rounded-full w-full"></div>
+</div>
+</div>
+<!-- MCP Status Chips -->
+<div class="pt-1">
+<div class="text-label-sm font-label-sm text-on-surface-variant mb-1 font-medium">MCP student-profile (3/3 Tools PASS)</div>
+<div class="flex flex-wrap gap-1">
+<span class="bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">get_my_profile ✓</span>
+<span class="bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">list_my_evidence ✓</span>
+<span class="bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">propose_profile_update ✓</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-6 pt-4 border-t border-dashed border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-full bg-tertiary-container/40 text-[#255C45] flex items-center justify-center hover:bg-tertiary-container transition-colors" title="Vector Refresh">
+<span class="material-symbols-outlined text-[16px]">sync</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-variant transition-colors" title="Inspect Sheets">
+<span class="material-symbols-outlined text-[16px]">table_chart</span>
+</button>
+</div>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant text-label-sm font-label-lg text-on-surface">
+            Re-Index Vectors
+          </button>
+</div>
+</article>
+<!-- POD 3: R.O.N.E.N. -->
+<article class="bg-surface-container-lowest border-2 border-outline-variant/60 rounded-3xl p-7 flex flex-col justify-between tactile-shelf hover:border-secondary-container transition-all group">
+<div>
+<!-- Header and Identity -->
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">R.O.N.E.N.</h2>
+<span class="w-2 h-2 rounded-full bg-[#2B5B75]"></span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">120s Micro-Defense &amp; DSA/SQL Combat Judge</p>
+</div>
+<span class="bg-[#B6D9EC]/50 text-[#2B5B75] border border-[#96C4DC] px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold">
+              COMBAT-READY
+            </span>
+</div>
+<div class="mt-2.5 inline-block bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-3 py-1 rounded-full text-label-sm font-label-sm font-semibold">
+            Artifact Micro-Defense • DSA &amp; SQL Evaluator
+          </div>
+<!-- Concentric Gyro-Rings Orb (Sky Blue & Slate Teal) -->
+<div class="relative w-full h-44 my-4 flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-b from-[#B6D9EC]/20 to-transparent rounded-2xl -z-10"></div>
+<svg class="w-40 h-40" viewbox="0 0 160 160">
+<!-- Dual Ellipse Gyroscope Rings -->
+<ellipse class="holo-spin" cx="80" cy="80" fill="none" rx="70" ry="24" stroke="#B6D9EC" stroke-width="1.8" transform="rotate(30 80 80)"></ellipse>
+<ellipse class="holo-spin-reverse" cx="80" cy="80" fill="none" rx="70" ry="24" stroke="#96C4DC" stroke-width="1.8" transform="rotate(-45 80 80)"></ellipse>
+<circle cx="80" cy="80" fill="none" r="48" stroke="#2B5B75" stroke-dasharray="5 3" stroke-width="1.5"></circle>
+<!-- Core Sphere -->
+<defs>
+<radialgradient cx="40%" cy="40%" id="ronenCore" r="60%">
+<stop offset="0%" stop-color="#c4e8fb"></stop>
+<stop offset="50%" stop-color="#2B5B75"></stop>
+<stop offset="100%" stop-color="#001f2a"></stop>
+</radialgradient>
+</defs>
+<circle cx="80" cy="80" fill="url(#ronenCore)" r="28"></circle>
+<text fill="#FFFFFF" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="80" y="84">98.4%</text>
+</svg>
+<span class="absolute bottom-2 right-4 text-label-sm font-label-sm text-[#2B5B75] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#96C4DC]">
+              Gyro Arbiter
+            </span>
+</div>
+<!-- Health Metrics & MCP Chips -->
+<div class="space-y-2.5 pt-1">
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Defense Question Gen</span>
+<span class="font-bold text-[#2B5B75]">410ms • Grounded Spans</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#2B5B75] rounded-full w-[94%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Sandbox Code/SQL Runner</span>
+<span class="font-bold text-[#255C45]">Isolated Execution • 18ms</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#255C45] rounded-full w-full"></div>
+</div>
+</div>
+<!-- MCP Status Chips -->
+<div class="pt-1">
+<div class="text-label-sm font-label-sm text-on-surface-variant mb-1 font-medium">MCP artifact-defense (2/2 Tools PASS)</div>
+<div class="flex flex-wrap gap-1">
+<span class="bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">start_micro_defense ✓</span>
+<span class="bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">evaluate_defense_attempt ✓</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-6 pt-4 border-t border-dashed border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-full bg-secondary-container/40 text-[#2B5B75] flex items-center justify-center hover:bg-secondary-container transition-colors" title="Launch Combat">
+<span class="material-symbols-outlined text-[16px]">swords</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-variant transition-colors" title="Code Sandbox">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+</button>
+</div>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant text-label-sm font-label-lg text-on-surface">
+            Run Test Defense
+          </button>
+</div>
+</article>
+<!-- POD 4: A.T.H.E.N.A. -->
+<article class="bg-surface-container-lowest border-2 border-outline-variant/60 rounded-3xl p-7 flex flex-col justify-between tactile-shelf hover:border-primary-container transition-all group">
+<div>
+<!-- Header and Identity -->
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">A.T.H.E.N.A.</h2>
+<span class="w-2 h-2 rounded-full bg-[#255C45]"></span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Counterfactual Sandbox &amp; Match Strategist</p>
+</div>
+<span class="bg-[#F0B6D5]/40 text-[#6D3B56] border border-[#DE95BE] px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold">
+              OPTIMAL
+            </span>
+</div>
+<div class="mt-2.5 inline-block bg-[#F0B6D5]/30 border border-[#DE95BE] text-[#6D3B56] px-3 py-1 rounded-full text-label-sm font-label-sm font-semibold">
+            Zero-Lag Deterministic What-If Engine
+          </div>
+<!-- Dual Harmonic Intersecting Rings (Blossom Pink & Sky Blue) -->
+<div class="relative w-full h-44 my-4 flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-b from-[#F0B6D5]/15 to-[#B6D9EC]/15 rounded-2xl -z-10"></div>
+<svg class="w-40 h-40" viewbox="0 0 160 160">
+<!-- Intersecting Harmonic Rings -->
+<ellipse class="holo-spin" cx="65" cy="80" fill="none" rx="42" ry="65" stroke="#F0B6D5" stroke-width="2"></ellipse>
+<ellipse class="holo-spin-reverse" cx="95" cy="80" fill="none" rx="42" ry="65" stroke="#B6D9EC" stroke-width="2"></ellipse>
+<circle cx="80" cy="80" fill="none" opacity="0.6" r="50" stroke="#6D3B56" stroke-dasharray="4 6" stroke-width="1.5"></circle>
+<!-- Core Sphere -->
+<defs>
+<radialgradient cx="40%" cy="40%" id="athenaCore" r="60%">
+<stop offset="0%" stop-color="#ffd8eb"></stop>
+<stop offset="50%" stop-color="#6D3B56"></stop>
+<stop offset="100%" stop-color="#320e26"></stop>
+</radialgradient>
+</defs>
+<circle cx="80" cy="80" fill="url(#athenaCore)" r="28"></circle>
+<text fill="#FFFFFF" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="80" y="84">100%</text>
+</svg>
+<span class="absolute bottom-2 right-4 text-label-sm font-label-sm text-[#6D3B56] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#DE95BE]">
+              Dual Harmonic
+            </span>
+</div>
+<!-- Health Metrics & MCP Chips -->
+<div class="space-y-2.5 pt-1">
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Counterfactual Math Latency</span>
+<span class="font-bold text-[#6D3B56]">4.2ms (Target &lt;150ms)</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#6D3B56] rounded-full w-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Eligibility Gate Accuracy</span>
+<span class="font-bold text-[#255C45]">63/63 Unit Tests Passing</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#255C45] rounded-full w-full"></div>
+</div>
+</div>
+<!-- MCP Status Chips -->
+<div class="pt-1">
+<div class="text-label-sm font-label-sm text-on-surface-variant mb-1 font-medium">MCP matching (2/2 Tools PASS)</div>
+<div class="flex flex-wrap gap-1">
+<span class="bg-[#F0B6D5]/40 border border-[#DE95BE] text-[#6D3B56] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">run_counterfactual_sandbox ✓</span>
+<span class="bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">explain_match ✓</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-6 pt-4 border-t border-dashed border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-full bg-primary-container/40 text-[#6D3B56] flex items-center justify-center hover:bg-primary-container transition-colors" title="Simulate Delta">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-variant transition-colors" title="Cohort Gate">
+<span class="material-symbols-outlined text-[16px]">insights</span>
+</button>
+</div>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant text-label-sm font-label-lg text-on-surface">
+            Test What-If Matrix
+          </button>
+</div>
+</article>
+<!-- POD 5: K.R.O.N.O.S. -->
+<article class="bg-surface-container-lowest border-2 border-outline-variant/60 rounded-3xl p-7 flex flex-col justify-between tactile-shelf hover:border-secondary-container transition-all group">
+<div>
+<!-- Header and Identity -->
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">K.R.O.N.O.S.</h2>
+<span class="w-2 h-2 rounded-full bg-[#2B5B75]"></span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">JD Intelligence &amp; Cohort Liquidity Oracle</p>
+</div>
+<span class="bg-[#B6D9EC]/50 text-[#2B5B75] border border-[#96C4DC] px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold">
+              ORACLE-PASS
+            </span>
+</div>
+<div class="mt-2.5 inline-block bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-3 py-1 rounded-full text-label-sm font-label-sm font-semibold">
+            JD Schema Extractor • Cohort Liquidity Histogram
+          </div>
+<!-- Radar Sweep Concentric Rings (Sky Blue & Plum Core) -->
+<div class="relative w-full h-44 my-4 flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-b from-[#B6D9EC]/20 to-transparent rounded-2xl -z-10"></div>
+<svg class="w-40 h-40" viewbox="0 0 160 160">
+<!-- Radar Target Circles -->
+<circle cx="80" cy="80" fill="none" r="70" stroke="#B6D9EC" stroke-width="1.2"></circle>
+<circle cx="80" cy="80" fill="none" r="54" stroke="#96C4DC" stroke-dasharray="6 4" stroke-width="1.5"></circle>
+<circle cx="80" cy="80" fill="none" r="38" stroke="#2B5B75" stroke-width="1.5"></circle>
+<!-- Crosshair Lines -->
+<line stroke="#B6D9EC" stroke-dasharray="2 4" stroke-width="1" x1="10" x2="150" y1="80" y2="80"></line>
+<line stroke="#B6D9EC" stroke-dasharray="2 4" stroke-width="1" x1="80" x2="80" y1="10" y2="150"></line>
+<!-- Rotating Radar Sweep Wedge -->
+<path class="holo-spin" d="M80,80 L145,55 A70,70 0 0,0 120,25 Z" fill="#B6D9EC" fill-opacity="0.3"></path>
+<!-- Core Sphere -->
+<defs>
+<radialgradient cx="40%" cy="40%" id="kronosCore" r="60%">
+<stop offset="0%" stop-color="#ffd8eb"></stop>
+<stop offset="60%" stop-color="#6D3B56"></stop>
+<stop offset="100%" stop-color="#284b5b"></stop>
+</radialgradient>
+</defs>
+<circle cx="80" cy="80" fill="url(#kronosCore)" r="28"></circle>
+<text fill="#FFFFFF" font-family="Plus Jakarta Sans" font-size="11" font-weight="800" text-anchor="middle" x="80" y="84">99.1%</text>
+</svg>
+<span class="absolute bottom-2 right-4 text-label-sm font-label-sm text-[#2B5B75] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#96C4DC]">
+              Radar Sweep
+            </span>
+</div>
+<!-- Health Metrics & MCP Chips -->
+<div class="space-y-2.5 pt-1">
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Liquidity Histogram Calc</span>
+<span class="font-bold text-[#2B5B75]">22ms • 500 Rows</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#2B5B75] rounded-full w-[96%]"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">k-Anonymity Suppression</span>
+<span class="font-bold text-[#255C45]">Active (Cells &lt;5 Masked)</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#255C45] rounded-full w-full"></div>
+</div>
+</div>
+<!-- MCP Status Chips -->
+<div class="pt-1">
+<div class="text-label-sm font-label-sm text-on-surface-variant mb-1 font-medium">MCP job-intelligence (2/2 Tools PASS)</div>
+<div class="flex flex-wrap gap-1">
+<span class="bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">draft_job_requirements ✓</span>
+<span class="bg-[#B6D9EC]/40 border border-[#96C4DC] text-[#2B5B75] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">simulate_cohort_liquidity ✓</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-6 pt-4 border-t border-dashed border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-full bg-secondary-container/40 text-[#2B5B75] flex items-center justify-center hover:bg-secondary-container transition-colors" title="Query Histogram">
+<span class="material-symbols-outlined text-[16px]">bar_chart</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-variant transition-colors" title="Anonymity Gate">
+<span class="material-symbols-outlined text-[16px]">visibility_off</span>
+</button>
+</div>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant text-label-sm font-label-lg text-on-surface">
+            Refresh Liquidity
+          </button>
+</div>
+</article>
+<!-- POD 6: A.E.G.I.S. -->
+<article class="bg-surface-container-lowest border-2 border-outline-variant/60 rounded-3xl p-7 flex flex-col justify-between tactile-shelf hover:border-tertiary-container transition-all group">
+<div>
+<!-- Header and Identity -->
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-2">
+<h2 class="font-headline-md text-headline-md font-black text-on-surface">A.E.G.I.S.</h2>
+<span class="w-2 h-2 rounded-full bg-[#255C45]"></span>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Zero-Trust Privacy Shield &amp; Citation Guardian</p>
+</div>
+<span class="bg-[#B6DEC9]/40 text-[#255C45] border border-[#a8cfbb] px-2.5 py-1 rounded-full text-label-sm font-label-sm font-bold">
+              ARMORED
+            </span>
+</div>
+<div class="mt-2.5 inline-block bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-3 py-1 rounded-full text-label-sm font-label-sm font-semibold truncate max-w-full">
+            RBAC/ABAC Pre-Filter • Citation Validator • Disputes
+          </div>
+<!-- Hexagonal Force-Field Ring Orb (Mint Sage & Deep Plum) -->
+<div class="relative w-full h-44 my-4 flex items-center justify-center">
+<div class="absolute inset-0 bg-gradient-to-b from-[#B6DEC9]/20 to-transparent rounded-2xl -z-10"></div>
+<svg class="w-40 h-40" viewbox="0 0 160 160">
+<!-- Outer Hexagonal Forcefield -->
+<polygon class="holo-spin" fill="none" points="80,10 142,45 142,115 80,150 18,115 18,45" stroke="#B6DEC9" stroke-width="2"></polygon>
+<polygon class="holo-spin-reverse opacity-70" fill="none" points="80,24 128,52 128,108 80,136 32,108 32,52" stroke="#255C45" stroke-dasharray="5 3" stroke-width="1.5"></polygon>
+<!-- Core Sphere -->
+<defs>
+<radialgradient cx="40%" cy="40%" id="aegisCore" r="60%">
+<stop offset="0%" stop-color="#c3ecd6"></stop>
+<stop offset="50%" stop-color="#2a4e3e"></stop>
+<stop offset="100%" stop-color="#30302f"></stop>
+</radialgradient>
+</defs>
+<circle cx="80" cy="80" fill="url(#aegisCore)" r="28"></circle>
+<text fill="#FFFFFF" font-family="Plus Jakarta Sans" font-size="10" font-weight="800" text-anchor="middle" x="80" y="84">SECURE</text>
+</svg>
+<span class="absolute bottom-2 right-4 text-label-sm font-label-sm text-[#255C45] font-semibold bg-white/80 px-2 py-0.5 rounded-full border border-[#a8cfbb]">
+              Hex Shield
+            </span>
+</div>
+<!-- Health Metrics & MCP Chips -->
+<div class="space-y-2.5 pt-1">
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Cross-Student Leakage Rate</span>
+<span class="font-bold text-[#255C45]">0.00% (100 Red-Teams Blocked)</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#255C45] rounded-full w-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-label-sm font-label-sm mb-1">
+<span class="text-on-surface-variant font-medium">Provenance Span Resolution</span>
+<span class="font-bold text-[#6D3B56]">100% Linked to PDF Offsets</span>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-[#6D3B56] rounded-full w-full"></div>
+</div>
+</div>
+<!-- MCP Status Chips -->
+<div class="pt-1">
+<div class="text-label-sm font-label-sm text-on-surface-variant mb-1 font-medium">MCP placement-ops (2/2 Tools PASS)</div>
+<div class="flex flex-wrap gap-1">
+<span class="bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">submit_eligibility_dispute ✓</span>
+<span class="bg-[#B6DEC9]/40 border border-[#a8cfbb] text-[#255C45] px-2 py-0.5 rounded-full text-label-sm font-label-sm font-bold">record_human_review ✓</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Row -->
+<div class="mt-6 pt-4 border-t border-dashed border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<button class="w-8 h-8 rounded-full bg-tertiary-container/40 text-[#255C45] flex items-center justify-center hover:bg-tertiary-container transition-colors" title="Run Privacy Audit">
+<span class="material-symbols-outlined text-[16px]">verified_user</span>
+</button>
+<button class="w-8 h-8 rounded-full bg-surface-container text-on-surface flex items-center justify-center hover:bg-surface-variant transition-colors" title="View Dispute Logs">
+<span class="material-symbols-outlined text-[16px]">gavel</span>
+</button>
+</div>
+<button class="tactile-press-white bg-surface-container-lowest hover:bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant text-label-sm font-label-lg text-on-surface">
+            Audit Proof Trails
+          </button>
+</div>
+</article>
+</section>
+<!-- BOTTOM HOLOGRAPHIC TELEMETRY & LIVE MCP PAYLOAD DRAWER -->
+<section class="bg-[#F1EFEA] border-2 border-outline-variant/60 rounded-3xl p-6 tactile-shelf-strong space-y-5">
+<!-- Top Bar of Drawer -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-outline-variant/70">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-2xl bg-surface-container-lowest border border-outline-variant flex items-center justify-center text-[#6D3B56] shadow-sm">
+<span class="material-symbols-outlined text-[22px]">bolt</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Live MCP Bus Telemetry &amp; Synaptic Signal Route</h3>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Real-time JSON-RPC 2.0 transport traces across local FastMCP server socket</p>
+</div>
+</div>
+<div class="flex items-center gap-2 flex-wrap">
+<span class="bg-[#B6DEC9]/60 text-[#255C45] border border-[#a8cfbb] px-3 py-1 rounded-full text-label-sm font-label-sm font-bold flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#255C45] animate-ping"></span>
+            14ms Roundtrip • 0 Drops
+          </span>
+<div class="flex items-center bg-surface-container-lowest rounded-full p-1 border border-outline-variant">
+<button class="px-3 py-1 rounded-full text-label-sm font-label-sm bg-[#6D3B56] text-white font-bold">All (11 Tools)</button>
+<button class="px-3 py-1 rounded-full text-label-sm font-label-sm text-on-surface-variant hover:text-on-surface">Passed (11)</button>
+<button class="px-3 py-1 rounded-full text-label-sm font-label-sm text-on-surface-variant hover:text-on-surface">Latency (&lt;50ms)</button>
+</div>
+</div>
+</div>
+<!-- Horizontal Neural Pipeline Diagram (Connected Nodes with Pulsing Pastel Beams) -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-5 shadow-inner">
+<div class="text-label-sm font-label-sm font-bold text-on-surface-variant uppercase tracking-wider mb-4 flex items-center justify-between">
+<span>Active Synaptic Execution Topology</span>
+<span class="text-primary font-medium">Sub-millisecond Local IPC</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 relative items-center">
+<!-- Node 1 -->
+<div class="bg-surface-container-low border-2 border-[#DE95BE] rounded-2xl p-3.5 relative shadow-sm">
+<div class="text-label-sm font-label-sm text-[#6D3B56] font-bold">CORE ORCHESTRATION</div>
+<div class="font-headline-sm text-headline-sm font-black text-on-surface mt-0.5">J.A.R.V.I.S.</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">qwen2.5:7b • Intent Route</div>
+<span class="absolute -top-2 -right-2 bg-[#F0B6D5] text-[#6D3B56] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-[#DE95BE]">HOP 0</span>
+</div>
+<!-- Connection Arrow 1 -->
+<div class="hidden md:flex items-center justify-center -mx-2 z-10">
+<div class="h-1 w-full bg-gradient-to-r from-[#F0B6D5] to-[#B6DEC9] rounded-full relative">
+<span class="absolute -top-2 left-1/2 -translate-x-1/2 bg-white px-1.5 py-0.2 rounded-full text-[10px] font-bold text-on-surface-variant border border-outline-variant">2ms</span>
+</div>
+</div>
+<!-- Node 2 -->
+<div class="bg-surface-container-low border-2 border-[#a8cfbb] rounded-2xl p-3.5 relative shadow-sm">
+<div class="text-label-sm font-label-sm text-[#255C45] font-bold">PRIVACY PRE-FILTER</div>
+<div class="font-headline-sm text-headline-sm font-black text-on-surface mt-0.5">A.E.G.I.S.</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">Zero-Trust ABAC Guard</div>
+<span class="absolute -top-2 -right-2 bg-[#B6DEC9] text-[#255C45] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-[#a8cfbb]">HOP 1</span>
+</div>
+<!-- Connection Arrow 2 -->
+<div class="hidden md:flex items-center justify-center -mx-2 z-10">
+<div class="h-1 w-full bg-gradient-to-r from-[#B6DEC9] to-[#B6D9EC] rounded-full relative">
+<span class="absolute -top-2 left-1/2 -translate-x-1/2 bg-white px-1.5 py-0.2 rounded-full text-[10px] font-bold text-on-surface-variant border border-outline-variant">1ms</span>
+</div>
+</div>
+<!-- Node 3 -->
+<div class="bg-surface-container-low border-2 border-[#96C4DC] rounded-2xl p-3.5 relative shadow-sm">
+<div class="text-label-sm font-label-sm text-[#2B5B75] font-bold">COMBAT ARBITER</div>
+<div class="font-headline-sm text-headline-sm font-black text-on-surface mt-0.5">R.O.N.E.N.</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">120s Code Sandbox</div>
+<span class="absolute -top-2 -right-2 bg-[#B6D9EC] text-[#2B5B75] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-[#96C4DC]">HOP 2</span>
+</div>
+<!-- Node 4 -->
+<div class="bg-surface-container-low border-2 border-[#a8cfbb] rounded-2xl p-3.5 relative shadow-sm">
+<div class="text-label-sm font-label-sm text-[#255C45] font-bold">PERSISTENCE SYNC</div>
+<div class="font-headline-sm text-headline-sm font-black text-on-surface mt-0.5">T.E.R.R.A.</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant">Excel R/W &amp; Vector Memory</div>
+<span class="absolute -top-2 -right-2 bg-[#B6DEC9] text-[#255C45] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-[#a8cfbb]">HOP 3</span>
+</div>
+</div>
+</div>
+<!-- Compact Formatted JSON Inspector -->
+<div class="bg-surface-container-lowest border border-outline-variant/60 rounded-2xl p-4 shadow-sm">
+<div class="flex items-center justify-between pb-3 border-b border-outline-variant/40 mb-3">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-[#DE95BE]"></span>
+<span class="font-mono text-label-sm font-label-sm text-on-surface font-bold">Latest Invocation Trace: artifact-defense.evaluate_defense_attempt</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="bg-[#B6DEC9]/50 text-[#255C45] px-2 py-0.5 rounded text-[11px] font-mono font-bold">HTTP 200 OK</span>
+<button class="text-on-surface-variant hover:text-on-surface text-label-sm flex items-center gap-1" title="Copy Trace">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy</span>
+</button>
+</div>
+</div>
+<pre class="bg-[#FAF8F6] p-4 rounded-xl font-mono text-[13px] leading-relaxed text-on-surface overflow-x-auto border border-outline-variant/40 shadow-inner"><code>{
+  <span class="text-[#7e506b] font-bold">"tool"</span>: <span class="text-[#2B5B75]">"artifact-defense.evaluate_defense_attempt"</span>,
+  <span class="text-[#7e506b] font-bold">"caller"</span>: <span class="text-[#2B5B75]">"J.A.R.V.I.S. Orchestrator"</span>,
+  <span class="text-[#7e506b] font-bold">"student_id"</span>: <span class="text-[#255C45]">"22ADS014 (Ananya Sen)"</span>,
+  <span class="text-[#7e506b] font-bold">"target_repo"</span>: <span class="text-[#2B5B75]">"campus-cache/distributed-lock"</span>,
+  <span class="text-[#7e506b] font-bold">"proof_weight"</span>: <span class="text-[#6D3B56] font-bold">"0.75x -&gt; 1.0x Solid"</span>,
+  <span class="text-[#7e506b] font-bold">"latency_ms"</span>: <span class="text-[#255C45] font-bold">14</span>,
+  <span class="text-[#7e506b] font-bold">"status"</span>: <span class="text-[#255C45] font-extrabold">"PASS"</span>,
+  <span class="text-[#7e506b] font-bold">"cryptographic_hash"</span>: <span class="text-outline">"sha256:89b2ce944bb978d38712caef900a7b44e4a1"</span>
+}</code></pre>
+</div>
+<!-- Drawer Footer Certificate & Info -->
+<footer class="pt-2 flex flex-col md:flex-row items-center justify-between text-label-sm font-label-sm text-on-surface-variant gap-2 border-t border-outline-variant/40">
+<div>
+          © 2025 CampusBridge AI • Pastel Tactile Studio v3.2 • Local MCP Server: <span class="text-on-surface font-semibold">Active (127.0.0.1:8765)</span>
+</div>
+<div class="flex items-center gap-1.5 text-[#255C45] font-semibold bg-[#B6DEC9]/30 px-3 py-1 rounded-full border border-[#a8cfbb]">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span>FERPA &amp; Institutional Placement Ethics Certified</span>
+</div>
+</footer>
+</section>
+</main>
+<!-- Interactive script for tactile pulse and test simulator -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Pulse All Cores Action micro-delight
+      const pulseBtn = document.querySelector('button.tactile-press-dark');
+      if (pulseBtn) {
+        pulseBtn.addEventListener('click', () => {
+          pulseBtn.innerHTML = `<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span><span>Pulsing 6 Cores...</span>`;
+          pulseBtn.classList.add('opacity-90');
+          setTimeout(() => {
+            pulseBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">check</span><span>All 6 Cores Verified</span>`;
+            setTimeout(() => {
+              pulseBtn.innerHTML = `<span class="material-symbols-outlined text-[18px]">bolt</span><span>Pulse All 6 Cores & 11 Tools</span>`;
+              pulseBtn.classList.remove('opacity-90');
+            }, 1800);
+          }, 600);
+        });
+      }
+
+      // Quick visual feedback on orb ping buttons
+      const pingButtons = document.querySelectorAll('button:has(.material-symbols-outlined), button.tactile-press-white');
+      pingButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          if (!btn.classList.contains('tactile-press-dark')) {
+            const originalText = btn.innerText;
+            btn.style.transform = 'translateY(2px)';
+            setTimeout(() => {
+              btn.style.transform = '';
+            }, 150);
+          }
+        });
+      });
+    });
+  </script>
+</body></html>

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CampusBridge AI - Campus Placement Operations &amp; Recruiter Collaboration Hub</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Plus Jakarta Sans -->
+<link crossorigin="" href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus Jakarta Sans:ital,wght@0,300..800;1,300..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration verbatim from theme -->
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary": "#7e506b",
+            "surface-dim": "#dbdad8",
+            "surface": "#fbf9f7",
+            "on-secondary-fixed": "#001f2a",
+            "surface-variant": "#e4e2e0",
+            "surface-container-lowest": "#ffffff",
+            "surface-container": "#efedec",
+            "on-primary-fixed": "#320e26",
+            "on-primary": "#ffffff",
+            "on-error-container": "#93000a",
+            "on-tertiary-container": "#365a4a",
+            "tertiary": "#416655",
+            "on-primary-fixed-variant": "#643953",
+            "inverse-surface": "#30302f",
+            "primary-fixed-dim": "#f0b6d5",
+            "inverse-primary": "#f0b6d5",
+            "on-surface": "#1b1c1b",
+            "surface-container-high": "#eae8e6",
+            "error-container": "#ffdad6",
+            "on-primary-container": "#71445f",
+            "tertiary-container": "#a8d0bb",
+            "on-error": "#ffffff",
+            "outline-variant": "#d3c2c9",
+            "tertiary-fixed": "#c3ecd6",
+            "secondary-fixed": "#c4e8fb",
+            "inverse-on-surface": "#f2f0ee",
+            "tertiary-fixed-dim": "#a8cfbb",
+            "secondary-fixed-dim": "#a8ccde",
+            "on-secondary": "#ffffff",
+            "surface-container-low": "#f5f3f1",
+            "on-secondary-fixed-variant": "#284b5b",
+            "on-surface-variant": "#4f4449",
+            "on-tertiary-fixed-variant": "#2a4e3e",
+            "outline": "#817379",
+            "on-tertiary": "#ffffff",
+            "primary-container": "#f0b6d5",
+            "error": "#ba1a1a",
+            "secondary": "#406373",
+            "on-background": "#1b1c1b",
+            "secondary-container": "#c1e5f8",
+            "surface-bright": "#fbf9f7",
+            "surface-tint": "#7e506b",
+            "surface-container-highest": "#e4e2e0",
+            "background": "#fbf9f7",
+            "primary-fixed": "#ffd8eb",
+            "on-secondary-container": "#456778",
+            "on-tertiary-fixed": "#002115"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "0.5rem",
+            "space-lg": "1.5rem",
+            "margin-mobile": "1.25rem",
+            "gutter-mobile": "1rem",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2.5rem",
+            "margin": "2.5rem",
+            "space-md": "1rem"
+          },
+          "fontFamily": {
+            "label-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-xl": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "headline-xl-mobile": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "body-md": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "700" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-xl-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "700" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    /* Tactile toy box-shadow extrusions per Design System guidance */
+    .tactile-card {
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+    .tactile-card-hover:hover {
+      box-shadow: 0 6px 0 #E3CFDC;
+      transform: translateY(-2px);
+    }
+    .tactile-btn-primary {
+      box-shadow: 0 4px 0 #DE95BE;
+    }
+    .tactile-btn-primary:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #DE95BE;
+    }
+    .tactile-btn-secondary {
+      box-shadow: 0 4px 0 #85B5CE;
+    }
+    .tactile-btn-secondary:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #85B5CE;
+    }
+    .tactile-btn-ghost {
+      box-shadow: 0 3px 0 #EADECE;
+    }
+    .tactile-btn-ghost:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #EADECE;
+    }
+    .tactile-pill-dock {
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+    .dashed-divider {
+      border-bottom: 2px dashed #EADECE;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-fixed">
+<!-- 1. Top Floating Navigation Dock (Derived from Shared Component TopNavBar) -->
+<header class="w-full px-space-md pt-space-md sticky top-0 z-50">
+<nav class="bg-surface-container-lowest text-primary rounded-full mx-auto max-w-7xl border border-outline-variant shadow-[0_4px_0_#EAD7E2] transition-all flex justify-between items-center px-space-lg py-space-sm">
+<!-- Left: Logo & Engine Identification Badge -->
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-full bg-primary-container border border-outline-variant flex items-center justify-center text-on-primary-container shadow-[0_2px_0_#DE95BE]">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="school">school</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-headline-md font-black text-on-surface tracking-tight">CampusBridge AI</span>
+<span class="bg-secondary-container text-on-secondary-container text-label-sm font-label-sm px-2.5 py-0.5 rounded-full border border-secondary-fixed">TPO Officer Engine</span>
+</div>
+</div>
+</div>
+<!-- Center: Navigation Links from Shared Components with Active indicator -->
+<div class="hidden md:flex items-center gap-6">
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#studio">Studio</a>
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#sprints">Sprints</a>
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#mentor-hub">Mentor Hub</a>
+<a class="text-primary font-bold font-label-lg text-label-lg border-b-2 border-primary pb-0.5 flex items-center gap-1.5" href="#operations">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+          TPO Operations
+        </a>
+<a class="text-on-surface-variant font-label-lg text-label-lg hover:text-primary transition-colors" href="#provenance">Provenance</a>
+</div>
+<!-- Right: Privacy Shield, Excel DB Sync & Profile Capsule -->
+<div class="flex items-center gap-3">
+<!-- Live Excel Sync Badge -->
+<div class="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-tertiary-fixed text-on-tertiary-container rounded-full border border-tertiary-container text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-base text-tertiary" data-icon="dataset" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dataset</span>
+<span>campusbridge_db.xlsx Synced</span>
+</div>
+<!-- Privacy Shield Indicator -->
+<div class="flex items-center gap-1.5 px-3 py-1 bg-surface-container rounded-full border border-outline-variant text-label-sm font-label-sm text-on-surface-variant" title="FERPA Zero-Leak Active Protocol">
+<span class="material-symbols-outlined text-base text-tertiary" data-icon="shield" data-weight="fill" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="hidden sm:inline">FERPA Zero-Leak</span>
+</div>
+<!-- Notifications -->
+<button class="w-9 h-9 rounded-full bg-surface-container-low border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-primary-container transition-colors tactile-btn-ghost relative">
+<span class="material-symbols-outlined text-lg" data-icon="notifications">notifications</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
+</button>
+<!-- Officer Profile Capsule -->
+<div class="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-primary-fixed border border-outline-variant shadow-[0_2px_0_#DE95BE]">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary font-bold flex items-center justify-center text-label-sm">
+            RM
+          </div>
+<div class="hidden xl:flex flex-col text-left">
+<span class="text-label-md font-label-md text-on-primary-fixed leading-tight">Prof. Rajesh Menon</span>
+<span class="text-label-sm font-label-sm text-on-primary-fixed-variant leading-tight">Chief Placement Officer (TPO)</span>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<!-- Main Canvas Container -->
+<main class="flex-1 max-w-7xl w-full mx-auto px-space-md md:px-space-lg py-space-lg flex flex-col gap-8">
+<!-- 2. Page Header & Primary Actions Hero -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-outline-variant tactile-card flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="flex flex-wrap items-center gap-2">
+<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container text-on-primary-container text-label-md font-label-md border border-outline-variant">
+<span class="material-symbols-outlined text-base" data-icon="calendar_month">calendar_month</span>
+            Placement Season 2025–26 • 2026 Batch B.Tech &amp; Dual Degree
+          </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-container text-label-sm font-label-sm border border-tertiary-container">
+<span class="material-symbols-outlined text-sm" data-icon="bolt">bolt</span>
+            Sprint Cycle 04 Active
+          </span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">
+          Campus Placement Operations &amp; Recruiter Collaboration Hub
+        </h1>
+<p class="text-body-md font-body-md text-on-surface-variant">
+          Coordinate recruiter pipelines, review AI-synthesized cohort liquidity, resolve eligibility gate disputes, and manage enterprise ATS synchronization.
+        </p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-3 w-full sm:w-auto self-stretch sm:self-auto justify-end">
+<button class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-surface-container-lowest text-on-surface font-label-lg text-label-lg border border-outline-variant tactile-btn-ghost hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="table_view">table_view</span>
+          Export TPO Report (.xlsx)
+        </button>
+<button class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-primary text-on-primary font-label-lg text-label-lg border border-primary-container tactile-btn-primary hover:bg-on-primary-container transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="add_circle">add_circle</span>
+          + Launch New Recruitment Drive →
+        </button>
+</div>
+</div>
+<!-- 3. Top KPI Summary Cards (4-Column Bento Grid) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+<!-- Card 1: Active Drives -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-2xl bg-primary-container border border-outline-variant flex items-center justify-center text-on-primary-container shadow-[0_2px_0_#DE95BE]">
+<span class="material-symbols-outlined text-2xl" data-icon="work" data-weight="fill" style="font-variation-settings: 'FILL' 1;">work</span>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm font-bold border border-outline-variant">
+            +3 this week
+          </span>
+</div>
+<div class="mt-4">
+<div class="text-label-md font-label-md text-on-surface-variant">Total Active Drives</div>
+<div class="text-headline-xl font-headline-xl text-on-surface mt-1">14</div>
+<div class="flex items-center gap-1.5 mt-2 text-label-sm font-label-sm text-primary font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+            6 closing within 72h
+          </div>
+</div>
+<div class="mt-3 w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 70%;"></div>
+</div>
+</div>
+<!-- Card 2: Total Placed Students -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-2xl bg-secondary-container border border-secondary-fixed flex items-center justify-center text-on-secondary-container shadow-[0_2px_0_#85B5CE]">
+<span class="material-symbols-outlined text-2xl" data-icon="school" data-weight="fill" style="font-variation-settings: 'FILL' 1;">school</span>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-label-sm font-label-sm font-bold border border-secondary-fixed">
+            Target: 398
+          </span>
+</div>
+<div class="mt-4">
+<div class="text-label-md font-label-md text-on-surface-variant">Total Placed Students</div>
+<div class="text-headline-xl font-headline-xl text-on-surface mt-1">312</div>
+<div class="flex items-center gap-1.5 mt-2 text-label-sm font-label-sm text-secondary font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="stars" data-weight="fill" style="font-variation-settings: 'FILL' 1;">stars</span>
+            84 super-dream offers
+          </div>
+</div>
+<div class="mt-3 w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 78.4%;"></div>
+</div>
+</div>
+<!-- Card 3: Cohort Placement Rate -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-container border border-tertiary-fixed-dim flex items-center justify-center text-on-tertiary-container shadow-[0_2px_0_#255C45]">
+<span class="material-symbols-outlined text-2xl" data-icon="trending_up">trending_up</span>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed-variant text-label-sm font-label-sm font-bold border border-tertiary-fixed">
+            +14.2% YoY
+          </span>
+</div>
+<div class="mt-4">
+<div class="text-label-md font-label-md text-on-surface-variant">Cohort Placement Rate</div>
+<div class="text-headline-xl font-headline-xl text-tertiary mt-1">78.4%</div>
+<div class="flex items-center gap-1.5 mt-2 text-label-sm font-label-sm text-on-surface-variant">
+<span>vs. 64.2% last season sprint</span>
+</div>
+</div>
+<div class="mt-3 flex items-center gap-2">
+<div class="flex-1 bg-surface-container-high h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 78.4%;"></div>
+</div>
+<span class="text-label-sm font-label-sm text-tertiary font-bold">Pace: High</span>
+</div>
+</div>
+<!-- Card 4: Open Student Disputes -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card relative overflow-hidden flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<div class="w-12 h-12 rounded-2xl bg-error-container border border-outline-variant flex items-center justify-center text-on-error-container shadow-[0_2px_0_#ba1a1a]">
+<span class="material-symbols-outlined text-2xl" data-icon="gavel">gavel</span>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container text-label-sm font-label-sm font-bold border border-outline-variant animate-pulse">
+            Triage Required
+          </span>
+</div>
+<div class="mt-4">
+<div class="text-label-md font-label-md text-on-surface-variant">Open Student Disputes</div>
+<div class="text-headline-xl font-headline-xl text-error mt-1">3</div>
+<div class="flex items-center gap-1.5 mt-2 text-label-sm font-label-sm text-on-surface-variant">
+<span>Awaiting TPO manual override sign-off</span>
+</div>
+</div>
+<div class="mt-3">
+<a class="w-full inline-flex items-center justify-center gap-1 py-1.5 px-3 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm hover:opacity-90 transition-opacity" href="#disputes-section">
+            Review Gate Exceptions
+            <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</div>
+</section>
+<!-- 4. Workspace Segmented Tab Switcher -->
+<div class="flex flex-wrap items-center gap-2 p-1.5 bg-surface-container-lowest rounded-full border border-outline-variant tactile-pill-dock w-fit max-w-full overflow-x-auto">
+<button class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg shadow-[0_2px_0_#DE95BE] transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="work_history">work_history</span>
+        Active Job Drives &amp; Recruiter JDs (14)
+      </button>
+<button class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg transition-all">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-error"></span>
+</span>
+        Student Exception &amp; Dispute Queue (3)
+      </button>
+<button class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-on-surface-variant hover:text-on-surface font-label-lg text-label-lg transition-all">
+<span class="material-symbols-outlined text-lg" data-icon="sync_alt">sync_alt</span>
+        Partner Companies &amp; ATS Integration Logs (28)
+      </button>
+</div>
+<!-- 5. Tab 1 Content: Active Job Drives & Recruiter JDs -->
+<div class="flex flex-col gap-6">
+<!-- Filter and Search Row -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+<!-- Search bar -->
+<div class="relative flex-1 max-w-md">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full bg-surface-container-lowest pl-12 pr-4 py-2.5 rounded-full border border-outline-variant text-body-md font-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-primary shadow-[0_2px_0_#EAD7E2]" placeholder="Search drives by company, role, or CTC..." type="text"/>
+</div>
+<!-- Filter Chips -->
+<div class="flex flex-wrap items-center gap-2 overflow-x-auto">
+<button class="px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md border border-outline-variant tactile-btn-primary">
+            All Drives (14)
+          </button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface font-label-md text-label-md border border-outline-variant tactile-btn-ghost">
+            Super Dream ≥₹20 LPA
+          </button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface font-label-md text-label-md border border-outline-variant tactile-btn-ghost">
+            Dream ≥₹10 LPA
+          </button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container-lowest text-on-surface-variant hover:text-on-surface font-label-md text-label-md border border-outline-variant tactile-btn-ghost inline-flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+            Pending Shortlist (4)
+          </button>
+</div>
+</div>
+<!-- Drive Cards Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Card A: RazorpayX Labs -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card flex flex-col justify-between hover:border-primary transition-all">
+<div>
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-secondary-container border border-secondary-fixed flex items-center justify-center text-on-secondary-container font-bold text-headline-sm">
+                  RX
+                </div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface leading-tight">RazorpayX Labs</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">SDE-1 Backend</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm font-bold border border-outline-variant">
+                ₹18–22 LPA
+              </span>
+</div>
+<!-- Meta attributes -->
+<div class="flex flex-wrap gap-2 mt-4 text-label-sm font-label-sm">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container border border-outline-variant">
+<span class="material-symbols-outlined text-sm" data-icon="alarm">alarm</span>
+                Closing in 28h
+              </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant">
+<span class="material-symbols-outlined text-sm" data-icon="groups">groups</span>
+                82 Eligible (Top 35 Interviewing)
+              </span>
+</div>
+<!-- Cohort Liquidity Histogram Visualization -->
+<div class="mt-6 bg-surface-container-low rounded-2xl p-4 border border-outline-variant">
+<div class="flex justify-between items-center mb-2">
+<span class="text-label-sm font-label-sm text-on-surface font-bold">Cohort Liquidity Distribution</span>
+<span class="text-label-sm font-label-sm text-tertiary font-bold">82 Candidates</span>
+</div>
+<!-- Mini Histogram Bars -->
+<div class="flex items-end gap-2 h-16 pt-2">
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary-fixed rounded-t-md relative group" style="height: 57%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">24</div>
+</div>
+<span class="text-[10px] text-on-surface-variant">70-80%</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-primary-container rounded-t-md relative group" style="height: 100%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">42</div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-bold">80-90%</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-tertiary-container rounded-t-md relative group" style="height: 38%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">16</div>
+</div>
+<span class="text-[10px] text-on-surface-variant">90%+</span>
+</div>
+</div>
+<div class="text-[11px] text-on-surface-variant mt-2 text-center">Clustered by AI Readiness &amp; Skill Provenance Index</div>
+</div>
+<!-- Sync Tag -->
+<div class="mt-4 flex items-center gap-1.5 text-label-sm font-label-sm text-tertiary">
+<span class="material-symbols-outlined text-base" data-icon="check_circle" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span>K.R.O.N.O.S. Schema Synced ✓</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 mt-6 pt-4 border-t border-outline-variant">
+<button class="flex-1 py-2 px-3 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm border border-secondary-fixed tactile-btn-secondary text-center">
+              View Cohort Liquidity
+            </button>
+<button class="flex-1 py-2 px-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm border border-outline-variant tactile-btn-primary text-center">
+              Export Shortlist CSV
+            </button>
+</div>
+</div>
+<!-- Card B: Atlassian -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card flex flex-col justify-between hover:border-primary transition-all">
+<div>
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-tertiary-container border border-tertiary-fixed-dim flex items-center justify-center text-on-tertiary-container font-bold text-headline-sm">
+                  AT
+                </div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface leading-tight">Atlassian</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Systems &amp; Concurrency Engineer</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm font-bold border border-outline-variant">
+                ₹24–28 LPA
+              </span>
+</div>
+<!-- Meta attributes -->
+<div class="flex flex-wrap gap-2 mt-4 text-label-sm font-label-sm">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+                Closing in 44h
+              </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant">
+<span class="material-symbols-outlined text-sm" data-icon="groups">groups</span>
+                64 Eligible
+              </span>
+</div>
+<!-- Cohort Liquidity Histogram Visualization -->
+<div class="mt-6 bg-surface-container-low rounded-2xl p-4 border border-outline-variant">
+<div class="flex justify-between items-center mb-2">
+<span class="text-label-sm font-label-sm text-on-surface font-bold">Cohort Liquidity Distribution</span>
+<span class="text-label-sm font-label-sm text-tertiary font-bold">64 Candidates</span>
+</div>
+<!-- Mini Histogram Bars -->
+<div class="flex items-end gap-2 h-16 pt-2">
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary-fixed rounded-t-md relative group" style="height: 30%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">12</div>
+</div>
+<span class="text-[10px] text-on-surface-variant">70-80%</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-primary-container rounded-t-md relative group" style="height: 75%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">30</div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-bold">80-90%</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-tertiary-container rounded-t-md relative group" style="height: 55%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">22</div>
+</div>
+<span class="text-[10px] text-on-surface-variant">90%+</span>
+</div>
+</div>
+<div class="text-[11px] text-on-surface-variant mt-2 text-center">Clustered by AI Readiness &amp; Skill Provenance Index</div>
+</div>
+<!-- Sync Tag -->
+<div class="mt-4 flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface">
+<span class="material-symbols-outlined text-base text-primary" data-icon="verified" data-weight="fill" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span>Course-Equivalence Matrix Active</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 mt-6 pt-4 border-t border-outline-variant">
+<button class="w-full py-2 px-3 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm border border-secondary-fixed tactile-btn-secondary text-center">
+              Manage Slotting
+            </button>
+</div>
+</div>
+<!-- Card C: Sarvam AI -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card flex flex-col justify-between hover:border-primary transition-all">
+<div>
+<div class="flex items-start justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-primary-fixed border border-outline-variant flex items-center justify-center text-on-primary-fixed font-bold text-headline-sm">
+                  SA
+                </div>
+<div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface leading-tight">Sarvam AI</h3>
+<p class="text-body-sm font-body-sm text-on-surface-variant">Sovereign LLM Researcher</p>
+</div>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm font-bold border border-outline-variant">
+                ₹26–32 LPA
+              </span>
+</div>
+<!-- Meta attributes -->
+<div class="flex flex-wrap gap-2 mt-4 text-label-sm font-label-sm">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant">
+<span class="material-symbols-outlined text-sm" data-icon="event">event</span>
+                Closing in 5 days
+              </span>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant border border-secondary-fixed">
+<span class="material-symbols-outlined text-sm" data-icon="model_training">model_training</span>
+                Deep Learning Capstone Required
+              </span>
+</div>
+<!-- Cohort Liquidity Histogram Visualization -->
+<div class="mt-6 bg-surface-container-low rounded-2xl p-4 border border-outline-variant">
+<div class="flex justify-between items-center mb-2">
+<span class="text-label-sm font-label-sm text-on-surface font-bold">Cohort Liquidity Distribution</span>
+<span class="text-label-sm font-label-sm text-tertiary font-bold">28 Candidates</span>
+</div>
+<!-- Mini Histogram Bars -->
+<div class="flex items-end gap-2 h-16 pt-2">
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-secondary-fixed rounded-t-md relative group" style="height: 25%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">4</div>
+</div>
+<span class="text-[10px] text-on-surface-variant">70-80%</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-primary-container rounded-t-md relative group" style="height: 60%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">10</div>
+</div>
+<span class="text-[10px] text-on-surface-variant font-bold">80-90%</span>
+</div>
+<div class="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+<div class="w-full bg-tertiary-container rounded-t-md relative group" style="height: 90%;">
+<div class="hidden group-hover:block absolute -top-7 left-1/2 -translate-x-1/2 bg-on-surface text-surface text-[10px] px-1.5 py-0.5 rounded">14</div>
+</div>
+<span class="text-[10px] text-on-surface-variant">90%+</span>
+</div>
+</div>
+<div class="text-[11px] text-on-surface-variant mt-2 text-center">Clustered by AI Readiness &amp; Skill Provenance Index</div>
+</div>
+<!-- Sync Tag -->
+<div class="mt-4 flex items-center gap-1.5 text-label-sm font-label-sm text-tertiary">
+<span class="material-symbols-outlined text-base" data-icon="vpn_lock">vpn_lock</span>
+<span>28 Eligible (Deep Tech Verification Locked)</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-2 mt-6 pt-4 border-t border-outline-variant">
+<button class="w-full py-2 px-3 rounded-full bg-primary text-on-primary font-label-sm text-label-sm border border-outline-variant tactile-btn-primary text-center">
+              Review Shortlist
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- 6. Tab 2 Content: Student Exception & Dispute Queue -->
+<section class="bg-surface-container-lowest rounded-3xl p-6 md:p-8 border border-outline-variant tactile-card flex flex-col gap-6" id="disputes-section">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-outline-variant pb-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center border border-outline-variant shadow-[0_2px_0_#ba1a1a]">
+<span class="material-symbols-outlined text-xl" data-icon="policy">policy</span>
+</div>
+<div>
+<h2 class="text-headline-md font-headline-md text-on-surface tracking-tight">
+              Urgent Eligibility Gate Disputes (Awaiting Officer Sign-Off)
+            </h2>
+<p class="text-body-sm font-body-sm text-on-surface-variant">
+              System flags requiring manual TPO override pursuant to University Career Charter guidelines.
+            </p>
+</div>
+</div>
+<div class="flex items-center gap-2 self-start md:self-auto">
+<span class="text-label-sm font-label-sm px-3 py-1 bg-surface-container rounded-full text-on-surface-variant border border-outline-variant">
+            Rule Policy: Strict Equivalency v4.1
+          </span>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Dispute Item 1: Rohan Verma -->
+<div class="bg-surface-container-low rounded-2xl p-5 border border-outline-variant flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 hover:bg-surface-container transition-colors">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-headline-sm font-headline-sm text-on-surface">Rohan Verma</span>
+<span class="text-label-md font-label-md px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant">#22ECE089</span>
+<span class="text-label-sm font-label-sm px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant border border-secondary-fixed">Applying: RazorpayX Backend</span>
+<span class="text-label-sm font-label-sm px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container border border-outline-variant font-bold">Flag: Missing formal CS-302 OS course</span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant bg-surface-container-lowest rounded-xl p-3 border border-outline-variant">
+<strong class="text-on-surface">Evidence:</strong> Minor in CS verified, 85% syllabus overlap with Microprocessors II + Faculty Mentor endorsement by Dr. Iyer. Provenance hash: 0x4f...91ab.
+            </div>
+</div>
+<div class="flex items-center gap-2 self-end lg:self-center shrink-0">
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tertiary-container text-on-tertiary-container font-label-md text-label-md border border-tertiary-fixed-dim shadow-[0_3px_0_#255C45] hover:bg-tertiary-fixed active:translate-y-1 transition-all">
+<span class="material-symbols-outlined text-base" data-icon="check_circle">check_circle</span>
+              1-Click Approve Course Equivalence Override
+            </button>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface-container-lowest text-error font-label-md text-label-md border border-outline-variant shadow-[0_3px_0_#ba1a1a] hover:bg-error-container active:translate-y-1 transition-all">
+<span class="material-symbols-outlined text-base" data-icon="cancel">cancel</span>
+              Reject
+            </button>
+</div>
+</div>
+<!-- Dispute Item 2: Dev Patel -->
+<div class="bg-surface-container-low rounded-2xl p-5 border border-outline-variant flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 hover:bg-surface-container transition-colors">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-headline-sm font-headline-sm text-on-surface">Dev Patel</span>
+<span class="text-label-md font-label-md px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant">#22CSE102</span>
+<span class="text-label-sm font-label-sm px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed border border-outline-variant font-bold">Flag: CGPA 6.85 vs 7.0 Gate requirement</span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant bg-surface-container-lowest rounded-xl p-3 border border-outline-variant">
+<strong class="text-on-surface">Evidence:</strong> Medical exception certificate on record + 92% DSA Proof score (Top 3% percentile in National Sprints).
+            </div>
+</div>
+<div class="flex items-center gap-2 self-end lg:self-center shrink-0">
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md border border-secondary-fixed shadow-[0_3px_0_#85B5CE] hover:bg-secondary-fixed active:translate-y-1 transition-all">
+<span class="material-symbols-outlined text-base" data-icon="handshake">handshake</span>
+              Grant TPO Hardship Exemption
+            </button>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-outline-variant shadow-[0_3px_0_#EADECE] hover:bg-surface-container active:translate-y-1 transition-all">
+<span class="material-symbols-outlined text-base" data-icon="forward_to_inbox">forward_to_inbox</span>
+              Refer to Academic Dean
+            </button>
+</div>
+</div>
+<!-- Dispute Item 3: Simran Kaur -->
+<div class="bg-surface-container-low rounded-2xl p-5 border border-outline-variant flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 hover:bg-surface-container transition-colors">
+<div class="flex flex-col gap-2 max-w-3xl">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-headline-sm font-headline-sm text-on-surface">Simran Kaur</span>
+<span class="text-label-md font-label-md px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-on-surface-variant border border-outline-variant">#22CSE144</span>
+<span class="text-label-sm font-label-sm px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container border border-outline-variant font-bold">Flag: Delayed 120s Audio micro-defense submission</span>
+</div>
+<div class="text-body-sm font-body-sm text-on-surface-variant bg-surface-container-lowest rounded-xl p-3 border border-outline-variant">
+<strong class="text-on-surface">Evidence:</strong> Network timeout during campus hackathon switch. SHA-256 local timestamp matches 23:58 PM (2 min before cutoff). Integrity validated.
+            </div>
+</div>
+<div class="flex items-center gap-2 self-end lg:self-center shrink-0">
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-tertiary-container text-on-tertiary-container font-label-md text-label-md border border-tertiary-fixed-dim shadow-[0_3px_0_#255C45] hover:bg-tertiary-fixed active:translate-y-1 transition-all">
+<span class="material-symbols-outlined text-base" data-icon="lock_open">lock_open</span>
+              Validate Hash &amp; Unlock Gate
+            </button>
+<button class="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface-container-lowest text-error font-label-md text-label-md border border-outline-variant shadow-[0_3px_0_#ba1a1a] hover:bg-error-container active:translate-y-1 transition-all">
+<span class="material-symbols-outlined text-base" data-icon="close">close</span>
+              Reject
+            </button>
+</div>
+</div>
+</div>
+</section>
+<!-- 7. Tab 3 Content: Partner Companies & ATS Integration Logs -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- ATS Live Health Status -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card lg:col-span-2 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="material-symbols-outlined text-primary text-2xl" data-icon="lan">lan</span>
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Enterprise ATS Synchronization Cluster</h3>
+</div>
+<span class="text-label-sm font-label-sm px-3 py-1 bg-tertiary-fixed text-on-tertiary-container rounded-full border border-tertiary-container">
+              Auto-Sync: 15m intervals
+            </span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+<!-- Greenhouse -->
+<div class="bg-surface-container-low rounded-2xl p-4 border border-outline-variant flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-bold text-on-surface text-label-lg">Greenhouse</span>
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+</div>
+<div class="mt-3">
+<div class="text-label-sm font-label-sm text-tertiary font-bold">Live Sync 14m ago</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant mt-0.5">142 Candidate profiles pushed</div>
+</div>
+<div class="mt-4 pt-2 border-t border-outline-variant flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-on-surface-variant">API Token: Active</span>
+<span class="material-symbols-outlined text-sm text-tertiary" data-icon="check">check</span>
+</div>
+</div>
+<!-- Workday -->
+<div class="bg-surface-container-low rounded-2xl p-4 border border-outline-variant flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-bold text-on-surface text-label-lg">Workday</span>
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+</div>
+<div class="mt-3">
+<div class="text-label-sm font-label-sm text-tertiary font-bold">Synced (All Pipelines)</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant mt-0.5">88 Offers acknowledged</div>
+</div>
+<div class="mt-4 pt-2 border-t border-outline-variant flex items-center justify-between text-label-sm font-label-sm">
+<span class="text-on-surface-variant">SAML 2.0: Connected</span>
+<span class="material-symbols-outlined text-sm text-tertiary" data-icon="check">check</span>
+</div>
+</div>
+<!-- Lever -->
+<div class="bg-surface-container-low rounded-2xl p-4 border border-outline-variant flex flex-col justify-between">
+<div class="flex items-center justify-between">
+<span class="font-bold text-on-surface text-label-lg">Lever</span>
+<span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
+</div>
+<div class="mt-3">
+<div class="text-label-sm font-label-sm text-primary font-bold">Pending webhook sync</div>
+<div class="text-label-sm font-label-sm text-on-surface-variant mt-0.5">3 JDs awaiting role mapping</div>
+</div>
+<div class="mt-4 pt-2 border-t border-outline-variant flex items-center justify-between text-label-sm font-label-sm">
+<button class="text-primary font-bold hover:underline">Force Manual Sync</button>
+<span class="material-symbols-outlined text-sm text-primary" data-icon="sync">sync</span>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-5 p-3 rounded-2xl bg-surface-container flex items-center justify-between text-label-sm font-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base" data-icon="lock">lock</span>
+            Encrypted with 256-bit AES Tunneling &amp; Student Identity Scrambler
+          </span>
+<button class="text-primary font-bold hover:underline">Manage API Integrations →</button>
+</div>
+</div>
+<!-- Live Recruiter Activity Audit -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant tactile-card flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-4 border-b border-outline-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-2xl" data-icon="visibility">visibility</span>
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Recruiter Audit Feed</h3>
+</div>
+<span class="w-2 h-2 rounded-full bg-tertiary animate-ping"></span>
+</div>
+<div class="flex flex-col gap-3 mt-4">
+<div class="p-3 rounded-2xl bg-surface-container-low border border-outline-variant flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-xl mt-0.5" data-icon="corporate_fare">corporate_fare</span>
+<div class="flex flex-col">
+<span class="text-label-md font-label-md text-on-surface">RazorpayX Talent Team</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant leading-tight">Viewed 42 candidate dossiers</span>
+<span class="text-[11px] text-outline mt-1">12 mins ago • Verified IP</span>
+</div>
+</div>
+<div class="p-3 rounded-2xl bg-surface-container-low border border-outline-variant flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary text-xl mt-0.5" data-icon="corporate_fare">corporate_fare</span>
+<div class="flex flex-col">
+<span class="text-label-md font-label-md text-on-surface">Atlassian Engineering Director</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant leading-tight">Downloaded Shortlist CSV (35 candidates)</span>
+<span class="text-[11px] text-outline mt-1">45 mins ago • Secure Token</span>
+</div>
+</div>
+<div class="p-3 rounded-2xl bg-surface-container-low border border-outline-variant flex items-start gap-3">
+<span class="material-symbols-outlined text-tertiary text-xl mt-0.5" data-icon="corporate_fare">corporate_fare</span>
+<div class="flex flex-col">
+<span class="text-label-md font-label-md text-on-surface">Sarvam AI Hiring Lead</span>
+<span class="text-body-sm font-body-sm text-on-surface-variant leading-tight">Queried Deep Learning Capstone Proofs</span>
+<span class="text-[11px] text-outline mt-1">2 hours ago • Zero-Knowledge Proof</span>
+</div>
+</div>
+</div>
+</div>
+<button class="mt-4 w-full py-2.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm border border-outline-variant hover:bg-surface-variant transition-colors text-center">
+          View Complete Provenance Log →
+        </button>
+</div>
+</div>
+</main>
+<!-- 8. Institutional Footer -->
+<footer class="mt-12 bg-surface-container-lowest border-t border-outline-variant py-8 px-space-md text-center">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-label-sm font-label-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary-container border border-outline-variant"></span>
+<span>© 2025 CampusBridge AI • Pastel Tactile Studio v3.2 • TPO Command Center</span>
+</div>
+<div class="flex flex-wrap items-center justify-center gap-4">
+<span class="inline-flex items-center gap-1 text-tertiary font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="verified_user">verified_user</span>
+          FERPA &amp; Placement Ethics Certified
+        </span>
+<span class="text-outline">•</span>
+<span class="inline-flex items-center gap-1 text-on-surface font-bold">
+<span class="material-symbols-outlined text-sm" data-icon="cloud_done">cloud_done</span>
+          Excel ODBC Sync Active
+        </span>
+<span class="text-outline">•</span>
+<span>Built for Autonomous University Placement Cells</span>
+</div>
+</div>
+</footer>
+</body></html>

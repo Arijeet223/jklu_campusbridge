@@ -1,0 +1,137 @@
+###############################################################################
+# CampusBridge AI (PS-06) — Full Local Development Stack
+# Usage: docker compose up -d
+###############################################################################
+version: "3.9"
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL 16 + pgvector
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: campusbridge-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: campusbridge
+      POSTGRES_USER: campusbridge
+      POSTGRES_PASSWORD: campusbridge_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusbridge -d campusbridge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - campusbridge-net
+
+  # ---------------------------------------------------------------------------
+  # 2. Redis 7 — In-Memory Cache & Session State
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: campusbridge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+        --appendonly yes
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - campusbridge-net
+
+  # ---------------------------------------------------------------------------
+  # 3. MinIO S3 Object Storage — Document Quarantine & File Store
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: campusbridge-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Web Console
+    environment:
+      MINIO_ROOT_USER: campusbridge
+      MINIO_ROOT_PASSWORD: campusbridge_dev
+      MINIO_DEFAULT_BUCKETS: documents,quarantine
+    command: server /data --console-address ":9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - campusbridge-net
+
+  # ---------------------------------------------------------------------------
+  # 4. CampusBridge AI FastAPI Backend Service (Port 8000)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: campusbridge-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://campusbridge:campusbridge_dev@postgres:5432/campusbridge
+      - REDIS_URL=redis://redis:6379/0
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=campusbridge
+      - S3_SECRET_KEY=campusbridge_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - campusbridge-net
+
+  # ---------------------------------------------------------------------------
+  # 5. CampusBridge AI Next.js Studio Frontend (Port 3000)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: campusbridge-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - campusbridge-net
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local
+  miniodata:
+    driver: local
+
+networks:
+  campusbridge-net:
+    driver: bridge
+

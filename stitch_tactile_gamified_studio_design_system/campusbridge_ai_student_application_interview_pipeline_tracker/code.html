@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CampusBridge AI — Student Application &amp; Interview Pipeline Tracker</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-surface-variant": "#4f4449",
+            "surface-container-highest": "#e4e2e0",
+            "surface-container": "#efedec",
+            "on-primary-fixed": "#320e26",
+            "secondary-container": "#c1e5f8",
+            "on-secondary": "#ffffff",
+            "error": "#ba1a1a",
+            "on-error": "#ffffff",
+            "on-tertiary-container": "#365a4a",
+            "outline-variant": "#d3c2c9",
+            "error-container": "#ffdad6",
+            "on-primary-fixed-variant": "#643953",
+            "on-secondary-fixed-variant": "#284b5b",
+            "surface": "#fbf9f7",
+            "background": "#fbf9f7",
+            "on-surface": "#1b1c1b",
+            "tertiary": "#416655",
+            "on-secondary-fixed": "#001f2a",
+            "surface-variant": "#e4e2e0",
+            "secondary-fixed": "#c4e8fb",
+            "surface-bright": "#fbf9f7",
+            "on-background": "#1b1c1b",
+            "surface-tint": "#7e506b",
+            "on-tertiary": "#ffffff",
+            "inverse-surface": "#30302f",
+            "primary-fixed": "#ffd8eb",
+            "outline": "#817379",
+            "on-primary-container": "#71445f",
+            "on-primary": "#ffffff",
+            "on-tertiary-fixed": "#002115",
+            "primary-fixed-dim": "#f0b6d5",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-high": "#eae8e6",
+            "inverse-primary": "#f0b6d5",
+            "tertiary-container": "#a8d0bb",
+            "on-error-container": "#93000a",
+            "tertiary-fixed-dim": "#a8cfbb",
+            "inverse-on-surface": "#f2f0ee",
+            "surface-dim": "#dbdad8",
+            "secondary-fixed-dim": "#a8ccde",
+            "on-tertiary-fixed-variant": "#2a4e3e",
+            "surface-container-low": "#f5f3f1",
+            "secondary": "#406373",
+            "primary-container": "#f0b6d5",
+            "on-secondary-container": "#456778",
+            "primary": "#7e506b",
+            "tertiary-fixed": "#c3ecd6"
+          },
+          "borderRadius": {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "gutter-mobile": "1rem",
+            "space-xl": "2.5rem",
+            "space-md": "1rem",
+            "space-sm": "0.5rem",
+            "margin-mobile": "1.25rem",
+            "space-lg": "1.5rem",
+            "margin": "2.5rem",
+            "gutter": "1.5rem"
+          },
+          "fontFamily": {
+            "body-md": ["Plus Jakarta Sans"],
+            "body-lg": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-xl-mobile": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "headline-lg-mobile": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"],
+            "headline-xl": ["Plus Jakarta Sans"],
+            "body-sm": ["Plus Jakarta Sans"],
+            "label-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"]
+          },
+          "fontSize": {
+            "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+            "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-xl-mobile": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "700" }],
+            "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.015em", "fontWeight": "700" }],
+            "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+            "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "700" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .material-symbols-outlined[data-weight="fill"] {
+      font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+    }
+    /* Physical candy-like tactile shadows */
+    .tactile-card {
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+    .tactile-card-mint {
+      box-shadow: 0 4px 0 #A8CFBB;
+    }
+    .tactile-btn-primary {
+      box-shadow: 0 4px 0 #643953;
+      transition: all 0.15s ease-in-out;
+    }
+    .tactile-btn-primary:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #643953;
+    }
+    .tactile-btn-ghost {
+      box-shadow: 0 3px 0 #EADECE;
+      transition: all 0.15s ease-in-out;
+    }
+    .tactile-btn-ghost:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #EADECE;
+    }
+    .tactile-nav-dock {
+      box-shadow: 0 4px 0 #EAD7E2;
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen selection:bg-primary-container selection:text-on-primary-fixed">
+<!-- Top Floating Nav Dock (Shared Components Anchor execution) -->
+<header class="w-full px-space-md pt-space-md pb-space-sm sticky top-0 z-50 backdrop-blur-md bg-surface/80">
+<nav class="bg-surface-container-lowest border border-outline-variant rounded-full max-w-7xl mx-auto px-space-lg py-space-sm flex items-center justify-between tactile-nav-dock">
+<!-- Brand & Sync Beacon -->
+<div class="flex items-center gap-space-md">
+<a class="flex items-center gap-space-xs group" href="#">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center border border-outline-variant shadow-[0_2px_0_#DE95BE] group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-primary" data-icon="school">school</span>
+</div>
+<span class="text-headline-sm font-headline-sm font-black text-on-surface tracking-tight">CampusBridge AI</span>
+</a>
+<!-- Live Sync Badge -->
+<div class="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-fixed border border-tertiary text-on-tertiary-fixed font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span>campusbridge_db.xlsx Synced</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="hidden md:flex items-center gap-space-sm">
+<a class="px-space-md py-space-xs rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-primary-container transition-colors duration-150" href="#">Studio</a>
+<a class="px-space-md py-space-xs rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-primary-container transition-colors duration-150" href="#">Sprints</a>
+<!-- Active Application Tab (Highlighted Deep Plum Pill) -->
+<a class="px-space-md py-space-xs rounded-full font-label-lg text-label-lg bg-primary text-on-primary font-bold shadow-[0_2px_0_#643953] flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-sm" data-icon="dashboard">dashboard</span>
+          Applications (Active)
+        </a>
+<a class="px-space-md py-space-xs rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-primary-container transition-colors duration-150" href="#">Mentor Hub</a>
+<a class="px-space-md py-space-xs rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-primary-container transition-colors duration-150" href="#">Provenance</a>
+</div>
+<!-- Right Trailing Controls & Identity Avatar -->
+<div class="flex items-center gap-space-sm">
+<!-- Privacy Shield Pill -->
+<div class="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed border border-secondary text-on-secondary-fixed font-label-md text-label-md">
+<span class="material-symbols-outlined text-sm" data-icon="shield" data-weight="fill">shield</span>
+<span>FERPA Zero-Leak Active</span>
+</div>
+<!-- Notification Bell -->
+<button class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center border border-outline-variant hover:bg-primary-container text-on-surface-variant transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-sm" data-icon="notifications">notifications</span>
+</button>
+<!-- Student Avatar Badge -->
+<div class="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-surface-container-high border border-outline-variant">
+<img class="w-7 h-7 rounded-full object-cover border border-white" data-alt="A brightly lit circular portrait avatar of Aarav Sharma, a smiling Indian college student wearing a soft plum studio sweatshirt against a warm pastel peach studio backdrop with soft geometric rim lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAAniFZXyWty2iOaRIoXdeAfT20G2NRKY4AyRJPSaGmxHpbHF-tlz8cWJW8qDzUFVoynSi0dFl61TL7XqWidenPL3FvzOEWx8zRWCkkf3uZ1GYPDG_JcVmYsy9F8xdQlw9MkSBcadDh6pNO3skKYoBhX3sM1ENa3qY6kt6UXe8reDZzj528_TnqqS92Xq9H2xg8jRtsUq6j2-X403_mAEUtdmv0_tErKRbAV5VXaVS4"/>
+<div class="flex flex-col text-left">
+<span class="font-label-md text-label-md leading-none text-on-surface font-bold">Aarav Sharma</span>
+<span class="font-label-sm text-label-sm leading-none text-on-surface-variant">CSE '26</span>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<!-- Main Content Canvas -->
+<main class="max-w-7xl mx-auto px-space-lg py-space-md">
+<!-- Page Header & Global Action Bar -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md pb-space-lg">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="px-2.5 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed-variant font-label-sm text-label-sm border border-outline-variant uppercase tracking-wider">Placement Drive Sprint 2025</span>
+<span class="px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">Active Term</span>
+</div>
+<h1 class="text-headline-lg font-headline-lg text-on-surface tracking-tight">My Career Applications &amp; Interview Kanban Board</h1>
+<p class="text-body-md font-body-md text-on-surface-variant max-w-3xl">Track real-time campus recruitment status, ATS push synchronization, 120s micro-defense milestones, and simulated fit deltas.</p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center gap-space-sm shrink-0">
+<button class="tactile-btn-ghost flex items-center gap-2 px-space-md py-2.5 rounded-full bg-surface-container-lowest border border-outline-variant font-label-lg text-label-lg text-on-surface hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="file_download">file_download</span>
+          Export Tracker (.xlsx)
+        </button>
+<button class="tactile-btn-primary flex items-center gap-2 px-space-lg py-2.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg border border-on-primary-fixed-variant">
+<span class="material-symbols-outlined text-sm" data-icon="add_circle">add_circle</span>
+          + Add Custom Application / What-If Drive
+        </button>
+</div>
+</div>
+<!-- Quick Metrics Bento Row (4 Cards) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md mb-space-xl">
+<!-- Metric 1: Total Applications -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant">Total Applications</span>
+<span class="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="send">send</span>
+</span>
+</div>
+<div class="mt-space-sm flex items-baseline justify-between">
+<span class="text-headline-md font-headline-md text-on-surface">7 Active Drives</span>
+<span class="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm border border-error">2 Closing Soon</span>
+</div>
+</div>
+<!-- Metric 2: Interview Shortlists -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant">Interview Shortlists</span>
+<span class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="insights">insights</span>
+</span>
+</div>
+<div class="mt-space-sm flex items-baseline justify-between">
+<span class="text-headline-md font-headline-md text-on-surface">3</span>
+<span class="px-2.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant font-label-sm text-label-sm font-bold">85% Avg Fit Index</span>
+</div>
+</div>
+<!-- Metric 3: Technical Defenses Cleared -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<span class="text-label-md font-label-md text-on-surface-variant">Technical Defenses Cleared</span>
+<span class="w-8 h-8 rounded-full bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="verified">verified</span>
+</span>
+</div>
+<div class="mt-space-sm flex items-baseline justify-between">
+<span class="text-headline-md font-headline-md text-on-surface">4 / 5 Cleared</span>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm">Proofs Locked</span>
+</div>
+</div>
+<!-- Metric 4: Offers Received -->
+<div class="bg-tertiary-fixed border border-tertiary rounded-2xl p-space-md shadow-[0_4px_0_#A8CFBB] flex flex-col justify-between">
+<div class="flex items-start justify-between">
+<span class="text-label-md font-label-md text-on-tertiary-fixed-variant font-bold">Offers Received</span>
+<span class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-sm" data-icon="celebration" data-weight="fill">celebration</span>
+</span>
+</div>
+<div class="mt-space-sm flex items-baseline justify-between">
+<span class="text-headline-md font-headline-md text-on-tertiary-fixed">1 Dream Offer</span>
+<span class="px-2.5 py-0.5 rounded-full bg-white text-on-tertiary-container font-label-sm text-label-sm font-bold border border-tertiary shadow-sm">₹24 LPA</span>
+</div>
+</div>
+</div>
+<!-- Kanban Board Grid: 4 Tactile Columns -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-lg items-start">
+<!-- COLUMN 1: Applied & Eligible -->
+<div class="bg-surface-container-low border border-outline-variant rounded-3xl p-space-md flex flex-col gap-space-md">
+<!-- Column Header -->
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary-fixed-dim border border-secondary"></span>
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Applied &amp; Eligible</h2>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-outline-variant font-bold">2</span>
+</div>
+<!-- Card 1.1: RazorpayX Labs -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col gap-space-sm hover:border-primary-fixed-dim transition-all">
+<div class="flex items-start justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">Fintech Core</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">RazorpayX Labs</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">SDE-1 Backend</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed border border-tertiary text-on-tertiary-fixed font-label-md text-label-md font-bold shrink-0">
+              85% Fit
+            </span>
+</div>
+<div class="flex items-center gap-2 text-label-md font-label-md text-on-surface">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="payments">payments</span>
+<span class="font-bold">CTC: ₹18–22 LPA</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 flex flex-col gap-1">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-tertiary-fixed-variant">
+<span class="material-symbols-outlined text-xs" data-icon="sync">sync</span>
+<span>ATS Synced • Proof Bundle Attached</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-snug">
+              FastAPI Redis Idempotency Defense locked (1.0x Solid), SQL Windowing quest completed.
+            </p>
+</div>
+<button class="tactile-btn-ghost mt-space-xs w-full py-2 rounded-full border border-primary text-primary font-label-md text-label-md hover:bg-primary-container transition-colors flex items-center justify-center gap-1">
+            View Rubric &amp; Fit Deltas →
+          </button>
+</div>
+<!-- Card 1.2: Sarvam AI -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col gap-space-sm hover:border-primary-fixed-dim transition-all">
+<div class="flex items-start justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-primary font-bold uppercase tracking-wider">GenAI Research</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Sarvam AI</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">Sovereign LLM Researcher</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-primary-fixed border border-primary-fixed-dim text-on-primary-fixed font-label-md text-label-md font-bold shrink-0">
+              78% Fit
+            </span>
+</div>
+<div class="flex items-center gap-2 text-label-md font-label-md text-on-surface">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="payments">payments</span>
+<span class="font-bold">CTC: ₹26–32 LPA</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 flex flex-col gap-1">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-xs" data-icon="pending">pending</span>
+<span>Course Equivalence Cleared • Capstone Under Review</span>
+</div>
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-snug">
+              Multilingual tokenizer ablation logs linked to ArXiv provenance hash.
+            </p>
+</div>
+<button class="tactile-btn-ghost mt-space-xs w-full py-2 rounded-full border border-outline-variant text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-1">
+            Simulate Fit Boost →
+          </button>
+</div>
+</div>
+<!-- COLUMN 2: Shortlisted & Profile Shared -->
+<div class="bg-surface-container-low border border-outline-variant rounded-3xl p-space-md flex flex-col gap-space-md">
+<!-- Column Header -->
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary border border-on-secondary"></span>
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Shortlisted &amp; Profile Shared</h2>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-outline-variant font-bold">2</span>
+</div>
+<!-- Card 2.1: Atlassian Concurrency -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col gap-space-sm hover:border-secondary transition-all">
+<div class="flex items-start justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Enterprise Systems</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Atlassian</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">Systems &amp; Concurrency Engineer</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed border border-tertiary text-on-tertiary-fixed font-label-md text-label-md font-bold shrink-0">
+              88% Fit
+            </span>
+</div>
+<div class="flex items-center gap-2 text-label-md font-label-md text-on-surface">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="payments">payments</span>
+<span class="font-bold">CTC: ₹24–28 LPA</span>
+</div>
+<!-- Verified Checkmark Badge -->
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-fixed/70 border border-tertiary text-on-tertiary-fixed-variant font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-xs" data-icon="verified" data-weight="fill">verified</span>
+<span>Profile Pushed to Greenhouse ATS</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60">
+<p class="text-body-sm font-body-sm text-on-surface-variant leading-snug">
+              Concurrency Deadlock Proof verified by Dr. Iyer. TPO Gate sign-off granted.
+            </p>
+</div>
+<button class="tactile-btn-ghost mt-space-xs w-full py-2 rounded-full border border-secondary text-secondary font-label-lg text-label-lg hover:bg-secondary-container transition-colors flex items-center justify-center gap-1">
+            View Recruiter Dossier
+          </button>
+</div>
+<!-- Card 2.2: Zomato Blinkit -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col gap-space-sm hover:border-outline transition-all">
+<div class="flex items-start justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold uppercase tracking-wider">Quick Commerce</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Zomato Blinkit</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">High-Throughput Platform SDE</p>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-surface-container-high border border-outline-variant text-on-surface font-label-md text-label-md font-bold shrink-0">
+              82% Fit
+            </span>
+</div>
+<div class="flex items-center gap-2 text-label-md font-label-md text-on-surface">
+<span class="material-symbols-outlined text-sm text-primary" data-icon="payments">payments</span>
+<span class="font-bold">CTC: ₹20–24 LPA</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-surface-variant font-mono">
+<span class="material-symbols-outlined text-xs" data-icon="fingerprint">fingerprint</span>
+<span>Resume Proof Verified (SHA-256: 0x9f...a2)</span>
+</div>
+</div>
+<button class="tactile-btn-ghost mt-space-xs w-full py-2 rounded-full border border-outline-variant text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-1">
+            Inspect Provenance
+          </button>
+</div>
+</div>
+<!-- COLUMN 3: Technical Interview / Micro-Defense -->
+<div class="bg-surface-container-low border border-outline-variant rounded-3xl p-space-md flex flex-col gap-space-md">
+<!-- Column Header -->
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary-container border border-primary"></span>
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Technical Interview / Micro-Defense</h2>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-on-surface font-label-md text-label-md border border-outline-variant font-bold">2</span>
+</div>
+<!-- Card 3.1: Atlassian Round 1 (Urgent/Interactive) -->
+<div class="bg-surface-container-lowest border-2 border-primary-container rounded-2xl p-space-md tactile-card flex flex-col gap-space-sm relative overflow-hidden">
+<!-- Top alert banner -->
+<div class="flex items-center justify-between gap-2">
+<span class="px-2.5 py-1 rounded-full bg-primary-container text-on-primary-fixed font-label-sm text-label-sm font-bold flex items-center gap-1 animate-pulse">
+<span class="material-symbols-outlined text-xs" data-icon="schedule">schedule</span>
+              Starts in 22h
+            </span>
+<span class="font-label-md text-label-md font-bold text-on-surface">CTC: ₹24–28 LPA</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Atlassian</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">Round 1: Distributed Cache &amp; Concurrency</p>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-xl bg-secondary-fixed/50 border border-secondary/40 text-on-secondary-fixed-variant text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-xs text-secondary" data-icon="videocam">videocam</span>
+<span class="font-semibold">Tomorrow, 2:30 PM IST (Google Meet)</span>
+</div>
+<!-- Micro defense playback block -->
+<div class="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button class="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-xs" data-icon="play_arrow">play_arrow</span>
+</button>
+<div class="text-left">
+<p class="text-label-sm font-label-sm text-on-surface font-bold">120s Audio Micro-Defense</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Readiness Score: 92/100</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-tertiary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+<button class="tactile-btn-primary mt-space-xs w-full py-2.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="rocket_launch">rocket_launch</span>
+            Launch Mock Defense Arena →
+          </button>
+</div>
+<!-- Card 3.2: Cisco Meraki -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-2xl p-space-md tactile-card flex flex-col gap-space-sm hover:border-outline transition-all">
+<div class="flex items-start justify-between gap-2">
+<div>
+<span class="font-label-sm text-label-sm text-secondary font-bold uppercase tracking-wider">Cloud Networking</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Cisco Meraki</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-medium">Cloud Networking Sprint</p>
+</div>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm font-semibold">Scheduled</span>
+</div>
+<div class="flex items-center gap-2 p-2 rounded-xl bg-surface-container border border-outline-variant/60 text-on-surface text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="calendar_today">calendar_today</span>
+<span>Thursday, 11:00 AM IST</span>
+</div>
+<div class="p-2.5 rounded-xl bg-surface-container-low border border-outline-variant/60 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Live Coding Sandbox Ready</p>
+</div>
+<button class="tactile-btn-ghost mt-space-xs w-full py-2 rounded-full border border-outline-variant text-on-surface font-label-md text-label-md hover:bg-surface-container transition-colors flex items-center justify-center gap-1">
+            Review Practice Notes
+          </button>
+</div>
+</div>
+<!-- COLUMN 4: Offers & Next Steps (Celebratory Mint Sage) -->
+<div class="bg-surface-container-low border border-outline-variant rounded-3xl p-space-md flex flex-col gap-space-md">
+<!-- Column Header -->
+<div class="flex items-center justify-between px-space-xs">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-tertiary-fixed border border-tertiary"></span>
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Offers &amp; Next Steps</h2>
+</div>
+<span class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md border border-tertiary font-bold">1</span>
+</div>
+<!-- Celebratory Card: Adobe Systems -->
+<div class="bg-tertiary-fixed/30 border-2 border-tertiary-container rounded-2xl p-space-md tactile-card-mint flex flex-col gap-space-sm relative overflow-hidden bg-gradient-to-b from-white to-[#EAF5EF]">
+<!-- Confetti / Laurel Badge Decoration -->
+<div class="flex items-center justify-between">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-tertiary text-on-tertiary font-label-sm text-label-sm font-bold shadow-sm">
+<span class="material-symbols-outlined text-xs" data-icon="award_star" data-weight="fill">award_star</span>
+              Dream Offer
+            </span>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed border border-tertiary">
+<span class="material-symbols-outlined text-sm" data-icon="celebration" data-weight="fill">celebration</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-black">Adobe Systems</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant font-bold">Member of Technical Staff (MTS-1)</p>
+</div>
+<div class="p-3 rounded-2xl bg-white border border-tertiary-container flex items-baseline justify-between shadow-sm">
+<span class="text-label-md font-label-md text-on-surface-variant">Compensation</span>
+<span class="text-headline-sm font-headline-sm text-tertiary font-black">₹24.5 LPA</span>
+</div>
+<!-- Official Status Details -->
+<div class="space-y-1.5 pt-1">
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-on-tertiary-fixed-variant font-semibold">
+<span class="material-symbols-outlined text-xs text-tertiary" data-icon="lock_reset">lock_reset</span>
+<span>Official Offer Letter Cryptographically Sealed</span>
+</div>
+<div class="flex items-center gap-1.5 text-label-sm font-label-sm text-error font-bold">
+<span class="material-symbols-outlined text-xs" data-icon="alarm">alarm</span>
+<span>Acceptance Window: 5 Days Remaining</span>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="pt-space-xs flex flex-col gap-2">
+<button class="tactile-btn-primary w-full py-2.5 rounded-full bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-1">
+              Review Offer &amp; TPO Clearance →
+            </button>
+<button class="tactile-btn-ghost w-full py-2 rounded-full border border-tertiary bg-white text-on-tertiary-container font-label-md text-label-md hover:bg-tertiary-fixed transition-colors">
+              Simulate Counter-Offer / What-If
+            </button>
+</div>
+</div>
+<!-- Supportive Informational Tile -->
+<div class="p-space-md rounded-2xl bg-surface-container border border-dashed border-outline-variant flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="info">info</span>
+<div>
+<h4 class="text-label-md font-label-md font-bold text-on-surface">Campus Placement Ethics</h4>
+<p class="text-body-sm font-body-sm text-on-surface-variant mt-0.5">
+              Accepting an offer automatically updates your TPO eligibility across other active tier-1 drives.
+            </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Institutional Footer -->
+<footer class="mt-space-xl py-space-lg border-t border-outline-variant/60 bg-surface-container-low text-center">
+<div class="max-w-7xl mx-auto px-space-lg flex flex-col sm:flex-row items-center justify-between gap-4 text-body-sm font-body-sm text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="font-medium">© 2025 CampusBridge AI • Pastel Tactile Studio v3.2</span>
+</div>
+<div class="flex items-center gap-4 text-label-sm font-label-sm">
+<span class="px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant">FERPA &amp; Placement Ethics Certified</span>
+<span class="px-2.5 py-1 rounded-full bg-tertiary-fixed border border-tertiary text-on-tertiary-fixed">Excel ODBC Sync Active</span>
+</div>
+</div>
+</footer>
+</body></html>
