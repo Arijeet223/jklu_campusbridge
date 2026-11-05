@@ -94,14 +94,35 @@ export default function StudentOnboardingPage() {
         setUploadProgressMsg('Computing 1536-dim Nomic embeddings & indexing vector chunks...')
       }, 700)
 
-      const res = await fetch('/api/v1/documents/upload', {
-        method: 'POST',
-        body: formData,
-      })
+      const endpoints = [
+        '/api/v1/documents/upload',
+        'http://localhost:8000/api/v1/documents/upload',
+        'http://localhost:8000/v1/documents/upload',
+        '/v1/documents/upload',
+      ]
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ detail: 'Failed to parse resume' }))
-        throw new Error(errData.detail || 'Upload failed')
+      let res: Response | null = null
+      let lastErr = ''
+      for (const ep of endpoints) {
+        try {
+          const attempt = await fetch(ep, {
+            method: 'POST',
+            body: formData,
+          })
+          if (attempt.ok) {
+            res = attempt
+            break
+          } else {
+            const errData = await attempt.json().catch(() => ({}))
+            lastErr = errData.detail || attempt.statusText
+          }
+        } catch (e: any) {
+          lastErr = e.message
+        }
+      }
+
+      if (!res || !res.ok) {
+        throw new Error(lastErr || 'Failed to parse resume via pdfplumber.')
       }
 
       const data = await res.json()

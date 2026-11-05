@@ -42,6 +42,51 @@ export default function AppLayout({
   const router = useRouter()
   const [currentStudentName, setCurrentStudentName] = useState(userName)
   const [currentSubtitle, setCurrentSubtitle] = useState(userSubtitle)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+
+  const notifications = [
+    {
+      id: 'notif-1',
+      title: 'Razorpay FinTech Sprint JD Live',
+      description: '84% match alignment, 0 backlogs required. Fast-track application window closes in 18 hours.',
+      time: '10m ago',
+      unread: true,
+      tag: 'Job Drive',
+      tagColor: 'bg-[#F0B6D5]/40 text-[#6D3B56]',
+      href: '/student/matches',
+    },
+    {
+      id: 'notif-2',
+      title: 'Skill Assessment Verified',
+      description: 'Python & FastAPI Microservices upgraded to 4_ASSESSMENT_VERIFIED via 120s Micro-Defense (+8 pts).',
+      time: '1h ago',
+      unread: true,
+      tag: 'Skill Verified',
+      tagColor: 'bg-[#B6DEC9]/40 text-[#255C45]',
+      href: '/student/arena',
+    },
+    {
+      id: 'notif-3',
+      title: 'TPO Policy Gate Notice',
+      description: 'Atlassian Cohort Eligibility Gate updated: Min CGPA set to 7.5. Your 8.42 CGPA meets hard criteria.',
+      time: '3h ago',
+      unread: false,
+      tag: 'TPO Policy',
+      tagColor: 'bg-[#B6D9EC]/50 text-[#2B5B75]',
+      href: '/student/matches',
+    },
+    {
+      id: 'notif-4',
+      title: 'DPDP Privacy Shield Active',
+      description: 'Your profile is protected under DPDP Act 2023 small-cell suppression (k ≥ 5) until explicit application submission.',
+      time: '1d ago',
+      unread: false,
+      tag: 'Privacy Shield',
+      tagColor: 'bg-[#E2DFD9] text-ink-primary',
+      href: '/student/home',
+    },
+  ]
 
   // Sync user state and enforce Onboarding Guard
   useEffect(() => {
@@ -310,29 +355,194 @@ export default function AppLayout({
             </div>
           </div>
 
-          {/* Right: Notification Bell & Avatar */}
-          <div className="flex items-center gap-3">
-            {/* Notification Bell */}
+          {/* Right: Notification Bell & Avatar with Active Dropdowns */}
+          <div className="flex items-center gap-3 relative">
+            {/* Notification Bell Dropdown Container */}
             <div className="relative">
               <button
                 type="button"
-                className="h-9 w-9 rounded-2xl bg-white border border-[#E6E3DC] hover:border-[#6D3B56]/40 flex items-center justify-center text-ink-muted hover:text-ink-primary transition-colors shadow-2xs"
-                title="Notifications"
+                onClick={() => {
+                  setNotificationsOpen((prev) => !prev)
+                  setProfileOpen(false)
+                }}
+                className={`h-9 w-9 rounded-2xl border transition-all flex items-center justify-center shadow-2xs cursor-pointer ${
+                  notificationsOpen
+                    ? 'bg-[#6D3B56] text-white border-[#6D3B56]'
+                    : 'bg-white border-[#E6E3DC] text-ink-muted hover:text-ink-primary hover:border-[#6D3B56]/40'
+                }`}
+                title="Placement & System Notifications"
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#BE123C] ring-2 ring-white" />
+                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#BE123C] ring-2 ring-white animate-pulse" />
               </button>
+
+              {notificationsOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setNotificationsOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-3xl bg-white border-2 border-[#E6E3DC] shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#E6E3DC]">
+                      <div className="flex items-center gap-2">
+                        <span className="font-display font-extrabold text-xs text-ink-primary">
+                          Placement &amp; System Alerts
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-full text-3xs font-mono font-bold bg-[#F0B6D5]/40 text-[#6D3B56]">
+                          2 new
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="text-3xs text-[#6D3B56] font-bold hover:underline cursor-pointer"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1 divide-y divide-[#E6E3DC]/60">
+                      {notifications.map((n) => (
+                        <Link
+                          key={n.id}
+                          href={n.href}
+                          onClick={() => setNotificationsOpen(false)}
+                          className="block pt-2 first:pt-0 hover:bg-[#FAF8F6] p-2 rounded-xl transition-colors group cursor-pointer"
+                        >
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <span className={`text-3xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${n.tagColor}`}>
+                              {n.tag}
+                            </span>
+                            <span className="text-3xs text-ink-muted">{n.time}</span>
+                          </div>
+                          <h4 className="text-xs font-bold text-ink-primary group-hover:text-[#6D3B56] transition-colors">
+                            {n.title}
+                          </h4>
+                          <p className="text-3xs text-ink-muted leading-relaxed mt-0.5">
+                            {n.description}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+
+                    <div className="pt-2 border-t border-[#E6E3DC] text-center">
+                      <Link
+                        href="/student/matches"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="text-2xs font-bold text-[#6D3B56] hover:underline"
+                      >
+                        Explore all live match opportunities →
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Minimal Avatar Bubble */}
-            <div className="flex items-center gap-2 pl-2 border-l border-[#E6E3DC]">
-              <div className="h-9 w-9 rounded-2xl bg-[#6D3B56] text-white font-display font-extrabold text-xs flex items-center justify-center shadow-xs">
+            {/* Profile Avatar Dropdown Container */}
+            <div className="relative pl-2 border-l border-[#E6E3DC]">
+              <button
+                type="button"
+                onClick={() => {
+                  setProfileOpen((prev) => !prev)
+                  setNotificationsOpen(false)
+                }}
+                className={`h-9 w-9 rounded-2xl font-display font-extrabold text-xs flex items-center justify-center shadow-xs transition-all cursor-pointer ${
+                  profileOpen
+                    ? 'bg-[#552940] text-white ring-2 ring-[#6D3B56]/50'
+                    : 'bg-[#6D3B56] text-white hover:scale-105'
+                }`}
+                title="Account Settings & Profile"
+              >
                 {currentStudentName
                   .split(' ')
                   .map((n) => n[0])
                   .join('')
                   .slice(0, 2)}
-              </div>
+              </button>
+
+              {profileOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProfileOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-72 rounded-3xl bg-white border-2 border-[#E6E3DC] shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3.5">
+                    {/* User Header */}
+                    <div className="flex items-center gap-3 pb-3 border-b border-[#E6E3DC]">
+                      <div className="h-10 w-10 rounded-2xl bg-[#6D3B56] text-white font-display font-extrabold text-sm flex items-center justify-center shadow-xs">
+                        {currentStudentName
+                          .split(' ')
+                          .map((n) => n[0])
+                          .join('')
+                          .slice(0, 2)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-ink-primary truncate">
+                          {currentStudentName}
+                        </div>
+                        <div className="text-3xs text-ink-muted truncate font-medium">
+                          {currentSubtitle}
+                        </div>
+                        <div className="inline-block mt-0.5 px-1.5 py-0.2 rounded font-mono text-3xs font-bold bg-[#B6DEC9]/40 text-[#255C45]">
+                          STU-101 • Verified
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Profile Nav Links */}
+                    <div className="space-y-1">
+                      <Link
+                        href="/student/home"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-ink-primary hover:bg-[#FAF8F6] hover:text-[#6D3B56] transition-colors"
+                      >
+                        <User className="h-3.5 w-3.5 text-[#6D3B56]" />
+                        <span>Profile &amp; Evidence Hub</span>
+                      </Link>
+
+                      <Link
+                        href="/student/matches"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-ink-primary hover:bg-[#FAF8F6] hover:text-[#6D3B56] transition-colors"
+                      >
+                        <Target className="h-3.5 w-3.5 text-[#6D3B56]" />
+                        <span>What-If Fit Sandbox</span>
+                      </Link>
+
+                      <Link
+                        href="/student/arena"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-ink-primary hover:bg-[#FAF8F6] hover:text-[#6D3B56] transition-colors"
+                      >
+                        <Gamepad2 className="h-3.5 w-3.5 text-[#6D3B56]" />
+                        <span>Practice &amp; 120s Arena</span>
+                      </Link>
+
+                      <Link
+                        href="/admin/diagnostics"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold text-ink-primary hover:bg-[#FAF8F6] hover:text-[#6D3B56] transition-colors"
+                      >
+                        <Activity className="h-3.5 w-3.5 text-[#6D3B56]" />
+                        <span>AI Pantheon Diagnostics</span>
+                      </Link>
+                    </div>
+
+                    {/* Sign Out Action */}
+                    <div className="pt-2 border-t border-[#E6E3DC]">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex items-center justify-center gap-2 w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50 text-[#BE123C] hover:bg-rose-100 text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                      >
+                        <LogOut className="h-3.5 w-3.5" />
+                        <span>Sign Out Securely</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>

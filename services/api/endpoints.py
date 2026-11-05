@@ -1623,8 +1623,9 @@ async def generate_readiness_plan(request: ReadinessPlanRequest) -> dict[str, An
 
 
 class LoginRequest(BaseModel):
-    identifier: str
-    password: str
+    identifier: str | None = None
+    email: str | None = None
+    password: str = ""
     role: str = "STUDENT"
 
 
@@ -1722,16 +1723,43 @@ async def get_excel_db_stats() -> dict[str, Any]:
 async def login_user(req: LoginRequest) -> dict[str, Any]:
     """Authenticates against Accounts_Students or Accounts_Teachers in campusbridge_db.xlsx."""
     store = get_excel_store()
-    ident = req.identifier.strip().lower()
-    role_upper = req.role.strip().upper()
+    ident = (req.identifier or req.email or "").strip().lower()
+    if not ident:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide an institutional email or student ID to sign in.",
+        )
+    role_upper = (req.role or "STUDENT").strip().upper()
+    ident_prefix = ident.split('@')[0] if '@' in ident else ident
 
+    def match_student(s: dict[str, Any]) -> bool:
+        s_email = str(s.get("email", "")).strip().lower()
+        s_roll = str(s.get("roll_no", "")).strip().lower()
+        s_id = str(s.get("student_id", "")).strip().lower()
+        s_name = str(s.get("full_name", "")).strip().lower()
+        s_email_prefix = s_email.split('@')[0] if '@' in s_email else s_email
+        return (
+            ident in (s_email, s_roll, s_id)
+            or (ident_prefix and ident_prefix in (s_email_prefix, s_roll, s_id))
+            or (ident_prefix and ident_prefix in s_name)
+        )
+
+    def match_teacher(t: dict[str, Any]) -> bool:
+        t_email = str(t.get("email", "")).strip().lower()
+        t_id = str(t.get("staff_id", "")).strip().lower()
+        t_name = str(t.get("full_name", "")).strip().lower()
+        t_email_prefix = t_email.split('@')[0] if '@' in t_email else t_email
+        return (
+            ident in (t_email, t_id)
+            or (ident_prefix and ident_prefix in (t_email_prefix, t_id))
+            or (ident_prefix and ident_prefix in t_name)
+        )
+
+    # 1. If role is STUDENT, look in students first
     if role_upper == "STUDENT":
         students = store.get_sheet(SHEET_STUDENTS)
         for s in students:
-            s_email = str(s.get("email", "")).strip().lower()
-            s_roll = str(s.get("roll_no", "")).strip().lower()
-            s_id = str(s.get("student_id", "")).strip().lower()
-            if ident in (s_email, s_roll, s_id):
+            if match_student(s):
                 stu_id = s.get("student_id")
                 evidence_rows = store.get_sheet(SHEET_EVIDENCE)
                 matched_ev = [
@@ -1756,52 +1784,74 @@ async def login_user(req: LoginRequest) -> dict[str, Any]:
                     },
                     "token": f"cb_session_{stu_id}_{int(time.time())}",
                 }
-        raise HTTPException(
-            status_code=401,
-            detail=f"No student account found matching '{req.identifier}'. Please verify your email or roll number.",
-        )
 
-    elif role_upper in ("FACULTY", "OFFICER", "TEACHER", "TPO"):
-        teachers = store.get_sheet(SHEET_TEACHERS)
-        for t in teachers:
-            t_email = str(t.get("email", "")).strip().lower()
-            t_id = str(t.get("staff_id", "")).strip().lower()
-            if ident in (t_email, t_id):
-                assigned_role = "OFFICER" if "OFFICER" in str(t.get("role", "")).upper() else "FACULTY"
-                return {
-                    "status": "SUCCESS",
-                    "role": assigned_role,
-                    "user": {
-                        "id": t.get("staff_id"),
-                        "name": t.get("full_name"),
-                        "email": t.get("email"),
-                        "role": t.get("role"),
-                        "department": t.get("department"),
-                        "assigned_cohort": t.get("assigned_cohort"),
-                    },
-                    "token": f"cb_session_{t.get('staff_id')}_{int(time.time())}",
-                }
-        raise HTTPException(
-            status_code=401,
-            detail=f"No faculty/staff account found matching '{req.identifier}'.",
-        )
-
-    elif role_upper == "ADMIN":
-        if "admin" in ident:
+    # 2. If role is FACULTY, OFFICER, TEACHER, TPO, search teachers
+    teachers = store.get_sheet(SHEET_TEACHERS)
+    for t in teachers:
+        if match_teacher(t):
+            raw_role = str(t.get("role", "")).upper()
+            assigned_role = "OFFICER" if ("OFFICER" in raw_role or "TPO" in raw_role or role_upper == "OFFICER") else "FACULTY"
             return {
                 "status": "SUCCESS",
-                "role": "ADMIN",
+                "role": assigned_role,
                 "user": {
-                    "id": "ADM-001",
-                    "name": "System Administrator",
-                    "email": "admin@nitk.edu",
-                    "role": "ADMIN",
+                    "id": t.get("staff_id"),
+                    "name": t.get("full_name"),
+                    "email": t.get("email"),
+                    "role": t.get("role"),
+                    "department": t.get("department"),
+                    "assigned_cohort": t.get("assigned_cohort"),
                 },
-                "token": f"cb_session_admin_{int(time.time())}",
+                "token": f"cb_session_{t.get('staff_id')}_{int(time.time())}",
             }
-        raise HTTPException(status_code=401, detail="Invalid admin credentials.")
 
-    raise HTTPException(status_code=400, detail="Invalid role specified.")
+    # 3. Fallback: check students if not found in teachers
+    students = store.get_sheet(SHEET_STUDENTS)
+    for s in students:
+        if match_student(s):
+            stu_id = s.get("student_id")
+            evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+            matched_ev = [
+                e for e in evidence_rows
+                if str(e.get("student_id", "")).strip().lower() == str(stu_id).strip().lower()
+            ]
+            needs_onboard = len(matched_ev) == 0
+
+            return {
+                "status": "SUCCESS",
+                "role": "STUDENT",
+                "needs_onboarding": needs_onboard,
+                "user": {
+                    "id": stu_id,
+                    "name": s.get("full_name"),
+                    "email": s.get("email"),
+                    "roll_no": s.get("roll_no"),
+                    "program": s.get("program"),
+                    "cgpa": s.get("cgpa"),
+                    "cohort_year": s.get("cohort_year"),
+                    "needs_onboarding": needs_onboard,
+                },
+                "token": f"cb_session_{stu_id}_{int(time.time())}",
+            }
+
+    # 4. Admin fallback
+    if "admin" in ident:
+        return {
+            "status": "SUCCESS",
+            "role": "ADMIN",
+            "user": {
+                "id": "ADM-001",
+                "name": "System Administrator",
+                "email": "admin@nitk.edu",
+                "role": "ADMIN",
+            },
+            "token": f"cb_session_admin_{int(time.time())}",
+        }
+
+    raise HTTPException(
+        status_code=401,
+        detail=f"No account found matching '{ident}'. Please verify your institutional email or ID.",
+    )
 
 
 @router.get("/auth/accounts")
@@ -1817,26 +1867,19 @@ async def get_all_accounts() -> dict[str, Any]:
 @router.post("/auth/register-student")
 async def register_student(req: RegisterStudentRequest) -> dict[str, Any]:
     """Appends a new student directly into Accounts_Students in campusbridge_db.xlsx."""
-    store = get_excel_store()
-    existing = store.get_sheet(SHEET_STUDENTS)
-    new_id = f"STU-{100 + len(existing) + 1}"
-    row = {
-        "student_id": new_id,
-        "full_name": req.full_name,
-        "email": req.email,
-        "password_hash": "pbkdf2_sha256$default_student",
-        "roll_no": req.roll_no,
-        "program": req.program,
-        "cohort_year": req.cohort_year,
-        "cgpa": req.cgpa,
-        "active_backlogs": req.active_backlogs,
-        "privacy_shield_mode": req.privacy_shield_mode,
-        "target_roles": req.target_roles,
-        "readiness_index": 70,
-        "sprint_mode_active": False,
-    }
-    store.insert_row(SHEET_STUDENTS, row)
-    return {"status": "SUCCESS", "student_id": new_id, "student": row}
+    from backend.routers.auth import register_student_account, RegisterStudentPayload
+    payload = RegisterStudentPayload(
+        full_name=req.full_name,
+        email=req.email,
+        roll_no=req.roll_no,
+        program=req.program,
+        cohort_year=req.cohort_year,
+        cgpa=req.cgpa,
+        active_backlogs=req.active_backlogs,
+        privacy_shield_mode=req.privacy_shield_mode,
+        target_roles=req.target_roles if isinstance(req.target_roles, list) else [req.target_roles],
+    )
+    return await register_student_account(payload)
 
 
 @router.post("/auth/register-teacher")
@@ -1944,6 +1987,69 @@ async def run_dsa_problem(req: DsaRunRequest) -> dict[str, Any]:
 
     result["skill_upgraded"] = upgraded
     return result
+
+
+# ── R.O.N.E.N. & A.T.H.E.N.A. Active Institutional Gates ─────────────────
+
+
+class RonenGateRequest(BaseModel):
+    student_id: str = "STU-101"
+    job_id: str | None = None
+    opportunity_id: str | None = None
+
+
+class AthenaGateRequest(BaseModel):
+    student_id: str = "STU-101"
+    problem_id: str = "DSA-01"
+    code: str
+    problem_type: str = "dsa"
+
+
+@router.post("/gates/ronen/evaluate")
+async def evaluate_ronen_gate(req: RonenGateRequest) -> dict[str, Any]:
+    """R.O.N.E.N. deterministic policy gate evaluating student CGPA & backlogs against JDs."""
+    from backend.agents.gates import ronen_gate
+    target_job = req.job_id or req.opportunity_id
+    res = ronen_gate.evaluate_eligibility(student_id=req.student_id, job_id=target_job)
+    if res.get("evaluations"):
+        first_eval = res["evaluations"][0]
+        res["decision"] = first_eval.get("decision")
+        res["reason"] = first_eval.get("reason")
+        res["opportunity_title"] = first_eval.get("role_title")
+        res["company_name"] = first_eval.get("company_name")
+        res["is_eligible"] = first_eval.get("is_eligible")
+    return res
+
+
+@router.get("/gates/ronen/evaluate")
+async def evaluate_ronen_gate_get(
+    student_id: str = "STU-101",
+    job_id: str | None = None,
+    opportunity_id: str | None = None,
+) -> dict[str, Any]:
+    from backend.agents.gates import ronen_gate
+    target_job = job_id or opportunity_id
+    res = ronen_gate.evaluate_eligibility(student_id=student_id, job_id=target_job)
+    if res.get("evaluations"):
+        first_eval = res["evaluations"][0]
+        res["decision"] = first_eval.get("decision")
+        res["reason"] = first_eval.get("reason")
+        res["opportunity_title"] = first_eval.get("role_title")
+        res["company_name"] = first_eval.get("company_name")
+        res["is_eligible"] = first_eval.get("is_eligible")
+    return res
+
+
+@router.post("/gates/athena/evaluate")
+async def evaluate_athena_gate(req: AthenaGateRequest) -> dict[str, Any]:
+    """A.T.H.E.N.A. real-time assessment proctor evaluating code against test cases & upgrading Excel."""
+    from backend.agents.gates import athena_gate
+    return athena_gate.evaluate_code_submission(
+        student_id=req.student_id,
+        problem_id=req.problem_id,
+        code=req.code,
+        problem_type=req.problem_type,
+    )
 
 
 @router.get("/practice/sql")

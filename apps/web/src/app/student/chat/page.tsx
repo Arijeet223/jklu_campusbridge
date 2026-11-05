@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import ChatWorkspace from '@/components/ChatWorkspace'
 import SourceDrawer from '@/components/SourceDrawer'
@@ -18,6 +18,17 @@ export default function StudentChatPage() {
   const [studentName, setStudentName] = useState('Aarav Sharma')
   const [cgpa, setCgpa] = useState(8.42)
   const [skills, setSkills] = useState<Skill[]>(mockSkills)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cb_active_user')
+      if (stored) {
+        const u = JSON.parse(stored)
+        if (u.name) setStudentName(u.name)
+        if (u.cgpa) setCgpa(Number(u.cgpa))
+      }
+    } catch {}
+  }, [])
 
   const handleOpenSource = (docId: string = 'doc_resume_v3') => {
     setSelectedDoc(mockSourceDocuments[docId] || mockSourceDocuments['doc_resume_v3'])
