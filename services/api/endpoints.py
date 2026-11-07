@@ -12,7 +12,7 @@ import json
 import time
 import uuid
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
 from fastapi import APIRouter, File, HTTPException, Response, UploadFile
@@ -356,14 +356,86 @@ _JOBS: dict[str, list[JobRequirement]] = {
 # Endpoints
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.get("/students/{student_id}/evidence")
-async def get_student_evidence(student_id: str) -> list[SkillEvidence]:
-    """Return all skill evidence for a student."""
+@router.get("/students/{student_id}/profile")
+@router.get("/students/{student_id}")
+async def get_student_profile(student_id: str) -> dict[str, Any]:
+    """Return live student profile and readiness stats from Accounts_Students."""
+    store = get_excel_store()
+    students_rows = store.get_sheet(SHEET_STUDENTS)
+    stu_key = student_id.strip().lower()
+    student = next(
+        (
+            s for s in students_rows
+            if str(s.get("student_id", "")).strip().lower() == stu_key
+            or str(s.get("email", "")).strip().lower() == stu_key
+            or str(s.get("roll_no", "")).strip().lower() == stu_key
+        ),
+        None,
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student profile '{student_id}' not found in Accounts_Students.")
 
-    entry = _STUDENTS_BY_ID.get(student_id)
-    if entry is None:
-        raise HTTPException(status_code=404, detail=f"Student '{student_id}' not found.")
-    return entry[1]
+    # Calculate real evidence count and status
+    evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+    matched_ev = [
+        e for e in evidence_rows
+        if str(e.get("student_id", "")).strip().lower() == str(student.get("student_id", "")).strip().lower()
+    ]
+
+    return {
+        "status": "SUCCESS",
+        "student": student,
+        "evidence_count": len(matched_ev),
+        "needs_onboarding": len(matched_ev) == 0,
+        "readiness_index": int(student.get("readiness_index", 0) or 0),
+    }
+
+
+@router.get("/students/{student_id}/evidence")
+async def get_student_evidence(student_id: str) -> list[dict[str, Any]]:
+    """Return all skill evidence for a student from live Excel store."""
+    store = get_excel_store()
+    evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+    stu_key = student_id.strip().lower()
+    matched_ev = [
+        e for e in evidence_rows
+        if str(e.get("student_id", "")).strip().lower() == stu_key
+        or (stu_key in ("stu-101", "aarav.sharma@nitk.edu") and str(e.get("student_id", "")).strip().lower() == "stu-101")
+    ]
+
+    # In-memory fallback if not yet synced in excel
+    if not matched_ev and student_id in _STUDENTS_BY_ID:
+        raw_list = _STUDENTS_BY_ID[student_id][1]
+        return [
+            {
+                "evidence_id": str(getattr(ev, "id", f"ev-{i}")),
+                "student_id": student_id,
+                "skill_name": getattr(ev, "skill_name", "Skill"),
+                "category": getattr(getattr(ev, "source_span", None), "section_path", "Core CS"),
+                "tier": "4_ASSESSMENT_VERIFIED" if getattr(ev, "evidence_status", None) == EvidenceStatus.ASSESSMENT_VERIFIED else "1_EXTRACTED_UNCONFIRMED",
+                "multiplier": 1.0 if getattr(ev, "evidence_status", None) == EvidenceStatus.ASSESSMENT_VERIFIED else 0.25,
+                "source_doc": getattr(ev, "source_document_id", "doc_resume_v3"),
+                "source_span_text": getattr(ev, "skill_name", ""),
+                "confidence": getattr(ev, "extraction_confidence", 0.90),
+                "verified_by": getattr(ev, "verified_by", "T.E.R.R.A."),
+            }
+            for i, ev in enumerate(raw_list)
+        ]
+
+    return matched_ev
+
+
+@router.post("/students/{student_id}/evidence/{evidence_id}/confirm")
+async def confirm_skill_evidence(student_id: str, evidence_id: str) -> dict[str, Any]:
+    """Promotes extracted provisional skill to 2_STUDENT_CONFIRMED in Excel."""
+    store = get_excel_store()
+    ok = store.update_row(
+        SHEET_EVIDENCE,
+        key_col="evidence_id",
+        key_val=evidence_id,
+        updates={"tier": "2_STUDENT_CONFIRMED", "multiplier": 0.50},
+    )
+    return {"status": "SUCCESS" if ok else "NOT_FOUND", "evidence_id": evidence_id}
 
 
 @router.get("/students/{student_id}/onboarding-status")
@@ -549,11 +621,14 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
                     "actionType": "ASSESSMENT",
                 })
 
+        deadline_hrs = int(j.get('deadline_hours', 120) or 120)
+        deadline_iso = (datetime.now(timezone.utc) + timedelta(hours=deadline_hrs)).isoformat()
+
         match_results.append({
             "id": job_id,
             "jobTitle": role,
             "company": company,
-            "deadline": f"In {int(j.get('deadline_hours', 120)) // 24} days",
+            "deadline": deadline_iso,
             "eligibilityRules": rules,
             "alignmentScore": live_score,
             "factorBreakdown": [
@@ -1149,15 +1224,29 @@ async def chat_completions(req: ChatCompletionRequest):
     )
 
     response_text = pipeline_res.get("response", "")
-    citations = [
-        {"label": "[📄 Resume p.1]", "doc_id": "doc_resume_v3", "page": 1, "section": "Technical Projects"},
-        {"label": "[📄 order_service.py p.1]", "doc_id": "doc_code_001", "page": 1, "section": "FastAPI Core"},
-    ]
+    trace = pipeline_res.get("trace", {})
+    intent_val = str(trace.get("intent", ""))
 
-    clean_prompt = user_prompt.strip().lower()
-    is_greeting = clean_prompt in ("hi", "hey", "hello", "sup", "yo", "good morning", "good evening")
-    if not is_greeting and "[📄" not in response_text and "[chunk-" not in response_text:
-        response_text += " [📄 Resume p.1]"
+    citations: list[dict[str, Any]] = []
+    # Only attach and require citation anchors when intent is INTENT_3: CONTEXTUAL_RAG_RETRIEVAL
+    if "INTENT_3" in intent_val:
+        rag_chunks = trace.get("rag_chunks", [])
+        for c in rag_chunks:
+            chunk_id = c.get("chunk_id", "chunk-0")
+            doc_id = c.get("document_id", "doc_resume_v3")
+            doc_name = c.get("document_name", "Resume.pdf")
+            citations.append({
+                "label": f"[{doc_name}]",
+                "doc_id": doc_id,
+                "chunk_id": chunk_id,
+                "section": c.get("section", "Experience"),
+            })
+        if not citations:
+            citations = [
+                {"label": "[📄 Resume p.1]", "doc_id": "doc_resume_v3", "page": 1, "section": "Technical Projects"},
+            ]
+        if "[📄" not in response_text and "[chunk-" not in response_text:
+            response_text += " [📄 Resume p.1]"
 
     if req.stream:
         async def event_generator():
@@ -1194,6 +1283,10 @@ async def chat_completions(req: ChatCompletionRequest):
                 ],
                 "citations": citations,
                 "trace": pipeline_res.get("trace"),
+                "agent_name": pipeline_res.get("agent_name", "🤖 J.A.R.V.I.S."),
+                "delegated_agent": pipeline_res.get("delegated_agent"),
+                "widget_type": pipeline_res.get("widget_type", "none"),
+                "handoff": pipeline_res.get("handoff"),
             }
             yield f"data: {json.dumps(finish_data)}\n\n"
             yield "data: [DONE]\n\n"
@@ -1217,6 +1310,10 @@ async def chat_completions(req: ChatCompletionRequest):
         ],
         "citations": citations,
         "trace": pipeline_res.get("trace"),
+        "agent_name": pipeline_res.get("agent_name", "🤖 J.A.R.V.I.S."),
+        "delegated_agent": pipeline_res.get("delegated_agent"),
+        "widget_type": pipeline_res.get("widget_type", "none"),
+        "handoff": pipeline_res.get("handoff"),
     }
 
 
@@ -2049,6 +2146,57 @@ async def evaluate_athena_gate(req: AthenaGateRequest) -> dict[str, Any]:
         problem_id=req.problem_id,
         code=req.code,
         problem_type=req.problem_type,
+    )
+
+
+class GapAnalysisRequest(BaseModel):
+    student_id: str = "STU-101"
+    job_id: str | None = None
+
+
+class TrajectoryPlanRequest(BaseModel):
+    student_id: str = "STU-101"
+    job_id: str | None = None
+    timeline_mode: str = "72h_sprint"
+
+
+@router.post("/agents/gap-analysis")
+async def run_gap_analysis(req: GapAnalysisRequest) -> dict[str, Any]:
+    """Agent 4: Dynamic Skill Gap & Diagnostic Analyzer."""
+    from backend.agents.gap_analyzer import gap_analyzer
+    return gap_analyzer.analyze_gaps(student_id=req.student_id, job_id=req.job_id)
+
+
+@router.get("/agents/gap-analysis")
+async def run_gap_analysis_get(student_id: str = "STU-101", job_id: str | None = None) -> dict[str, Any]:
+    """Agent 4: Dynamic Skill Gap & Diagnostic Analyzer (GET)."""
+    from backend.agents.gap_analyzer import gap_analyzer
+    return gap_analyzer.analyze_gaps(student_id=student_id, job_id=job_id)
+
+
+@router.post("/agents/trajectory-plan")
+async def run_trajectory_plan(req: TrajectoryPlanRequest) -> dict[str, Any]:
+    """Agent 5: Trajectory & Curated Curriculum Recommender."""
+    from backend.agents.trajectory import trajectory_curator
+    return trajectory_curator.generate_trajectory(
+        student_id=req.student_id,
+        job_id=req.job_id,
+        timeline_mode=req.timeline_mode,
+    )
+
+
+@router.get("/agents/trajectory-plan")
+async def run_trajectory_plan_get(
+    student_id: str = "STU-101",
+    job_id: str | None = None,
+    timeline_mode: str = "72h_sprint",
+) -> dict[str, Any]:
+    """Agent 5: Trajectory & Curated Curriculum Recommender (GET)."""
+    from backend.agents.trajectory import trajectory_curator
+    return trajectory_curator.generate_trajectory(
+        student_id=student_id,
+        job_id=job_id,
+        timeline_mode=timeline_mode,
     )
 
 

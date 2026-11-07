@@ -4,6 +4,7 @@ import { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
 import { ChevronDown, Calendar, Building2, Sparkles, CheckCircle2 } from 'lucide-react'
 import type { EligibilityRule, AlignmentFactor, SandboxToggle } from '@/lib/types'
+import { ClientOnlyDate } from '@/lib/date-format'
 import CounterfactualSandbox from './CounterfactualSandbox'
 
 interface MatchCardProps {
@@ -116,12 +117,9 @@ export default function MatchCard({
                 <Building2 className="h-3.5 w-3.5 text-oxford" />
                 {company}
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1" suppressHydrationWarning>
                 <Calendar className="h-3.5 w-3.5 text-amber" />
-                Apply by {new Date(deadline).toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                })}
+                Apply by <ClientOnlyDate date={deadline} />
               </span>
             </div>
           </div>

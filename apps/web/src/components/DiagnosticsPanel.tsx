@@ -30,6 +30,7 @@ import {
   Sliders,
   Sparkles,
 } from 'lucide-react'
+import { formatAppTime } from '@/lib/date-format'
 
 interface AICore {
   id: string
@@ -183,10 +184,11 @@ export default function DiagnosticsPanel() {
 
   const initMockLogs = () => {
     const now = new Date()
+    const timeStr = formatAppTime(now)
     const initialLogs = [
       {
         id: 'log-01',
-        time: now.toLocaleTimeString(),
+        time: timeStr,
         level: 'INFO',
         source: 'KERNEL',
         message: 'Neural Pantheon kernel initialized. 6 Specialist Agents armed.',
@@ -194,7 +196,7 @@ export default function DiagnosticsPanel() {
       },
       {
         id: 'log-02',
-        time: now.toLocaleTimeString(),
+        time: timeStr,
         level: 'SUCCESS',
         source: 'MCP_GATEWAY',
         message: 'Registered 6 internal MCP servers with 13 scoped tools. RBAC enforced.',
@@ -202,7 +204,7 @@ export default function DiagnosticsPanel() {
       },
       {
         id: 'log-03',
-        time: now.toLocaleTimeString(),
+        time: timeStr,
         level: 'INFO',
         source: 'EXCEL_STORE',
         message: 'Synchronized memory cache with data/campusbridge_db.xlsx (8 worksheets).',
@@ -210,7 +212,7 @@ export default function DiagnosticsPanel() {
       },
       {
         id: 'log-04',
-        time: now.toLocaleTimeString(),
+        time: timeStr,
         level: 'INFO',
         source: 'RAG_ENGINE',
         message: 'Hybrid RAG initialized with BM25 keyword index and nomic-embed-text (1536 dims).',
@@ -224,7 +226,7 @@ export default function DiagnosticsPanel() {
   const addLog = (level: string, source: string, message: string, meta?: any) => {
     const entry = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      time: new Date().toLocaleTimeString(),
+      time: formatAppTime(new Date()),
       level,
       source,
       message,
@@ -722,7 +724,7 @@ export default function DiagnosticsPanel() {
                           >
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-slate-500 font-semibold">{log.time}</span>
+                                <span className="text-slate-500 font-semibold" suppressHydrationWarning>{log.time}</span>
                                 <span className={`text-3xs px-1.5 py-0.5 rounded border font-bold ${badgeColor}`}>
                                   {log.source}
                                 </span>

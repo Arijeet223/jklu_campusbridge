@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import GhostCard from '@/components/GhostCard'
 import SourceDrawer from '@/components/SourceDrawer'
-import { mockSkills, mockSourceDocuments } from '@/lib/mock-data'
+import {
+  getActiveUser,
+  fetchLiveStudentEvidence,
+  confirmStudentEvidence,
+  ApiError,
+} from '@/lib/api-client'
+import { mockSourceDocuments } from '@/lib/mock-data'
 import type { Skill, SourceDocument } from '@/lib/types'
 import {
   Sparkles,
@@ -18,23 +24,86 @@ import {
   ShieldCheck,
   Zap,
   Filter,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react'
 
 export default function StudentHomePage() {
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<SourceDocument | null>(mockSourceDocuments['doc_resume_v3'] ?? null)
 
-  const [skills, setSkills] = useState<Skill[]>(mockSkills)
+  const [skills, setSkills] = useState<Skill[]>([])
+  const [loading, setLoading] = useState(true)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [timeHorizon, setTimeHorizon] = useState<'sprint' | 'marathon'>('sprint')
   const [filterType, setFilterType] = useState<'ALL' | 'UNCONFIRMED' | 'VERIFIED'>('ALL')
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadStudentSkills()
+  }, [])
+
+  const loadStudentSkills = async () => {
+    setLoading(true)
+    setErrorMsg(null)
+    const user = getActiveUser()
+    const studentId = user?.id || 'STU-101'
+
+    try {
+      const data = await fetchLiveStudentEvidence(studentId)
+      const mapped: Skill[] = (data || []).map((ev: any, idx: number) => ({
+        id: ev.evidence_id || `ev-${idx}`,
+        name: ev.skill_name || 'Skill',
+        category: ev.category || 'Core CS',
+        proficiency: ev.multiplier >= 0.85 ? 'Advanced' : 'Intermediate',
+        evidenceStatus:
+          ev.tier === '4_ASSESSMENT_VERIFIED'
+            ? 'ASSESSMENT_VERIFIED'
+            : ev.tier === '2_STUDENT_CONFIRMED'
+            ? 'STUDENT_CONFIRMED'
+            : 'EXTRACTED',
+        sourceDocumentId: ev.source_doc || 'doc_resume_v3',
+        sourceSpan: ev.source_span_text || 'Extracted technical skill token',
+        confidence: Number(ev.confidence || 0.92),
+      }))
+
+      if (mapped.length > 0) {
+        setSkills(mapped)
+      } else {
+        const stored = localStorage.getItem('cb_user_skills')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) setSkills(parsed)
+        }
+      }
+    } catch (err: any) {
+      const stored = localStorage.getItem('cb_user_skills')
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) setSkills(parsed)
+        } catch {}
+      }
+      setErrorMsg(
+        err instanceof ApiError
+          ? err.message
+          : 'Could not fetch verified skill evidence from live ledger.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleOpenSource = (docId: string = 'doc_resume_v3') => {
     setSelectedDoc(mockSourceDocuments[docId] || mockSourceDocuments['doc_resume_v3'])
     setSourceDrawerOpen(true)
   }
 
-  const handleConfirmSkill = (id: string) => {
+  const handleConfirmSkill = async (id: string) => {
+    const user = getActiveUser()
+    const studentId = user?.id || 'STU-101'
+
+    // Optimistically update UI
     setSkills((prev) =>
       prev.map((s) =>
         s.id === id
@@ -46,6 +115,13 @@ export default function StudentHomePage() {
           : s
       )
     )
+
+    // Write through to Excel DB
+    try {
+      await confirmStudentEvidence(studentId, id)
+    } catch {
+      // Non-fatal if offline
+    }
   }
 
   const handleRealFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,17 +129,35 @@ export default function StudentHomePage() {
     const file = e.target.files[0]
     setUploadSuccess(`Parsing "${file.name}" with Python PDF parser in isolated sandbox...`)
 
+    const user = getActiveUser()
+    const studentId = user?.id || 'STU-101'
+
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('student_id', 'STU-101')
+      formData.append('student_id', studentId)
 
-      const res = await fetch('/api/v1/documents/upload', {
-        method: 'POST',
-        body: formData,
-      })
+      const endpoints = [
+        '/api/v1/documents/upload',
+        'http://localhost:8000/api/v1/documents/upload',
+        'http://localhost:8000/v1/documents/upload',
+      ]
 
-      if (res.ok) {
+      let res: Response | null = null
+      for (const ep of endpoints) {
+        try {
+          const attempt = await fetch(ep, {
+            method: 'POST',
+            body: formData,
+          })
+          if (attempt.ok) {
+            res = attempt
+            break
+          }
+        } catch {}
+      }
+
+      if (res && res.ok) {
         const data = await res.json()
         const extracted: Skill[] = (data.extracted_skills || []).map((sk: any, i: number) => ({
           id: sk.id || `sk_upload_${Date.now()}_${i}`,
@@ -82,26 +176,12 @@ export default function StudentHomePage() {
         setTimeout(() => setUploadSuccess(null), 5000)
         return
       }
-    } catch {
-      // Fallback
-    }
 
-    handleSimulateUpload()
-  }
-
-  const handleSimulateUpload = () => {
-    const newSkill: Skill = {
-      id: `skill-${Date.now()}`,
-      name: 'Kubernetes & Helm',
-      proficiency: 'Intermediate',
-      evidenceStatus: 'EXTRACTED',
-      sourceDocumentId: 'doc_resume_v3',
-      sourceSpan: 'Deployed microservices to Kubernetes cluster with Helm charts',
-      confidence: 0.91,
+      throw new Error('Failed to parse uploaded resume')
+    } catch (err: any) {
+      setErrorMsg(err.message || 'File upload and extraction failed.')
+      setUploadSuccess(null)
     }
-    setSkills((prev) => [newSkill, ...prev])
-    setUploadSuccess('Resume parsed! Extracted new skill: "Kubernetes & Helm" (Level 2: AI Suggestion)')
-    setTimeout(() => setUploadSuccess(null), 4000)
   }
 
   const unconfirmedCount = skills.filter((s) => s.evidenceStatus === 'EXTRACTED').length
@@ -119,6 +199,22 @@ export default function StudentHomePage() {
   return (
     <AppLayout pageTitle="Profile & Evidence Studio" breadcrumb="Student Workspace">
       <div className="space-y-6">
+        {errorMsg && (
+          <div className="rounded-2xl bg-rose-50 border border-rose-200 p-4 flex items-center justify-between text-xs text-rose-800">
+            <div className="flex items-center gap-2 font-medium">
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+              <span>{errorMsg}</span>
+            </div>
+            <button
+              onClick={loadStudentSkills}
+              className="flex items-center gap-1 font-bold text-rose-900 underline hover:no-underline cursor-pointer"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
+
         {/* Header & Mode Switcher */}
         <div className="rounded-3xl bg-white border-2 border-[#E6E3DC] p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-1">
@@ -251,21 +347,37 @@ export default function StudentHomePage() {
         </div>
 
         {/* Skills Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSkills.map((skill) => (
-            <GhostCard
-              key={skill.id}
-              skillName={skill.name}
-              proficiency={skill.proficiency}
-              sourcePage={(skill as any).sourcePage || 'Page 1'}
-              sourceSection={(skill as any).sourceSection || 'Verified Evidence'}
-              confidence={skill.confidence}
-              evidenceStatus={skill.evidenceStatus}
-              onConfirm={() => handleConfirmSkill(skill.id)}
-              onClickSource={() => handleOpenSource(skill.sourceDocumentId)}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-44 rounded-3xl bg-white border border-[#E6E3DC] p-5 animate-pulse" />
+            ))}
+          </div>
+        ) : filteredSkills.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSkills.map((skill) => (
+              <GhostCard
+                key={skill.id}
+                skillName={skill.name}
+                proficiency={skill.proficiency}
+                sourcePage={(skill as any).sourcePage || 'Page 1'}
+                sourceSection={(skill as any).sourceSection || 'Verified Evidence'}
+                confidence={skill.confidence}
+                evidenceStatus={skill.evidenceStatus}
+                onConfirm={() => handleConfirmSkill(skill.id)}
+                onClickSource={() => handleOpenSource(skill.sourceDocumentId)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-white border-2 border-dashed border-[#E6E3DC] p-12 text-center space-y-3">
+            <Sparkles className="h-8 w-8 text-[#6D3B56] mx-auto opacity-40" />
+            <h3 className="font-display font-bold text-base text-ink-primary">No Skill Cards Found</h3>
+            <p className="text-xs text-ink-muted max-w-md mx-auto">
+              Upload your technical resume or complete problems in the Practice Arena to populate your verified skill provenance map.
+            </p>
+          </div>
+        )}
       </div>
 
       <SourceDrawer

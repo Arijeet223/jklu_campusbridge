@@ -142,6 +142,7 @@ export type ChatWidgetType =
   | 'sprint_plan'
   | 'provenance_gallery'
   | 'applications_tracker'
+  | 'resume_preview'
 
 export interface AITrace {
   engine: {

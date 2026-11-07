@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import type { EligibilityRule } from '@/lib/types'
+import { formatAppTime } from '@/lib/date-format'
 
 interface DisputeClarificationDrawerProps {
   isOpen: boolean
@@ -58,7 +59,7 @@ export default function DisputeClarificationDrawer({
     const ticketId = `DISP-${Math.floor(1000 + Math.random() * 9000)}`
     setSubmittedTicket({
       id: ticketId,
-      submittedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      submittedAt: formatAppTime(new Date()),
     })
 
     onSubmitDispute?.({

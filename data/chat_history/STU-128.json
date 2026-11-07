@@ -1,0 +1,10 @@
+[
+  {
+    "id": "msg-welcome",
+    "sender": "assistant",
+    "agentName": "J.A.R.V.I.S.",
+    "text": "Hey Arijeet! I am J.A.R.V.I.S., your placement co-pilot alongside T.E.R.R.A. and R.O.N.E.N. I have mapped your AI/ML Engineer readiness and 72-hour sprint milestones. What would you like to dive into?",
+    "timestamp": "18:15",
+    "widgetType": "none"
+  }
+]

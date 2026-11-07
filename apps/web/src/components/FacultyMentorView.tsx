@@ -10,9 +10,13 @@ import {
   Users,
   Search,
   BookOpen,
+  ExternalLink,
+  Code,
 } from 'lucide-react'
 import { mockFacultyAdvisees } from '@/lib/mock-data'
 import type { FacultyAdvisee } from '@/lib/types'
+import { getCandidateGithubUrl } from '@/lib/url-utils'
+import WordResumePreview from './WordResumePreview'
 
 interface FacultyMentorViewProps {
   onOpenSourceDoc?: (docId: string) => void
@@ -26,6 +30,7 @@ export default function FacultyMentorView({
   const [advisees, setAdvisees] = useState<FacultyAdvisee[]>(mockFacultyAdvisees)
   const [searchQuery, setSearchQuery] = useState('')
   const [endorseNotice, setEndorseNotice] = useState<string | null>(null)
+  const [selectedResumeStudent, setSelectedResumeStudent] = useState<FacultyAdvisee | null>(null)
 
   const handleEndorse = (adviseeId: string, skillId: string, studentName: string) => {
     setAdvisees((prev) =>
@@ -144,21 +149,43 @@ export default function FacultyMentorView({
                   </p>
                 </div>
 
-                {/* Endorsement Status & Action */}
-                <div className="flex items-center gap-2">
+                {/* Endorsement Status & Direct Action Buttons */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedResumeStudent(advisee)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-hairline bg-surface hover:bg-subtle text-xs font-semibold text-ink-primary transition-colors shadow-2xs cursor-pointer"
+                    title={`Preview verified resume for ${advisee.name}`}
+                  >
+                    <FileText className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Preview Resume</span>
+                  </button>
+
+                  <a
+                    href={getCandidateGithubUrl(undefined, advisee.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-cyan-300 transition-colors shadow-2xs cursor-pointer"
+                    title={`Open ${advisee.name}'s GitHub in new tab`}
+                  >
+                    <Code className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>GitHub</span>
+                    <ExternalLink className="h-3 w-3 opacity-70" />
+                  </a>
+
                   {advisee.institutionVerified ? (
                     <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-border bg-emerald-surface px-3 py-1.5 text-xs font-semibold text-emerald">
                       <Star className="h-3.5 w-3.5 fill-emerald" />
-                      Institution-Verified Endorsed
+                      Institution-Verified
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => handleEndorse(advisee.id, advisee.featuredSkillId, advisee.name)}
-                      className="flex items-center gap-1.5 rounded-lg bg-oxford px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-oxford/90 transition-colors"
+                      className="flex items-center gap-1.5 rounded-lg bg-oxford px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-oxford/90 transition-colors cursor-pointer"
                     >
                       <Star className="h-3.5 w-3.5" />
-                      ★ Endorse as Institution-Verified
+                      ★ Endorse
                     </button>
                   )}
                 </div>
@@ -187,6 +214,20 @@ export default function FacultyMentorView({
           ))}
         </div>
       </div>
+
+      {/* Word-Style Interactive Resume Document Sheet Modal */}
+      {selectedResumeStudent && (
+        <WordResumePreview
+          isModalOpen={true}
+          onCloseModal={() => setSelectedResumeStudent(null)}
+          candidateName={selectedResumeStudent.name}
+          program={selectedResumeStudent.department}
+          cgpa={selectedResumeStudent.cgpa}
+          readinessScore={selectedResumeStudent.overallReadiness}
+          email={`${selectedResumeStudent.name.toLowerCase().replace(/\s+/g, '.')}@university.edu.in`}
+          githubUrl={getCandidateGithubUrl(undefined, selectedResumeStudent.name)}
+        />
+      )}
     </div>
   )
 }

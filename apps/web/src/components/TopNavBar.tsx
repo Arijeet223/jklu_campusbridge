@@ -103,20 +103,15 @@ export default function TopNavBar({
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
         {/* Left: Brand & Architecture Identity */}
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-oxford text-white shadow-xs font-display font-bold text-sm tracking-tight">
-            CB
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-oxford text-white shadow-xs">
+            <GraduationCap className="h-5 w-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-display text-sm font-bold text-ink-primary tracking-tight">
-                CampusBridge AI
-              </span>
-              <span className="font-mono text-2xs px-1.5 py-0.2 rounded bg-oxford-surface text-oxford font-semibold border border-oxford-border/60">
-                v1.1 PS-06
-              </span>
-            </div>
+            <span className="font-display text-sm font-bold text-ink-primary tracking-tight block">
+              CampusBridge AI
+            </span>
             <p className="text-2xs text-ink-muted hidden sm:block">
-              Warm Institutional Studio • Deterministic Shell, Probabilistic Core
+              AI Placement OS
             </p>
           </div>
         </div>

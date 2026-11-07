@@ -13,9 +13,13 @@ import {
   Building2,
   GraduationCap,
   Sparkles,
+  Code,
 } from 'lucide-react'
 import { mockDisputes } from '@/lib/mock-data'
 import type { EligibilityDispute } from '@/lib/types'
+import { ClientOnlyDate } from '@/lib/date-format'
+import { getCandidateGithubUrl } from '@/lib/url-utils'
+import WordResumePreview from './WordResumePreview'
 
 interface ExceptionQueueViewProps {
   onOpenSource?: (docId: string) => void
@@ -54,6 +58,7 @@ export default function ExceptionQueueView({ onOpenSource }: ExceptionQueueViewP
     disp_001: 'Verified CSE department course curriculum against CS recruiter guidelines.',
   })
   const [resolutionNotice, setResolutionNotice] = useState<string | null>(null)
+  const [selectedResumeStudent, setSelectedResumeStudent] = useState<string | null>(null)
 
   const pendingCount = disputes.filter((d) => d.status === 'PENDING_REVIEW').length
   const resolvedCount = disputes.filter((d) => d.status !== 'PENDING_REVIEW').length
@@ -226,10 +231,10 @@ export default function ExceptionQueueView({ onOpenSource }: ExceptionQueueViewP
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-ink-muted">
+                  <div className="flex items-center gap-3 text-xs text-ink-muted" suppressHydrationWarning>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      Submitted: {new Date(ticket.submittedAt).toLocaleDateString()}
+                      Submitted: <ClientOnlyDate date={ticket.submittedAt} />
                     </span>
                   </div>
                 </div>
@@ -238,18 +243,44 @@ export default function ExceptionQueueView({ onOpenSource }: ExceptionQueueViewP
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
                   {/* Left Column: Student Context & Gate (7 cols) */}
                   <div className="space-y-3 lg:col-span-7">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-display text-sm font-bold text-ink-primary">
-                          Priya Sharma
-                        </span>
-                        <span className="text-xs text-ink-muted">
-                          (Roll: 231CS042 • B.Tech CS &apos;27)
-                        </span>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-sm font-bold text-ink-primary">
+                            Priya Sharma
+                          </span>
+                          <span className="text-xs text-ink-muted">
+                            (Roll: 231CS042 • B.Tech CS &apos;27)
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-ink-secondary">
+                          <Building2 className="h-3.5 w-3.5 text-ink-muted" />
+                          <span>Target Role: <strong>{ticket.jobTitle}</strong> at <strong>{ticket.company}</strong></span>
+                        </div>
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-ink-secondary">
-                        <Building2 className="h-3.5 w-3.5 text-ink-muted" />
-                        <span>Target Role: <strong>{ticket.jobTitle}</strong> at <strong>{ticket.company}</strong></span>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedResumeStudent('Priya Sharma')}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border-hairline bg-surface hover:bg-subtle text-xs font-semibold text-ink-primary transition-colors shadow-2xs cursor-pointer"
+                          title="Preview student Word-style resume"
+                        >
+                          <FileText className="h-3.5 w-3.5 text-blue-600" />
+                          <span>Preview Resume</span>
+                        </button>
+
+                        <a
+                          href={getCandidateGithubUrl(undefined, 'Priya Sharma')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-cyan-300 transition-colors shadow-2xs cursor-pointer"
+                          title="Open student GitHub in new tab"
+                        >
+                          <Code className="h-3.5 w-3.5 text-cyan-400" />
+                          <span>GitHub</span>
+                          <ExternalLink className="h-3 w-3 opacity-70" />
+                        </a>
                       </div>
                     </div>
 
@@ -380,10 +411,10 @@ export default function ExceptionQueueView({ onOpenSource }: ExceptionQueueViewP
                             </span>
                           </div>
                           {ticket.resolvedAt && (
-                            <div className="flex justify-between text-ink-muted">
+                            <div className="flex justify-between text-ink-muted" suppressHydrationWarning>
                               <span>Timestamp:</span>
                               <span className="font-mono text-[11px]">
-                                {new Date(ticket.resolvedAt).toLocaleString()}
+                                <ClientOnlyDate date={ticket.resolvedAt} format="datetime" />
                               </span>
                             </div>
                           )}
@@ -400,6 +431,20 @@ export default function ExceptionQueueView({ onOpenSource }: ExceptionQueueViewP
           })
         )}
       </div>
+
+      {/* Word-Style Interactive Resume Document Sheet Modal */}
+      {selectedResumeStudent && (
+        <WordResumePreview
+          isModalOpen={true}
+          onCloseModal={() => setSelectedResumeStudent(null)}
+          candidateName={selectedResumeStudent}
+          program="B.Tech Computer Science & Engineering"
+          cgpa={8.2}
+          readinessScore={88}
+          email="priya.sharma@university.edu.in"
+          githubUrl={getCandidateGithubUrl(undefined, selectedResumeStudent)}
+        />
+      )}
     </div>
   )
 }

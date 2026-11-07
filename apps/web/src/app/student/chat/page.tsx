@@ -15,6 +15,7 @@ export default function StudentChatPage() {
   const [disputeRule, setDisputeRule] = useState<EligibilityRule | null>(null)
   const [disputeJob, setDisputeJob] = useState({ title: 'Backend Engineer', company: 'TechCorp India' })
 
+  const [studentId, setStudentId] = useState('STU-101')
   const [studentName, setStudentName] = useState('Aarav Sharma')
   const [cgpa, setCgpa] = useState(8.42)
   const [skills, setSkills] = useState<Skill[]>(mockSkills)
@@ -24,8 +25,16 @@ export default function StudentChatPage() {
       const stored = localStorage.getItem('cb_active_user')
       if (stored) {
         const u = JSON.parse(stored)
+        if (u.id) setStudentId(u.id)
         if (u.name) setStudentName(u.name)
         if (u.cgpa) setCgpa(Number(u.cgpa))
+      }
+      const storedSkills = localStorage.getItem('cb_user_skills')
+      if (storedSkills) {
+        const parsedSkills = JSON.parse(storedSkills)
+        if (Array.isArray(parsedSkills) && parsedSkills.length > 0) {
+          setSkills(parsedSkills)
+        }
       }
     } catch {}
   }, [])
@@ -42,7 +51,13 @@ export default function StudentChatPage() {
   }
 
   const handleUploadResume = (fileName: string, newExtractedSkills: Skill[]) => {
-    setSkills((prev) => [...prev, ...newExtractedSkills])
+    setSkills((prev) => {
+      const merged = [...prev, ...newExtractedSkills]
+      try {
+        localStorage.setItem('cb_user_skills', JSON.stringify(merged))
+      } catch {}
+      return merged
+    })
   }
 
   return (
@@ -55,6 +70,7 @@ export default function StudentChatPage() {
           onToggleNav={() => {}}
           onRoleSwitch={() => {}}
           onOpenDispute={handleOpenDispute}
+          studentId={studentId}
           studentName={studentName}
           cgpa={cgpa}
           onUpdateCgpa={setCgpa}

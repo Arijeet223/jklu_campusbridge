@@ -142,6 +142,10 @@ class ModelGateway:
         system_instruction: str = DEFAULT_SYSTEM_INSTRUCTION,
         response_schema: Type[T] | None = None,
         deterministic_fallback_fn: Any | None = None,
+        temperature: float = 0.65,
+        max_tokens: int = 150,
+        frequency_penalty: float = 0.7,
+        presence_penalty: float = 0.5,
     ) -> ModelGatewayResponse:
         """Execute a completion with hard resource bounds and deterministic degradation."""
         t0 = time.perf_counter()
@@ -162,8 +166,10 @@ class ModelGateway:
         payload = {
             "model": self.model_name,
             "messages": messages,
-            "max_tokens": MAX_OUTPUT_TOKENS,
-            "temperature": 0.1,  # Low temperature for deterministic policy compliance
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty,
         }
 
         # Attempt local LLM inference

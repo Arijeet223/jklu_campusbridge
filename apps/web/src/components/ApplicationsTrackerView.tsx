@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { mockApplications } from '@/lib/mock-data'
 import type { ApplicationItem, ApplicationStage } from '@/lib/types'
+import { ClientOnlyDate } from '@/lib/date-format'
 
 interface ApplicationsTrackerViewProps {
   onOpenDispute: (jobTitle: string, company: string, ruleLabel: string) => void
@@ -113,12 +114,8 @@ export default function ApplicationsTrackerView({
                     <h3 className="font-display text-sm font-semibold text-ink-primary">
                       {app.jobTitle}
                     </h3>
-                    <p className="text-xs text-ink-secondary">
-                      {app.company} • Applied{' '}
-                      {new Date(app.appliedAt).toLocaleDateString('en-IN', {
-                        day: 'numeric',
-                        month: 'short',
-                      })}
+                    <p className="text-xs text-ink-secondary" suppressHydrationWarning>
+                      {app.company} • Applied <ClientOnlyDate date={app.appliedAt} />
                     </p>
                   </div>
                 </div>

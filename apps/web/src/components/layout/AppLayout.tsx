@@ -215,19 +215,14 @@ export default function AppLayout({
           {/* Top Brand Mark */}
           <div className="h-18 px-5 border-b border-[#E2DFD9] flex items-center justify-between">
             <Link href="/student/dashboard" className="flex items-center gap-3 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs font-display font-extrabold text-sm tracking-tight border-b-2 border-[#552940] group-hover:scale-105 transition-transform">
-                CB
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs font-display font-extrabold tracking-tight border-b-2 border-[#552940] group-hover:scale-105 transition-transform">
+                <GraduationCap className="h-5 w-5 text-white" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-display text-sm font-extrabold text-ink-primary tracking-tight">
-                    CampusBridge
-                  </span>
-                  <span className="font-mono text-3xs px-1.5 py-0.5 rounded-full bg-[#E2DFD9] text-[#6D3B56] font-bold">
-                    v1.1
-                  </span>
-                </div>
-                <p className="text-3xs text-ink-muted font-medium">Warm Institutional Studio</p>
+                <span className="font-display text-base font-extrabold text-ink-primary tracking-tight block">
+                  CampusBridge
+                </span>
+                <p className="text-3xs text-ink-muted font-medium tracking-wide">AI Placement OS</p>
               </div>
             </Link>
           </div>

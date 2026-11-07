@@ -127,11 +127,11 @@ export default function LoginPage() {
       const fallbackUser =
         authRole === 'STUDENT'
           ? {
-              id: authIdentifier.includes('priya') ? 'STU-102' : 'STU-101',
-              name: authIdentifier.includes('priya') ? 'Priya Nair' : 'Aarav Sharma',
+              id: authIdentifier.includes('priya') ? 'STU-102' : authIdentifier.includes('arijeet') ? 'STU-128' : 'STU-101',
+              name: authIdentifier.includes('priya') ? 'Priya Nair' : authIdentifier.includes('arijeet') ? 'Arijeet Basak' : 'Aarav Sharma',
               email: authIdentifier,
-              program: authIdentifier.includes('priya') ? 'B.Tech AI & Data Science' : 'B.Tech CSE',
-              cgpa: authIdentifier.includes('priya') ? 8.95 : 8.42,
+              program: authIdentifier.includes('priya') ? 'B.Tech AI & Data Science' : authIdentifier.includes('arijeet') ? 'B.Tech CS (Artificial Intelligence)' : 'B.Tech CSE',
+              cgpa: authIdentifier.includes('priya') ? 8.95 : authIdentifier.includes('arijeet') ? 8.406 : 8.42,
             }
           : authRole === 'FACULTY'
           ? {
@@ -253,19 +253,14 @@ export default function LoginPage() {
       {/* Minimal Header */}
       <header className="h-18 px-6 sm:px-12 border-b border-[#E6E3DC] flex items-center justify-between bg-white/80 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs font-display font-extrabold text-sm tracking-tight border-b-2 border-[#552940]">
-            CB
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs border-b-2 border-[#552940]">
+            <GraduationCap className="h-5 w-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-display text-sm font-extrabold text-ink-primary tracking-tight">
-                CampusBridge AI
-              </span>
-              <span className="font-mono text-3xs px-1.5 py-0.5 rounded-full bg-[#E2DFD9] text-[#6D3B56] font-bold">
-                v1.1 PS-06
-              </span>
-            </div>
-            <p className="text-3xs text-ink-muted">Warm Institutional Studio</p>
+            <span className="font-display text-base font-extrabold text-ink-primary tracking-tight block">
+              CampusBridge AI
+            </span>
+            <p className="text-3xs text-ink-muted font-medium">AI Placement OS</p>
           </div>
         </div>
       </header>
@@ -481,6 +476,15 @@ export default function LoginPage() {
                   <div className="grid grid-cols-2 gap-2 text-2xs">
                     <button
                       type="button"
+                      onClick={() => handleQuickDemoLogin('STUDENT', 'arijeet.basak2005@gmail.com', 'student123')}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer border border-[#6D3B56]/30"
+                    >
+                      <span className="font-bold">Arijeet Basak</span>
+                      <span className="text-3xs px-1.5 py-0.5 rounded bg-[#F0B6D5]/40 text-[#6D3B56] font-bold">AI/ML</span>
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={() => handleQuickDemoLogin('STUDENT', 'aarav.sharma@nitk.edu', 'student@nitk2026')}
                       className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer"
                     >
@@ -509,7 +513,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => handleQuickDemoLogin('OFFICER', 'rajesh.menon@nitk.edu', 'tpo@nitk2026')}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer"
+                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer col-span-2"
                     >
                       <span className="font-bold">Prof. Rajesh Menon</span>
                       <span className="text-3xs px-1.5 py-0.5 rounded bg-[#F0B6D5]/40 text-[#6D3B56] font-bold">TPO</span>

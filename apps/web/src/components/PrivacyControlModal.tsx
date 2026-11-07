@@ -22,6 +22,7 @@ import {
   mockStudent,
 } from '@/lib/mock-data'
 import type { RecruiterConsent, ResumeVersion } from '@/lib/types'
+import { ClientOnlyDate } from '@/lib/date-format'
 
 interface PrivacyControlModalProps {
   isOpen: boolean
@@ -218,8 +219,8 @@ export default function PrivacyControlModal({
                           {company.optedIn ? 'Opted In' : 'Private / Blocked'}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-ink-secondary">
-                        {company.category} • Last updated {new Date(company.lastChangedAt).toLocaleDateString()}
+                      <p className="mt-0.5 text-xs text-ink-secondary" suppressHydrationWarning>
+                        {company.category} • Last updated <ClientOnlyDate date={company.lastChangedAt} />
                       </p>
                     </div>
 
@@ -270,9 +271,9 @@ export default function PrivacyControlModal({
                             </span>
                           )}
                         </div>
-                        <div className="mt-0.5 flex items-center gap-3 text-xs text-ink-muted">
+                        <div className="mt-0.5 flex items-center gap-3 text-xs text-ink-muted" suppressHydrationWarning>
                           <span>Size: {ver.fileSize}</span>
-                          <span>Uploaded: {new Date(ver.uploadedAt).toLocaleDateString()}</span>
+                          <span>Uploaded: <ClientOnlyDate date={ver.uploadedAt} /></span>
                           <span className="font-medium text-oxford">
                             {ver.extractedSkillsCount} extracted skills
                           </span>

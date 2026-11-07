@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  transpilePackages: ['@livekit/components-react', 'livekit-client', 'framer-motion'],
   async rewrites() {
     return [
       {

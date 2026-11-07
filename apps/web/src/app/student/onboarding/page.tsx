@@ -154,7 +154,29 @@ export default function StudentOnboardingPage() {
       const parsed = stored ? JSON.parse(stored) : {}
       parsed.needs_onboarding = false
       parsed.resume_uploaded = true
+      if (parsedDocInfo?.candidate_metadata?.name) {
+        parsed.name = parsedDocInfo.candidate_metadata.name
+      }
+      if (parsedDocInfo?.candidate_metadata?.cgpa) {
+        parsed.cgpa = parsedDocInfo.candidate_metadata.cgpa
+      }
+      if (parsedDocInfo?.candidate_metadata?.program) {
+        parsed.program = parsedDocInfo.candidate_metadata.program
+      }
       localStorage.setItem('cb_active_user', JSON.stringify(parsed))
+
+      const confirmedSkills = extractedSkills.filter((s) => s.confirmed).map((s, idx) => ({
+        id: s.id || `sk_${Date.now()}_${idx}`,
+        name: s.name,
+        proficiency: s.proficiency || 'Intermediate',
+        evidenceStatus: 'STUDENT_CONFIRMED',
+        sourceDocumentId: parsedDocInfo?.document_id || 'doc_resume',
+        sourceSpan: `${parsedDocInfo?.file_name || 'Resume'} • ${s.category || 'Skills'}`,
+        confidence: s.confidence || 0.95,
+      }))
+      if (confirmedSkills.length > 0) {
+        localStorage.setItem('cb_user_skills', JSON.stringify(confirmedSkills))
+      }
     } catch {}
 
     router.push('/student/dashboard')
@@ -166,7 +188,7 @@ export default function StudentOnboardingPage() {
       <header className="h-18 px-6 sm:px-12 border-b border-[#E6E3DC] bg-white/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs font-display font-extrabold text-sm tracking-tight border-b-2 border-[#552940]">
-            CB
+            <GraduationCap className="h-5 w-5 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">

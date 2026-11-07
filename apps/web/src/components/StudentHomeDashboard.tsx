@@ -26,8 +26,10 @@ import {
   mockApplications,
 } from '@/lib/mock-data'
 import type { Skill, ReadinessDimension, ResumeVersion } from '@/lib/types'
+import { ClientOnlyDate } from '@/lib/date-format'
 
 interface StudentHomeDashboardProps {
+  studentId?: string
   studentName: string
   cgpa: number
   branch: string
@@ -40,6 +42,7 @@ interface StudentHomeDashboardProps {
 }
 
 export default function StudentHomeDashboard({
+  studentId,
   studentName,
   cgpa,
   branch,
@@ -74,9 +77,20 @@ export default function StudentHomeDashboard({
     setUploadNotice(`Parsing and scanning "${file.name}" with Python PDF parser in isolated sandbox...`)
 
     try {
+      let activeId = studentId || 'STU-101'
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('cb_active_user')
+          if (stored) {
+            const u = JSON.parse(stored)
+            if (u.id) activeId = u.id
+          }
+        } catch {}
+      }
+
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('student_id', 'STU-101')
+      formData.append('student_id', activeId)
 
       const res = await fetch('/api/v1/documents/upload', {
         method: 'POST',
@@ -419,8 +433,8 @@ export default function StudentHomeDashboard({
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-ink-muted">
-                        {ver.fileSize} • {new Date(ver.uploadedAt).toLocaleDateString()}
+                      <div className="text-[11px] text-ink-muted" suppressHydrationWarning>
+                        {ver.fileSize} • <ClientOnlyDate date={ver.uploadedAt} />
                       </div>
                     </div>
                   </div>
