@@ -1,0 +1,2 @@
+"""CampusBridge AI — Utility helpers."""
+

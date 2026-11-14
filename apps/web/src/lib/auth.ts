@@ -153,11 +153,22 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // Default student
+        // Student Resolution
+        const cleanName = email.includes('@')
+          ? email
+              .split('@')[0]
+              .replace(/[._]/g, ' ')
+              .split(' ')
+              .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+          : 'Aarav Sharma'
+
+        const studentNum = Math.abs(email.split('').reduce((acc, c) => (acc << 5) - acc + c.charCodeAt(0), 0) % 900) + 100
+
         return {
-          id: 'STU-101',
-          name: 'Aarav Sharma',
-          email: email.includes('@') ? email : 'aarav.sharma@nitk.edu',
+          id: `STU-${studentNum}`,
+          name: cleanName,
+          email: email.includes('@') ? email : `${email}@jklu.edu.in`,
           role: 'STUDENT',
           department: 'B.Tech CSE',
           institution_id: 'JKLU',

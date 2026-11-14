@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import AppLayout from '@/components/layout/AppLayout'
 import {
@@ -18,12 +18,14 @@ import {
   Sparkles,
 } from 'lucide-react'
 import * as Switch from '@radix-ui/react-switch'
+import SourceDrawer from '@/components/SourceDrawer'
 import {
   mockRecruiterConsents,
   mockResumeVersions,
   mockStudent,
+  mockSourceDocuments,
 } from '@/lib/mock-data'
-import type { RecruiterConsent, ResumeVersion } from '@/lib/types'
+import type { RecruiterConsent, ResumeVersion, SourceDocument } from '@/lib/types'
 import { ClientOnlyDate } from '@/lib/date-format'
 
 export default function StudentPrivacyShieldPage() {
@@ -31,6 +33,43 @@ export default function StudentPrivacyShieldPage() {
   const [versions, setVersions] = useState<ResumeVersion[]>(mockResumeVersions)
   const [activeTab, setActiveTab] = useState<'CONSENT' | 'VERSIONS' | 'DPDP'>('CONSENT')
   const [notification, setNotification] = useState<string | null>(null)
+  const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false)
+  const [selectedDoc, setSelectedDoc] = useState<SourceDocument | null>(mockSourceDocuments['doc_resume_v3'] ?? null)
+
+  const handleInspectDocument = (docId: string, fileName?: string) => {
+    let doc = mockSourceDocuments[docId]
+    if (!doc && typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('cb_uploaded_documents') || '{}')
+        if (stored[docId]) doc = stored[docId]
+      } catch {}
+    }
+    if (!doc) {
+      doc = {
+        id: docId,
+        fileName: fileName || 'Resume Document',
+        pageNumber: 1,
+        fullText: `Primary Cryptographic Resume Document (${fileName || docId})\nUploaded and permanently indexed into isolated institutional tenant.\nEvidence Status: 1.0x Solid Tokens Verified.`,
+        highlightedText: 'Resume Document',
+      }
+    }
+    setSelectedDoc(doc)
+    setSourceDrawerOpen(true)
+  }
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedVersions = localStorage.getItem('cb_resume_versions')
+        if (storedVersions) {
+          const parsed = JSON.parse(storedVersions)
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setVersions(parsed)
+          }
+        }
+      } catch {}
+    }
+  }, [])
 
   const handleToggleConsent = (companyId: string) => {
     setConsents((prev) =>
@@ -215,13 +254,31 @@ export default function StudentPrivacyShieldPage() {
         {/* Tab Content 2: Resume Versions */}
         {activeTab === 'VERSIONS' && (
           <div className="rounded-b-2xl border border-border-hairline bg-surface p-6 shadow-2xs space-y-4">
-            <div>
-              <h3 className="font-display text-sm font-bold text-ink-primary">
-                Cryptographic Document Fingerprints
-              </h3>
-              <p className="text-xs text-ink-secondary">
-                Every parsed resume is indexed into Qdrant Cloud with deterministic UUID5 content addresses and SHA-256 hashes.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border-hairline">
+              <div>
+                <h3 className="font-display text-sm font-bold text-ink-primary">
+                  Immutable Resume Versions &amp; Audit Trail
+                </h3>
+                <p className="text-xs text-ink-secondary">
+                  Every parsed resume is permanently hashed with deterministic UUID5 content addresses and SHA-256 signatures.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/student/profile-evidence"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-primary text-on-primary shadow-[0_2px_0_#320e26] hover:brightness-105"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Inspect Ghost Cards</span>
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-surface-container-high border border-outline-variant text-on-surface hover:bg-surface-container"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>Upload New PDF</span>
+                </Link>
+              </div>
             </div>
 
             <div className="space-y-3">
@@ -251,9 +308,19 @@ export default function StudentPrivacyShieldPage() {
                     </div>
                   </div>
 
-                  <span className="text-xs font-mono text-ink-secondary">
-                    {version.extractedSkillsCount} verified skills
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-ink-secondary">
+                      {version.extractedSkillsCount} verified skills
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleInspectDocument(version.sourceDocumentId, version.fileName)}
+                      className="px-3 py-1.5 rounded-full text-xs font-bold bg-secondary-container text-on-secondary-container border border-secondary-fixed-dim hover:brightness-95 flex items-center gap-1 shadow-[0_1px_0_#85B5CE] cursor-pointer"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>View Resume Text</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -307,6 +374,12 @@ export default function StudentPrivacyShieldPage() {
           </div>
         )}
       </div>
+
+      <SourceDrawer
+        isOpen={sourceDrawerOpen}
+        onClose={() => setSourceDrawerOpen(false)}
+        sourceDocument={selectedDoc}
+      />
     </AppLayout>
   )
 }

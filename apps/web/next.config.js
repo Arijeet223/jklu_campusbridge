@@ -9,21 +9,19 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   async rewrites() {
-    const backendUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/$/, '')
-    return [
-      {
-        source: '/api/backend/:path*',
-        destination: `${backendUrl}/:path*`,
-      },
-      {
-        source: '/api/v1/:path*',
-        destination: `${backendUrl}/v1/:path*`,
-      },
-      {
-        source: '/v1/:path*',
-        destination: `${backendUrl}/v1/:path*`,
-      },
-    ]
+    // Only rewrite to remote backend if explicitly configured with an external URL
+    const remoteUrl = process.env.NEXT_PUBLIC_API_URL || process.env.CAMPUSBRIDGE_BACKEND_URL
+    if (remoteUrl && !remoteUrl.includes('localhost') && !remoteUrl.includes('127.0.0.1')) {
+      const cleanBase = remoteUrl.replace(/\/+$/, '')
+      return [
+        {
+          source: '/api/backend/:path*',
+          destination: `${cleanBase}/:path*`,
+        },
+      ]
+    }
+    // In serverless / Vercel default, all /api/ routes are handled natively by Next.js route handlers
+    return []
   },
 }
 

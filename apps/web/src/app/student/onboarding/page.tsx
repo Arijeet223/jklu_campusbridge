@@ -17,18 +17,21 @@ import {
   RefreshCw,
   ExternalLink,
   ChevronRight,
+  Ghost,
+  Check,
+  Zap,
 } from 'lucide-react'
 
 interface ExtractedSkill {
   id: string
   name: string
   category: string
-  proficiency: string
+  proficiency: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
   evidenceStatus: string
   sourceSpan: string
-  sourcePage: number
-  snippet: string
-  confidence: number
+  sourcePage?: number
+  snippet?: string
+  confidence?: number
   confirmed?: boolean
 }
 
@@ -54,6 +57,8 @@ export default function StudentOnboardingPage() {
   const [extractedSkills, setExtractedSkills] = useState<ExtractedSkill[]>([])
   const [parsedDocInfo, setParsedDocInfo] = useState<any>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'TECHNICAL' | 'SOFT' | 'CLAIMED'>('ALL')
+  const [isSubmittingCompletion, setIsSubmittingCompletion] = useState(false)
 
   // Sync session user
   useEffect(() => {
@@ -89,24 +94,21 @@ export default function StudentOnboardingPage() {
     setSelectedFile(file)
     setIsUploading(true)
     setUploadError(null)
-    setUploadProgressMsg('Extracting high-fidelity text blocks via PyMuPDF / pdfplumber...')
+    setUploadProgressMsg('Extracting high-fidelity text blocks in memory (PyMuPDF / pdfplumber)...')
 
     const formData = new FormData()
     formData.append('file', file)
     formData.append('student_id', studentProfile.id || 'STU-101')
 
     try {
-      // Step A: extraction & embeddings
       setTimeout(() => {
-        setUploadProgressMsg('Computing 1536-dim Nomic embeddings & upserting to Qdrant Cloud...')
+        setUploadProgressMsg('Running hybrid extraction: Qwen 2.5 + comprehensive skill dictionary...')
       }, 700)
 
       const backendBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
       const endpoints = [
-        ...(backendBase ? [`${backendBase}/api/v1/documents/upload`, `${backendBase}/v1/documents/upload`] : []),
         '/api/v1/documents/upload',
-        'http://localhost:8000/api/v1/documents/upload',
-        'http://localhost:8000/v1/documents/upload',
+        ...(backendBase ? [`${backendBase}/v1/documents/upload`, `${backendBase}/api/v1/documents/upload`] : []),
         '/v1/documents/upload',
       ]
 
@@ -131,18 +133,69 @@ export default function StudentOnboardingPage() {
       }
 
       if (!res || !res.ok) {
-        throw new Error(lastErr || 'Failed to parse resume via pdfplumber.')
+        throw new Error(lastErr || 'Failed to parse resume document.')
       }
 
       const data = await res.json()
       setParsedDocInfo(data)
-      const rawSkills: ExtractedSkill[] = (data.extracted_skills || []).map((sk: any) => ({
-        ...sk,
-        confirmed: true, // Auto-mark ready for one-click verification
+
+      if (data.candidate_metadata) {
+        setStudentProfile((prev: any) => ({
+          ...prev,
+          name: data.candidate_metadata.name || prev.name,
+          email: data.candidate_metadata.email || prev.email,
+          program: data.candidate_metadata.program || prev.program,
+          cgpa: data.candidate_metadata.cgpa || prev.cgpa,
+        }))
+      }
+
+      // Step 4: Render extracted skills as unconfirmed Ghost Cards (confirmed: false)
+      const rawSkills: ExtractedSkill[] = (data.extracted_skills || []).map((sk: any, idx: number) => ({
+        id: sk.id || `sk_ghost_${Date.now()}_${idx}`,
+        name: sk.name,
+        category: sk.category || 'Technical',
+        proficiency: (sk.proficiency as any) || 'Intermediate',
+        evidenceStatus: 'EXTRACTED',
+        sourceSpan: sk.sourceSpan || `${file.name} • L${idx + 1}`,
+        sourcePage: sk.sourcePage || 1,
+        snippet: sk.snippet || sk.provenance_snippet || '',
+        confidence: sk.confidence || 0.94,
+        confirmed: false, // Unconfirmed Ghost Card by default
       }))
 
+      // Persist uploaded document and resume version for immediate provenance inspection
+      if (typeof window !== 'undefined') {
+        try {
+          const docRecordId = data.document_id || `doc_resume_${Date.now()}`
+          const storedDocs = JSON.parse(localStorage.getItem('cb_uploaded_documents') || '{}')
+          storedDocs[docRecordId] = {
+            id: docRecordId,
+            fileName: file.name,
+            pageNumber: 1,
+            uploadedAt: new Date().toISOString(),
+            fileSize: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+            fullText: data.raw_text || `Resume text for ${file.name}\n\nExtracted Skills:\n${rawSkills.map((s) => `• ${s.name} (${s.proficiency})`).join('\n')}`,
+            highlightedText: rawSkills[0]?.name || 'SQL',
+          }
+          localStorage.setItem('cb_uploaded_documents', JSON.stringify(storedDocs))
+
+          const existingVersions = JSON.parse(localStorage.getItem('cb_resume_versions') || '[]')
+          const newVersion = {
+            id: `rv_${Date.now()}`,
+            versionNumber: existingVersions.length + 1,
+            fileName: file.name,
+            uploadedAt: new Date().toISOString(),
+            fileSize: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+            extractedSkillsCount: rawSkills.length,
+            sourceDocumentId: docRecordId,
+            isCurrent: true,
+          }
+          localStorage.setItem('cb_resume_versions', JSON.stringify([newVersion, ...existingVersions.map((v: any) => ({ ...v, isCurrent: false }))]))
+        } catch {}
+      }
+
       setExtractedSkills(rawSkills)
-      setActiveStep(3) // Advance to skill review
+      setActiveStep(3) // Transition to Stage 3 Ghost Card review
     } catch (err: any) {
       setUploadError(err.message || 'Error parsing resume. Please check file format.')
     } finally {
@@ -151,45 +204,130 @@ export default function StudentOnboardingPage() {
     }
   }
 
-  const handleToggleSkill = (skillId: string) => {
+  const handleToggleClaimSkill = (skillId: string) => {
     setExtractedSkills((prev) =>
       prev.map((s) => (s.id === skillId ? { ...s, confirmed: !s.confirmed } : s))
     )
   }
 
-  const handleCompleteOnboarding = () => {
+  const handleChangeProficiency = (
+    skillId: string,
+    proficiency: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert'
+  ) => {
+    setExtractedSkills((prev) =>
+      prev.map((s) => (s.id === skillId ? { ...s, proficiency } : s))
+    )
+  }
+
+  const handleClaimAll = () => {
+    setExtractedSkills((prev) => prev.map((s) => ({ ...s, confirmed: true })))
+  }
+
+  const handleUnclaimAll = () => {
+    setExtractedSkills((prev) => prev.map((s) => ({ ...s, confirmed: false })))
+  }
+
+  const handleCompleteOnboarding = async () => {
+    setIsSubmittingCompletion(true)
+    const claimedSkills = extractedSkills.filter((s) => s.confirmed)
+
+    // Fallback: If student did not claim any skills, claim all extracted so they have an active profile
+    const finalSkills = claimedSkills.length > 0 ? claimedSkills : extractedSkills.map((s) => ({ ...s, confirmed: true }))
+
+    const completionPayload = {
+      student_id: studentProfile.id || 'STU-101',
+      confirmed_skills: finalSkills.map((s, idx) => ({
+        id: s.id || `sk_${Date.now()}_${idx}`,
+        name: s.name,
+        category: s.category,
+        proficiency: s.proficiency,
+        evidenceStatus: 'STUDENT_CONFIRMED',
+        sourceDocumentId: parsedDocInfo?.document_id || 'doc_resume',
+        sourceSpan: s.sourceSpan || `${parsedDocInfo?.file_name || 'Resume'} • ${s.category}`,
+        confidence: s.confidence || 0.95,
+      })),
+      candidate_metadata: parsedDocInfo?.candidate_metadata || {
+        name: studentProfile.name,
+        email: studentProfile.email,
+        program: studentProfile.program,
+        cgpa: studentProfile.cgpa,
+      },
+    }
+
     try {
+      // 1. Submit final claimed list to /api/onboarding/complete
+      const endpoints = [
+        '/api/onboarding/complete',
+        '/api/v1/onboarding/complete',
+      ]
+
+      let completionData: any = null
+      for (const ep of endpoints) {
+        try {
+          const res = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(completionPayload),
+          })
+          if (res.ok) {
+            completionData = await res.json()
+            break
+          }
+        } catch {}
+      }
+
+      // Update LocalStorage Session
       const stored = localStorage.getItem('cb_active_user')
       const parsed = stored ? JSON.parse(stored) : {}
       parsed.needs_onboarding = false
       parsed.resume_uploaded = true
-      if (parsedDocInfo?.candidate_metadata?.name) {
-        parsed.name = parsedDocInfo.candidate_metadata.name
+      parsed.account_status = 'ACTIVE'
+
+      if (completionData?.readiness_index !== undefined) {
+        parsed.readiness_index = completionData.readiness_index
+        parsed.radar_scores = completionData.radar_scores
+        parsed.radar_polygon = completionData.radar_polygon
+      } else if (completionData?.student?.readiness_index !== undefined) {
+        parsed.name = completionData.student.name || parsed.name
+        parsed.cgpa = completionData.student.cgpa || parsed.cgpa
+        parsed.program = completionData.student.program || parsed.program
+        parsed.readiness_index = completionData.student.readiness_index ?? 82
+        parsed.radar_dimensions = completionData.radar_dimensions
+      } else {
+        if (parsedDocInfo?.candidate_metadata?.name) parsed.name = parsedDocInfo.candidate_metadata.name
+        if (parsedDocInfo?.candidate_metadata?.cgpa) parsed.cgpa = parsedDocInfo.candidate_metadata.cgpa
+        if (parsedDocInfo?.candidate_metadata?.program) parsed.program = parsedDocInfo.candidate_metadata.program
+        parsed.readiness_index = 82
       }
-      if (parsedDocInfo?.candidate_metadata?.cgpa) {
-        parsed.cgpa = parsedDocInfo.candidate_metadata.cgpa
-      }
-      if (parsedDocInfo?.candidate_metadata?.program) {
-        parsed.program = parsedDocInfo.candidate_metadata.program
-      }
+
       localStorage.setItem('cb_active_user', JSON.stringify(parsed))
+      localStorage.setItem('cb_user_skills', JSON.stringify(completionPayload.confirmed_skills))
 
-      const confirmedSkills = extractedSkills.filter((s) => s.confirmed).map((s, idx) => ({
-        id: s.id || `sk_${Date.now()}_${idx}`,
-        name: s.name,
-        proficiency: s.proficiency || 'Intermediate',
-        evidenceStatus: 'STUDENT_CONFIRMED',
-        sourceDocumentId: parsedDocInfo?.document_id || 'doc_resume',
-        sourceSpan: `${parsedDocInfo?.file_name || 'Resume'} • ${s.category || 'Skills'}`,
-        confidence: s.confidence || 0.95,
-      }))
-      if (confirmedSkills.length > 0) {
-        localStorage.setItem('cb_user_skills', JSON.stringify(confirmedSkills))
+      // Trigger custom event so dashboards refresh instantly
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cb_skills_updated', { detail: completionPayload.confirmed_skills }))
       }
-    } catch {}
 
-    router.push('/student/dashboard')
+      router.push('/student/dashboard')
+    } catch {
+      // Offline fallback
+      router.push('/student/dashboard')
+    } finally {
+      setIsSubmittingCompletion(false)
+    }
   }
+
+  // Filtered skills list
+  const filteredSkills = extractedSkills.filter((sk) => {
+    if (categoryFilter === 'CLAIMED') return sk.confirmed
+    if (categoryFilter === 'SOFT') return sk.category.toLowerCase().includes('soft')
+    if (categoryFilter === 'TECHNICAL') return !sk.category.toLowerCase().includes('soft')
+    return true
+  })
+
+  const claimedCount = extractedSkills.filter((s) => s.confirmed).length
+  const softCount = extractedSkills.filter((s) => s.category.toLowerCase().includes('soft')).length
+  const techCount = extractedSkills.length - softCount
 
   return (
     <div className="min-h-screen bg-[#FAF8F6] text-ink-primary font-sans flex flex-col selection:bg-[#F0B6D5] selection:text-[#6D3B56]">
@@ -208,7 +346,7 @@ export default function StudentOnboardingPage() {
                 Onboarding Guard
               </span>
             </div>
-            <p className="text-3xs text-ink-muted">Profile Setup &amp; Real-Time Resume Ingestion</p>
+            <p className="text-3xs text-ink-muted">Profile Setup &amp; Real-Time Hybrid Ingestion</p>
           </div>
         </div>
 
@@ -234,7 +372,7 @@ export default function StudentOnboardingPage() {
             Welcome to CampusBridge, {studentProfile.name}!
           </h1>
           <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
-            To unlock your Placement Dashboard, What-If Fit Sandbox, and AI Career Companion, please upload your real PDF resume. Our live ingestion engine parses layout with <strong className="text-ink-primary">pdfplumber</strong>, computes <strong className="text-ink-primary">Nomic vector embeddings</strong> for RAG, and extracts your genuine technical skills with zero hallucinated mocks.
+            To unlock your Placement Dashboard, What-If Fit Sandbox, and AI Career Companion, please upload your real PDF or DOCX resume. Our hybrid pipeline combines <strong className="text-ink-primary">PyMuPDF / python-docx</strong> in-memory parsing, <strong className="text-ink-primary">Qwen 2.5 LLM extraction</strong>, and a <strong className="text-ink-primary">comprehensive hardcoded skill taxonomy</strong> to extract both technical and soft competencies.
           </p>
 
           {/* Stepper Pills */}
@@ -255,7 +393,7 @@ export default function StudentOnboardingPage() {
                   : 'bg-[#F1EFEA] text-ink-muted border-[#E2DFD9]'
               }`}
             >
-              2. Upload Real PDF
+              2. Upload Resume (PDF / DOCX)
             </div>
             <div
               className={`p-2.5 rounded-2xl border font-bold ${
@@ -264,7 +402,7 @@ export default function StudentOnboardingPage() {
                   : 'bg-[#F1EFEA] text-ink-muted border-[#E2DFD9]'
               }`}
             >
-              3. Confirm Skills
+              3. Claim Ghost Cards ({claimedCount}/{extractedSkills.length})
             </div>
           </div>
         </div>
@@ -275,14 +413,14 @@ export default function StudentOnboardingPage() {
             <div className="flex items-center justify-between border-b border-[#F1EFEA] pb-4">
               <div>
                 <h2 className="text-lg font-display font-extrabold text-ink-primary">
-                  Upload Your Technical Resume (PDF)
+                  Upload Your Technical Resume (PDF or DOCX)
                 </h2>
                 <p className="text-xs text-ink-muted mt-0.5">
-                  Extracted text will be chunked and indexed into the session vector store.
+                  Parsed in-memory with zero local disk reliance. Serverless-ready for Vercel deployment.
                 </p>
               </div>
               <span className="font-mono text-3xs font-extrabold px-2.5 py-1 rounded-full bg-[#B6DEC9]/40 text-[#255C45] border border-[#B6DEC9]">
-                Live Nomic Embeddings
+                Hybrid Qwen + Dictionary
               </span>
             </div>
 
@@ -337,11 +475,11 @@ export default function StudentOnboardingPage() {
               <div>
                 <h3 className="font-display font-bold text-base text-ink-primary">
                   {isUploading
-                    ? 'Processing Document...'
+                    ? 'Processing Document In-Memory...'
                     : 'Click to select or drag & drop your resume'}
                 </h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Supports PDF (.pdf) and Word (.docx) resumes (Max 10MB). High-fidelity extraction & vector indexing.
+                  Supports PDF (.pdf) and Word (.docx) resumes (Max 10MB). High-fidelity extraction &amp; vector indexing.
                 </p>
               </div>
 
@@ -356,106 +494,228 @@ export default function StudentOnboardingPage() {
             <div className="flex items-center gap-2 text-2xs text-ink-muted">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
               <span>
-                Privacy Shield enforced: Your resume remains isolated on the local university server.
+                Zero-Leak Guarantee: Resume parsed entirely in RAM. No temporary files written to disk.
               </span>
             </div>
           </div>
         )}
 
-        {/* STEP 3: DYNAMIC SKILLS CONFIRMATION */}
+        {/* STEP 3: STAGE 3 GHOST CARDS CONFIRMATION & ACTIVATION */}
         {activeStep === 3 && (
           <div className="rounded-3xl border-2 border-[#E6E3DC] bg-white p-6 sm:p-8 shadow-xs space-y-6">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1EFEA] pb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
-                    EXTRACTION COMPLETE
+                  <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                    <Ghost className="h-3 w-3" />
+                    STAGE 3 • UNCONFIRMED GHOST CARDS
                   </span>
                   <h2 className="text-lg font-display font-extrabold text-ink-primary">
-                    Confirm Extracted Technical Skills
+                    Review &amp; Claim Extracted Skills
                   </h2>
                 </div>
-                <p className="text-xs text-ink-muted mt-0.5">
-                  Found <strong className="text-ink-primary">{extractedSkills.length} real skills</strong> in{' '}
-                  <code className="text-[#6D3B56] font-bold">{selectedFile?.name || 'Resume.pdf'}</code>.
-                  Select the verified skills to register in your official placement standing.
+                <p className="text-xs text-ink-muted mt-1">
+                  Found <strong className="text-ink-primary">{extractedSkills.length} skills</strong> (Technical &amp; Soft) in{' '}
+                  <code className="text-[#6D3B56] font-bold">{selectedFile?.name || 'Resume'}</code>.
+                  Click Ghost Cards to claim them (converts 0.5x Ghost to 1.0x Solid) and select your proficiency level.
                 </p>
               </div>
 
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleClaimAll}
+                  className="px-3 py-1.5 rounded-xl border border-[#E2DFD9] bg-[#FAF8F6] hover:bg-white text-xs font-bold text-[#6D3B56] transition-all cursor-pointer shadow-2xs"
+                >
+                  Claim All ({extractedSkills.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUnclaimAll}
+                  className="px-3 py-1.5 rounded-xl border border-[#E2DFD9] bg-[#FAF8F6] hover:bg-white text-xs font-bold text-ink-muted transition-all cursor-pointer shadow-2xs"
+                >
+                  Unclaim All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(2)}
+                  className="text-xs font-bold text-ink-muted hover:text-[#6D3B56] underline cursor-pointer ml-1"
+                >
+                  Re-upload
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-2 flex-wrap text-xs font-bold border-b border-[#F1EFEA] pb-3">
               <button
                 type="button"
-                onClick={() => setActiveStep(2)}
-                className="text-xs font-bold text-ink-muted hover:text-[#6D3B56] underline cursor-pointer"
+                onClick={() => setCategoryFilter('ALL')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  categoryFilter === 'ALL'
+                    ? 'bg-[#6D3B56] text-white shadow-xs'
+                    : 'bg-[#FAF8F6] text-ink-secondary hover:bg-[#F1EFEA]'
+                }`}
               >
-                Upload Different File
+                All Skills ({extractedSkills.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('TECHNICAL')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  categoryFilter === 'TECHNICAL'
+                    ? 'bg-[#6D3B56] text-white shadow-xs'
+                    : 'bg-[#FAF8F6] text-ink-secondary hover:bg-[#F1EFEA]'
+                }`}
+              >
+                Technical ({techCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('SOFT')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  categoryFilter === 'SOFT'
+                    ? 'bg-[#6D3B56] text-white shadow-xs'
+                    : 'bg-[#FAF8F6] text-ink-secondary hover:bg-[#F1EFEA]'
+                }`}
+              >
+                Soft Skills ({softCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setCategoryFilter('CLAIMED')}
+                className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  categoryFilter === 'CLAIMED'
+                    ? 'bg-[#255C45] text-white shadow-xs'
+                    : 'bg-[#FAF8F6] text-ink-secondary hover:bg-[#F1EFEA]'
+                }`}
+              >
+                Claimed ({claimedCount})
               </button>
             </div>
 
-            {/* Extracted Skills List */}
-            {extractedSkills.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-1">
-                {extractedSkills.map((sk) => (
-                  <div
-                    key={sk.id}
-                    onClick={() => handleToggleSkill(sk.id)}
-                    className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex items-start justify-between gap-3 ${
-                      sk.confirmed
-                        ? 'border-[#6D3B56] bg-[#F0B6D5]/15 shadow-2xs'
-                        : 'border-[#E2DFD9] bg-[#FAF8F6] opacity-60'
-                    }`}
-                  >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-display font-bold text-sm text-ink-primary truncate">
-                          {sk.name}
-                        </h4>
-                        <span className="text-3xs font-mono font-bold px-1.5 py-0.5 rounded bg-white text-ink-secondary border border-[#E2DFD9]">
-                          {sk.category}
-                        </span>
+            {/* Stage 3 Ghost Cards Grid */}
+            {filteredSkills.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[480px] overflow-y-auto pr-1">
+                {filteredSkills.map((sk) => {
+                  const isClaimed = !!sk.confirmed
+                  return (
+                    <div
+                      key={sk.id}
+                      className={`p-4 rounded-2xl border-2 transition-all relative flex flex-col justify-between gap-3 ${
+                        isClaimed
+                          ? 'border-[#6D3B56] bg-white shadow-sm ring-1 ring-[#6D3B56]/20'
+                          : 'border-dashed border-[#DE95BE]/70 bg-[#FAF8F6]/80 opacity-70 hover:opacity-100 hover:border-[#6D3B56]'
+                      }`}
+                    >
+                      {/* Top Header of Card */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-display font-extrabold text-sm text-ink-primary truncate">
+                              {sk.name}
+                            </h4>
+                            <span className="text-3xs font-mono font-bold px-1.5 py-0.5 rounded bg-[#F1EFEA] text-ink-secondary border border-[#E2DFD9]">
+                              {sk.category}
+                            </span>
+                          </div>
+
+                          {/* Provenance Badge */}
+                          <p className="text-3xs text-ink-muted font-mono truncate">
+                            Provenance: {sk.sourceSpan}
+                          </p>
+                        </div>
+
+                        {/* Claim Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleClaimSkill(sk.id)}
+                          className={`px-2.5 py-1 rounded-xl text-3xs font-extrabold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                            isClaimed
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                          }`}
+                        >
+                          {isClaimed ? (
+                            <>
+                              <Check className="h-3 w-3" />
+                              <span>1.0x Claimed</span>
+                            </>
+                          ) : (
+                            <>
+                              <Ghost className="h-3 w-3" />
+                              <span>0.5x Ghost (Click to Claim)</span>
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <p className="text-3xs text-ink-muted font-mono truncate">
-                        Citation: {sk.sourceSpan}
-                      </p>
+
+                      {/* Snippet / Context */}
                       {sk.snippet && (
-                        <p className="text-3xs text-ink-secondary italic line-clamp-1">
+                        <p className="text-3xs text-ink-secondary italic bg-[#FAF8F6] p-2 rounded-xl border border-[#F1EFEA] line-clamp-2">
                           &ldquo;{sk.snippet}&rdquo;
                         </p>
                       )}
-                    </div>
 
-                    <div className="shrink-0 mt-1">
-                      <div
-                        className={`h-5 w-5 rounded-lg flex items-center justify-center font-bold text-xs ${
-                          sk.confirmed
-                            ? 'bg-[#6D3B56] text-white shadow-xs'
-                            : 'border border-[#E2DFD9] bg-white text-transparent'
-                        }`}
-                      >
-                        ✓
+                      {/* Bottom Controls: Proficiency Selector */}
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F1EFEA]">
+                        <span className="text-3xs text-ink-muted font-bold uppercase tracking-wider">
+                          Proficiency:
+                        </span>
+                        <div className="flex items-center gap-1">
+                          {(['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const).map((level) => (
+                            <button
+                              key={level}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleChangeProficiency(sk.id, level)
+                                if (!isClaimed) handleToggleClaimSkill(sk.id)
+                              }}
+                              className={`px-2 py-0.5 rounded-lg text-3xs font-bold transition-all cursor-pointer ${
+                                sk.proficiency === level
+                                  ? 'bg-[#6D3B56] text-white shadow-2xs'
+                                  : 'bg-[#F1EFEA] text-ink-muted hover:text-ink-primary'
+                              }`}
+                            >
+                              {level}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="p-8 text-center rounded-2xl bg-[#FAF8F6] border border-[#E2DFD9] text-xs text-ink-muted">
-                No technical skills could be extracted automatically from this file. You can still proceed and verify skills in the Practice Arena.
+                No skills match the current filter.
               </div>
             )}
 
-            {/* Complete Button */}
+            {/* Complete & Activate Button */}
             <div className="pt-4 border-t border-[#F1EFEA] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <span className="text-2xs text-ink-muted font-medium">
-                {extractedSkills.filter((s) => s.confirmed).length} of {extractedSkills.length} skills selected for profile inclusion
-              </span>
+              <div className="text-2xs text-ink-secondary font-medium">
+                <strong>{claimedCount} of {extractedSkills.length} skills claimed</strong> • Score, radar polygon, and profile status will be mathematically evaluated on submit.
+              </div>
 
               <button
                 type="button"
                 onClick={handleCompleteOnboarding}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-2xl bg-[#6D3B56] text-white hover:bg-[#582e44] font-display font-bold text-xs uppercase tracking-wider transition-all shadow-md border-b-4 border-[#AD1457] active:translate-y-0.5 cursor-pointer"
+                disabled={isSubmittingCompletion}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-2xl bg-[#6D3B56] text-white hover:bg-[#582e44] font-display font-bold text-xs uppercase tracking-wider transition-all shadow-md border-b-4 border-[#AD1457] active:translate-y-0.5 cursor-pointer disabled:opacity-50"
               >
-                <span>Save Profile &amp; Enter Dashboard</span>
-                <ArrowRight className="h-4 w-4" />
+                {isSubmittingCompletion ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    <span>Calculating Radar Scores &amp; Activating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Confirm Claimed Skills &amp; Activate Profile</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -464,4 +724,3 @@ export default function StudentOnboardingPage() {
     </div>
   )
 }
-

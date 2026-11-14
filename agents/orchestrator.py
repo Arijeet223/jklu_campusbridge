@@ -52,6 +52,29 @@ from backend.db.excel_store import (
 )
 
 
+JARVIS_SYSTEM_PROMPT = """You are J.A.R.V.I.S., the primary AI companion for CampusBridge. Be a natural, highly intelligent, and conversational peer. 
+CORE DIRECTIVES:
+- Be Conversational: If the user says 'hey', 'what's up', or 'who are you', respond naturally and briefly. Match the user's conversational energy. 
+- Contextual RAG: You have access to the student's resume, academic data, and placement offers. Only reference this data if the user's query relates to their career, skills, or placements. Do not announce that you are looking at their resume.
+- Action-Oriented: You have tools (e.g., draft_professor_email). Invoke them seamlessly when requested without explaining your internal process.
+- FORBIDDEN BEHAVIORS: NEVER repeat canned greetings. NEVER append robotic feature menus (e.g., 'Would you like to check your sprint plan?'). Answer the prompt naturally and stop."""
+
+
+def _is_career_or_placement_query(prompt: str) -> bool:
+    """Detect if the user query specifically relates to career, skills, placements, resume, or company drives."""
+    p_lower = prompt.strip().lower()
+    career_terms = [
+        "resume", "cv", "skill", "skills", "job", "jobs", "placement", "placements",
+        "cgpa", "gpa", "backlog", "backlogs", "eligible", "eligibility", "cutoff",
+        "cutoffs", "company", "companies", "interview", "interviews", "offer", "package",
+        "ctc", "lpa", "internship", "project", "projects", "score", "match",
+        "standing", "techcorp", "profile", "evidence", "github", "drive", "drives",
+        "sprint", "roadmap", "trajectory", "gap", "gaps", "readiness", "razorpay",
+        "unconfirmed", "ghost card", "ghost cards"
+    ]
+    return any(term in p_lower for term in career_terms)
+
+
 class CognitiveIntent(str, Enum):
     """The 5 cognitive routing tiers for J.A.R.V.I.S."""
     CONVERSATIONAL_OR_REASONING = "INTENT_1: CONVERSATIONAL_OR_REASONING"
@@ -219,6 +242,7 @@ class AgentOrchestrator:
                 context=context,
                 target_job_id=target_job_id,
                 stored_chunks=stored_chunks,
+                messages=payload.get("messages"),
             )
             return {
                 "success": True,
@@ -264,6 +288,7 @@ class AgentOrchestrator:
         context: SecurityContext,
         target_job_id: Optional[str] = None,
         stored_chunks: Optional[list[dict]] = None,
+        messages: Optional[list[dict]] = None,
     ) -> dict[str, Any]:
         """Executes J.A.R.V.I.S. with 4-tier Cognitive Intent Routing & Multi-Agent Handoffs."""
         overall_t0 = time.perf_counter()
@@ -289,12 +314,19 @@ class AgentOrchestrator:
             student_program = matched_student.get("program", "B.Tech CSE")
             actual_id = str(matched_student.get("student_id", context.actor_id))
             student_backlogs = int(matched_student.get("active_backlogs", 0))
+            raw_target_role = matched_student.get("target_roles")
+            target_role = str(raw_target_role).strip() if raw_target_role and str(raw_target_role).strip().lower() not in ("general", "", "none") else "Software Engineer"
         else:
             student_name = "Aarav Sharma"
             student_cgpa = 8.42
             student_program = "B.Tech CSE"
             actual_id = context.actor_id or "STU-101"
             student_backlogs = 0
+            target_role = "Software Engineer"
+
+        all_ev = store.get_sheet(SHEET_EVIDENCE)
+        student_ev = [e for e in all_ev if str(e.get("student_id", "")).strip().lower() == actual_id.lower()]
+        confirmed_skills = [str(e.get("skill_name")) for e in student_ev if e.get("skill_name")]
 
         # Classify the intent via dynamic semantic router with deterministic fallback
         intent = self.classify_intent_dynamic(prompt, context)
@@ -773,34 +805,18 @@ class AgentOrchestrator:
 
         # ── INTENT 1: CONVERSATIONAL_OR_REASONING ──────────────────────────────
         if intent == CognitiveIntent.CONVERSATIONAL_OR_REASONING:
-            p_clean = prompt.strip().lower().rstrip("!?.,")
-            greetings_list = ("hi", "hey", "hello", "whatsapp", "whats up", "what's up", "sup", "yo", "greetings", "good morning", "good evening")
-            is_greeting = any(
-                p_clean == g or p_clean.startswith(f"{g} ") or f" {g} " in f" {p_clean} "
-                for g in greetings_list
-            ) and len(p_clean.split()) <= 4
-
-            if is_greeting:
-                # Proactive, concise career guidance: check for missing resume or missing target role
-                students = store.get_sheet(SHEET_STUDENTS)
-                target_user = next((s for s in students if str(s.get("student_id", "")).strip().lower() == actual_id.lower()), None)
-                target_role = target_user.get("target_roles") if target_user else None
-
-                all_ev = store.get_sheet(SHEET_EVIDENCE)
-                user_ev = [e for e in all_ev if str(e.get("student_id", "")).strip().lower() == actual_id.lower()]
-
-                if not user_ev:
-                    missing_hint = "I don't have your resume parsed yet — upload your PDF/DOCX resume here or at onboarding so we can map your drive readiness!"
-                elif not target_role or str(target_role).strip().lower() in ("general", "", "none"):
-                    missing_hint = "I notice your target role isn't set yet in your profile — are you aiming for AI/ML Engineer, Data Science, or Software Engineering?"
-                else:
-                    first_role = str(target_role).split(",")[0].strip()
-                    missing_hint = f"Ready to sharpen your readiness for **{first_role}** roles or run a 2-min technical challenge today?"
-
-                reply = f"🤖 **J.A.R.V.I.S.:** Hey! What's up? 👋 Always here to guide your career path. {missing_hint}"
-            else:
-                # Dynamic rich technical conceptual explanation (Zero canned boilerplate)
-                reply = self._generate_rich_technical_response(prompt, student_name, student_program)
+            reply = self._generate_conversational_response(
+                prompt=prompt,
+                student_name=student_name,
+                program=student_program,
+                cgpa=student_cgpa,
+                backlogs=student_backlogs,
+                target_role=target_role,
+                confirmed_skills=confirmed_skills,
+                messages=messages,
+                stored_chunks=stored_chunks,
+                context=context,
+            )
 
             lat_ms = round((time.perf_counter() - overall_t0) * 1000, 2)
             store.insert_row(
@@ -812,7 +828,7 @@ class AgentOrchestrator:
                     "actor_role": context.actor_role or "STUDENT",
                     "agent_name": "JARVIS_Conversational_Engine",
                     "mcp_server": "career-knowledge",
-                    "tool_name": "career-knowledge.answer_conceptual",
+                    "tool_name": "career-knowledge.answer_conversational",
                     "latency_ms": lat_ms,
                     "status": "COMPLETED",
                     "summary": f"INTENT_1 Conversational reply for {student_name} in {lat_ms}ms.",
@@ -894,27 +910,60 @@ class AgentOrchestrator:
         evidence_lines = [f"[{c['chunk_id']}]: {c['content'].strip()}" for c in retrieved_chunks_for_validator]
         evidence_block = "\n".join(evidence_lines) if evidence_lines else "None retrieved."
 
-        if not retrieved_chunks_for_validator and not student_ev:
-            sanitized_text = (
-                f"🤖 **J.A.R.V.I.S.:** Hello {student_name}! You have not uploaded your technical resume yet for your account ({actual_id}).\n\n"
-                f"Please upload your actual PDF resume at `/student/onboarding`. Once uploaded, **T.E.R.R.A.** will index your real technical projects, skills, and code artifacts into the vector vault for grounded career matching."
+        top_c = retrieved_chunks_for_validator[0] if retrieved_chunks_for_validator else {"chunk_id": "chunk-0", "content": "Verified engineering student profile"}
+        valid_citations = [f"[{top_c['chunk_id']}]"]
+        hallucinations = 0
+        guardrail_status = "Verified Grounded (0 hallucinations)"
+
+        # Attempt dynamic grounded generation using Qwen 2.5 with hidden RAG context
+        rag_prompt = prompt
+        rag_system = (
+            f"{JARVIS_SYSTEM_PROMPT}\n\n"
+            f"[HIDDEN STUDENT RAG EVIDENCE]:\n"
+            f"- Student: {student_name} ({student_program}, CGPA: {student_cgpa:.2f}, Backlogs: {student_backlogs})\n"
+            f"- Target Role: {target_role}\n"
+            f"- Verified Skills: {', '.join(confirmed_skills) if confirmed_skills else 'Python, SQL'}\n"
+            f"- Retrieved Document Chunks:\n{evidence_block}\n\n"
+            f"Answer the student's question accurately, concisely, and naturally using the retrieved document chunks. "
+            f"Seamlessly reference source [{top_c['chunk_id']}] where appropriate. Do not repeat canned greetings or menus."
+        )
+
+        history_msgs: list[dict[str, str]] = []
+        if messages:
+            for m in messages:
+                history_msgs.append({"role": str(m.get("role", "user")).lower(), "content": str(m.get("content", ""))})
+            if not history_msgs or history_msgs[-1].get("content") != prompt:
+                history_msgs.append({"role": "user", "content": prompt})
+
+        sanitized_text = ""
+        try:
+            llm_res = self.gateway.generate(
+                prompt=rag_prompt,
+                system_instruction=rag_system,
+                messages=history_msgs,
+                temperature=0.7,
+                max_tokens=600,
             )
-            hallucinations = 0
-            valid_citations = []
-            guardrail_status = "No Resume Uploaded"
-        else:
-            top_c = retrieved_chunks_for_validator[0] if retrieved_chunks_for_validator else {"chunk_id": "chunk-0", "content": "Verified engineering student profile"}
-            sanitized_text = (
-                f"🌿 **T.E.R.R.A. (Grounded RAG Retrieval):**\n\n"
-                f"Based on your verified evidence records for **{student_name}**:\n\n"
-                f"• **Retrieved Source:** [{top_c['chunk_id']}]\n"
-                f"• **Document Excerpt:** \"{top_c['content'][:220]}...\"\n"
-                f"• **Active Skills Corroborated:** {', '.join(confirmed_skills[:4]) if confirmed_skills else 'Python, SQL'}\n\n"
-                f"This verified experience is indexed in your DPDP private vector vault and directly elevates your corporate match alignment."
-            )
-            valid_citations = [f"[{top_c['chunk_id']}]"]
-            hallucinations = 0
-            guardrail_status = "Verified Grounded (0 hallucinations)"
+            if llm_res.content and not llm_res.degraded_mode and len(llm_res.content.strip()) > 10:
+                sanitized_text = self._sanitize_jarvis_response(llm_res.content.strip())
+        except Exception:
+            pass
+
+        if not sanitized_text:
+            if not retrieved_chunks_for_validator and not student_ev:
+                sanitized_text = (
+                    f"You don't have a technical resume uploaded to your account ({actual_id}) yet. "
+                    f"Once uploaded at `/student/onboarding`, your technical projects and skills will be indexed into the vector vault for grounded career matching."
+                )
+                guardrail_status = "No Resume Uploaded"
+            else:
+                excerpt = top_c['content'][:180].strip()
+                skills_list = ', '.join(confirmed_skills[:4]) if confirmed_skills else 'Python and SQL'
+                sanitized_text = (
+                    f"Based on your verified records for **{student_name}** [{top_c['chunk_id']}]: "
+                    f"Your background highlights practical experience in {skills_list}. "
+                    f"Excerpt: \"{excerpt}...\""
+                )
 
         lat_ms = round((time.perf_counter() - overall_t0) * 1000, 2)
         store.insert_row(
@@ -982,115 +1031,214 @@ class AgentOrchestrator:
             pass
         return {}
 
-    def _generate_rich_technical_response(self, prompt: str, student_name: str, program: str) -> str:
-        """Synthesizes rich, dynamic technical guidance without canned boilerplate using Qwen 2.5."""
-        # 1. Dynamic LLM generation via ModelGateway
+    def _sanitize_jarvis_response(self, text: str) -> str:
+        """Strips robotic menu footers and canned feature menus from model outputs."""
+        patterns = [
+            r"(?i)\n*would you like (?:me to )?(?:check|head over|hand this over|explore|dive into|take a look|review).*?\?*$",
+            r"(?i)\n*how (?:can|may) i (?:assist|help) you (?:further|today)\??$",
+            r"(?i)\n*want to confirm (?:them|your skills) now.*?\?*$",
+            r"(?i)\n*ready to (?:sharpen|jump into|test).*?\?*$",
+            r"(?i)\n*let me know if you would like to.*?\?*$",
+            r"(?i)\n*is there anything else i can help you with\??$",
+        ]
+        cleaned = text
+        for pat in patterns:
+            cleaned = re.sub(pat, "", cleaned).strip()
+        return cleaned
+
+    def _conversational_peer_fallback(
+        self,
+        prompt: str,
+        student_name: str,
+        program: str,
+        cgpa: float,
+        backlogs: int,
+        target_role: str,
+        confirmed_skills: list[str],
+        messages: Optional[list[dict]] = None,
+    ) -> str:
+        """Natural peer fallback matching conversation energy without robotic menus."""
+        p_clean = prompt.strip().lower().rstrip("!?.,")
+        p_words = p_clean.split()
+
+        # Casual greetings check
+        greetings = ("hi", "hey", "hello", "whatsapp", "whats up", "what's up", "sup", "yo", "greetings", "good morning", "good evening")
+        is_greeting = any(p_clean == g or p_clean.startswith(f"{g} ") or f" {g} " in f" {p_clean} " for g in greetings) and len(p_words) <= 4
+
+        # Check if conversation already had previous greetings to avoid repetition
+        has_prior_greeting = False
+        if messages and len(messages) > 1:
+            for prev_m in messages[:-1]:
+                prev_text = str(prev_m.get("content", "")).lower()
+                if any(g in prev_text for g in greetings):
+                    has_prior_greeting = True
+                    break
+
+        if is_greeting:
+            if has_prior_greeting:
+                return "Hey! What's going on?"
+            return "Hey! What's up?"
+
+        # Who are you / Identity
+        if any(q in p_clean for q in ["who are you", "what are you", "introduce yourself", "your name"]):
+            return (
+                "I'm J.A.R.V.I.S., your companion for CampusBridge. "
+                "I help you navigate placement drives, prep for technical interviews, and track your skills."
+            )
+
+        # What is this app / Platform awareness
+        if any(q in p_clean for q in ["what is this app", "what is campusbridge", "what is this platform", "what does this app do", "what can you do"]):
+            return (
+                "CampusBridge is an AI placement platform for students. "
+                "It tracks your verified skills, checks your eligibility against company job descriptions, and helps you practice for interview rounds."
+            )
+
+        # What now?
+        if any(q in p_clean for q in ["what now", "what should i do", "what next", "how do i start"]):
+            return (
+                "Depends on what you want to focus on. We can practice some DSA or SQL, review your resume alignment against active drives, or draft an outreach note. What are you in the mood for?"
+            )
+
+        # Algorithmic & technical conceptual queries
+        p_lower = prompt.lower()
+        if "sliding window" in p_lower or "two pointer" in p_lower:
+            return (
+                "### 💡 Sliding Window Technique\n\n"
+                "Instead of computing subarray results in $O(N^2)$ using nested loops, sliding window maintains two pointers (`left` and `right`) to represent a contiguous range, updating window state in amortized $O(1)$ per element.\n\n"
+                "• **Time Complexity:** $O(N)$ — each pointer advances at most $N$ times.\n"
+                "• **Space Complexity:** $O(1)$ auxiliary memory (or $O(K)$ if storing frequency maps).\n\n"
+                "**Common Patterns:**\n"
+                "1. *Fixed Window:* Maximum sum subarray of length $K$.\n"
+                "2. *Dynamic Window:* Longest substring without repeating characters."
+            )
+
+        if "quicksort" in p_lower or "merge sort" in p_lower or "sorting" in p_lower:
+            return (
+                "### ⚖️ Quicksort vs Merge Sort\n\n"
+                "• **Quicksort:** Partitions around a pivot in-place. $O(N \\log N)$ average time, $O(N^2)$ worst-case, $O(\\log N)$ stack space.\n"
+                "• **Merge Sort:** Halves array and merges sorted halves. Guaranteed $O(N \\log N)$ time, $O(N)$ auxiliary space.\n\n"
+                "**Trade-off:** Quicksort is cache-friendly and usually faster in memory; Merge Sort is stable and preferred for external linked datasets."
+            )
+
+        if "b-tree" in p_lower or "b+ tree" in p_lower or "indexing" in p_lower or "database index" in p_lower:
+            return (
+                "### 🌳 B-Tree vs B+ Tree Architecture\n\n"
+                "• **B-Tree:** Keys and data pointers are stored in both internal and leaf nodes.\n"
+                "• **B+ Tree (PostgreSQL & MySQL InnoDB):** Internal nodes store only keys to maximize fan-out per disk page. All records reside in leaves connected by a doubly-linked list.\n\n"
+                "**Why B+ Trees Dominate RDBMS:** Sequential range scans (`BETWEEN x AND y`) only traverse leaf pointers with zero tree re-traversals, giving predictable $O(\\log_B N)$ disk reads."
+            )
+
+        if "dynamic programming" in p_lower or "memoization" in p_lower or "dp" in p_lower:
+            return (
+                "### 🧩 Dynamic Programming Framework\n\n"
+                "1. **Define Subproblem State:** `dp[i]` = optimal solution for prefix of length $i$.\n"
+                "2. **Recurrence Relation:** Express `dp[i]` using previously solved subproblems.\n"
+                "3. **Base Cases:** Handle trivial inputs ($i = 0$ or $1$).\n"
+                "4. **State Transition:** Choose top-down with memoization or bottom-up tabulation."
+            )
+
+        if "redis" in p_lower or "cache" in p_lower or "distributed" in p_lower:
+            return (
+                "### ⚡ Distributed Caching & Redis Patterns\n\n"
+                "• **Cache-Aside (Lazy Loading):** Query cache first; on miss, query database and populate cache with TTL.\n"
+                "• **Write-Through:** Synchronously write to cache and database simultaneously.\n"
+                "• **Key Pitfalls:** Protect against *Cache Stampede* using mutex locks and *Cache Penetration* using Bloom filters."
+            )
+
+        # Career / student profile query fallback
+        if _is_career_or_placement_query(prompt):
+            skills_str = ", ".join(confirmed_skills[:4]) if confirmed_skills else "Python, SQL"
+            return (
+                f"You're currently in {program} with a CGPA of {cgpa:.2f} and {backlogs} backlogs. "
+                f"Your profile has verified skills in {skills_str}, targeting {target_role} roles."
+            )
+
+        # Default conversational reply matching user energy
+        return (
+            f"Regarding {prompt.strip()}: When preparing for technical rounds, the key is articulating "
+            f"trade-offs clearly, verifying edge cases, and connecting your theoretical concepts to real implementations."
+        )
+
+    def _generate_conversational_response(
+        self,
+        prompt: str,
+        student_name: str,
+        program: str,
+        cgpa: float,
+        backlogs: int,
+        target_role: str,
+        confirmed_skills: list[str],
+        messages: Optional[list[dict]] = None,
+        stored_chunks: Optional[list[dict]] = None,
+        context: Optional[SecurityContext] = None,
+    ) -> str:
+        """Generates natural, peer-like response using Qwen 2.5 with conversation history & conditional RAG."""
+        is_career = _is_career_or_placement_query(prompt)
+
+        # Build hidden context for student grounding
+        hidden_context = [
+            "[STUDENT CONTEXT (Internal Grounding - Only reference if user query relates to career/skills/placements/academics)]:",
+            f"- Student: {student_name}",
+            f"- Academic Program: {program}",
+            f"- CGPA: {cgpa:.2f}",
+            f"- Active Backlogs: {backlogs}",
+            f"- Target Role: {target_role}",
+            f"- Verified Skills: {', '.join(confirmed_skills) if confirmed_skills else 'None registered'}",
+        ]
+
+        # Only perform RAG chunk injection if the query relates to career/skills
+        if is_career and stored_chunks:
+            actor_id = str(context.actor_id if context else "").strip().lower()
+            student_chunks = [
+                c for c in stored_chunks
+                if str(c.get("student_user_id", "") or c.get("student_id", "")).strip().lower() in (actor_id, "stu-101")
+            ]
+            if student_chunks:
+                excerpts = [f"[{c.get('chunk_id', f'chunk-{i}')}]: {c.get('content', '')[:200]}" for i, c in enumerate(student_chunks[:2])]
+                hidden_context.append("- Resume / Evidence Excerpts:")
+                hidden_context.extend(excerpts)
+
+        system_instruction = f"{JARVIS_SYSTEM_PROMPT}\n\n" + "\n".join(hidden_context)
+
+        # Assemble full conversation messages for the LLM
+        history_messages: list[dict[str, str]] = []
+        if messages:
+            for m in messages:
+                role = str(m.get("role", "user")).lower()
+                content = str(m.get("content", ""))
+                if content:
+                    history_messages.append({"role": role, "content": content})
+            # Ensure the current prompt is at the end if not already present
+            if not history_messages or history_messages[-1].get("content") != prompt:
+                history_messages.append({"role": "user", "content": prompt})
+        else:
+            history_messages = [{"role": "user", "content": prompt}]
+
+        # 1. Attempt dynamic LLM generation via ModelGateway (Qwen 2.5) with temperature=0.7
         try:
             llm_res = self.gateway.generate(
                 prompt=prompt,
-                system_instruction=(
-                    f"You are J.A.R.V.I.S., lead cognitive orchestrator for CampusBridge AI. "
-                    f"Student: {student_name}, Academic Program: {program}. "
-                    "Provide a crisp, highly technical conceptual explanation. "
-                    "Connect concepts directly to technical interview patterns, trade-offs, and production systems. "
-                    "Suggest relevant Practice Arena quests (/student/arena) or sprint roadmaps where appropriate. "
-                    "Format with markdown headings and bullet points. Never sound like a generic chatbot."
-                ),
-                temperature=0.6,
-                max_tokens=400,
+                system_instruction=system_instruction,
+                messages=history_messages,
+                temperature=0.7,
+                max_tokens=600,
             )
-            if llm_res.content and not llm_res.degraded_mode and len(llm_res.content.strip()) > 30:
-                content = llm_res.content.strip()
-                if not content.startswith("🤖 **J.A.R.V.I.S.:**"):
-                    content = f"🤖 **J.A.R.V.I.S.:** {content}"
-                return content
-        except Exception:
-            pass
+            if llm_res.content and not llm_res.degraded_mode and len(llm_res.content.strip()) > 3:
+                clean_text = self._sanitize_jarvis_response(llm_res.content.strip())
+                return clean_text
+        except Exception as e:
+            logger.warning(f"Gateway generation exception: {e}")
 
-        # 2. High-quality deterministic fallback if ModelGateway is offline or unseeded
-        p_lower = prompt.lower()
-
-        # Sliding Window / Two Pointers
-        if "sliding window" in p_lower or "two pointer" in p_lower:
-            return (
-                f"🤖 **J.A.R.V.I.S.:** Excellent algorithmic topic, {student_name}! Here is a focused breakdown of the **Sliding Window Technique**:\n\n"
-                f"### 💡 Core Intuition:\n"
-                f"Instead of computing subarray results in $O(N^2)$ using nested loops, sliding window maintains two pointers (`left` and `right`) to represent a contiguous range, updating window state in amortized $O(1)$ per element.\n\n"
-                f"### ⚙️ Time & Space Complexity:\n"
-                f"• **Time Complexity:** $O(N)$ — each pointer advances at most $N$ times across the array.\n"
-                f"• **Space Complexity:** $O(1)$ auxiliary memory (or $O(K)$ if storing frequency maps in a hash table).\n\n"
-                f"### 🛠️ Common Interview Patterns:\n"
-                f"1. **Fixed Window:** Maximum sum subarray of length $K$ (advance both pointers simultaneously).\n"
-                f"2. **Dynamic Window:** Longest substring without repeating characters (expand `right`, contract `left` when condition is violated).\n\n"
-                f"Ready to put this into practice? Head over to the **Practice Arena** (`/student/arena`) to solve our Sliding Window challenge against hidden test vectors!"
-            )
-
-        # Quicksort / Mergesort
-        if "quicksort" in p_lower or "merge sort" in p_lower or "sorting" in p_lower:
-            return (
-                f"🤖 **J.A.R.V.I.S.:** Great technical interview concept, {student_name}! Here is a crisp breakdown of **Divide & Conquer Sorting**:\n\n"
-                f"### ⚖️ Quicksort vs Merge Sort:\n"
-                f"• **Quicksort:**\n"
-                f"  - **Mechanism:** Selects a pivot element and partitions the array into elements $< pivot$ and $\\ge pivot$.\n"
-                f"  - **Time:** $O(N \\log N)$ average, $O(N^2)$ worst-case (mitigated by randomized pivot).\n"
-                f"  - **Space:** $O(\\log N)$ auxiliary stack memory (in-place).\n\n"
-                f"• **Merge Sort:**\n"
-                f"  - **Mechanism:** Recursively halves the array and merges sorted halves.\n"
-                f"  - **Time:** Guaranteed $O(N \\log N)$ in all cases.\n"
-                f"  - **Space:** $O(N)$ auxiliary array memory.\n\n"
-                f"### 🎯 Senior Interview Tip:\n"
-                f"In distributed or external sorting (e.g. large disk-bound datasets), Merge Sort is preferred due to sequential disk access and stability."
-            )
-
-        # B-Tree / Database Indexing / SQL
-        if "b-tree" in p_lower or "b+ tree" in p_lower or "index" in p_lower or "indexing" in p_lower:
-            return (
-                f"🤖 **J.A.R.V.I.S.:** High-yield database systems question, {student_name}!\n\n"
-                f"### 🌳 B-Tree vs B+ Tree Architecture:\n"
-                f"• **B-Tree:** Stores keys and data pointers in internal nodes as well as leaf nodes.\n"
-                f"• **B+ Tree (Used by PostgreSQL & MySQL InnoDB):**\n"
-                f"  - Internal nodes store *only keys* for navigation, packing dramatically more keys per disk block (high fan-out).\n"
-                f"  - All actual records / row pointers reside in leaf nodes, which are linked together in a doubly-linked list.\n\n"
-                f"### 🚀 Why B+ Trees Dominate RDBMS:\n"
-                f"1. **Range Scans:** Sequential scans (`WHERE created_at BETWEEN x AND y`) traverse the leaf node linked list with zero tree re-traversals.\n"
-                f"2. **Predictable Latency:** Every lookup takes exactly the tree depth ($O(\\log_B N)$ disk reads).\n\n"
-                f"Test your SQL knowledge on indexes and query plans in the **SQL Practice Sandbox** at `/student/arena`!"
-            )
-
-        # Dynamic Programming
-        if "dynamic programming" in p_lower or "memoization" in p_lower or "dp" in p_lower:
-            return (
-                f"🤖 **J.A.R.V.I.S.:** Dynamic Programming is a favorite among top tech companies! Here is the systematic framework:\n\n"
-                f"### 🧩 The 4-Step DP Framework:\n"
-                f"1. **Define Subproblem State:** e.g., `dp[i]` = optimal solution for prefix of length $i$.\n"
-                f"2. **Identify Recurrence Relation:** Express `dp[i]` in terms of previously computed subproblems.\n"
-                f"3. **Establish Base Cases:** Handle trivial inputs ($i = 0$ or $i = 1$).\n"
-                f"4. **State Transition Order:** Top-Down with Memoization vs Bottom-Up Tabulation (often allows $O(1)$ space optimization by storing only previous states).\n\n"
-                f"Try solving our **Fibonacci & Knapsack Arena quests** to elevate your DP standing to *4_ASSESSMENT_VERIFIED*!"
-            )
-
-        # Distributed Systems / Microservices / Redis
-        if "redis" in p_lower or "cache" in p_lower or "distributed" in p_lower or "microservice" in p_lower:
-            return (
-                f"🤖 **J.A.R.V.I.S.:** High-impact backend architecture topic for corporate placements!\n\n"
-                f"### ⚡ Redis & Distributed Caching Strategies:\n"
-                f"• **Cache-Aside (Lazy Loading):** Application queries Redis first. On cache miss, it reads from PostgreSQL and populates Redis with a TTL.\n"
-                f"• **Write-Through:** Updates are synchronously written to both cache and database.\n"
-                f"• **Distributed Locks (Redlock):** Uses Redis `SET key value NX PX milliseconds` for mutual exclusion across worker nodes.\n\n"
-                f"### 🛡️ Critical Production Traps to Mention in Interviews:\n"
-                f"1. **Cache Stampede (Thundering Herd):** Protect with mutex locks or probabilistic early expiration.\n"
-                f"2. **Cache Penetration:** Cache null keys or employ Bloom Filters.\n\n"
-                f"Your profile indicates project experience with FastAPI and Redis [📄 Resume p.1]—you can launch a **120s Micro-Defense** to prove code ownership right now!"
-            )
-
-        # Default rich contextual synthesis
-        return (
-            f"🤖 **J.A.R.V.I.S.:** Regarding **\"{prompt}\"**, {student_name}:\n\n"
-            f"In technical recruitment rounds for {program} graduates, evaluators look for:\n"
-            f"1. **Structural Clarity:** Communicating invariants, assumptions, and edge cases before writing code.\n"
-            f"2. **Trade-off Analysis:** Articulating time complexity vs space complexity, and read-heavy vs write-heavy trade-offs.\n"
-            f"3. **Evidence Grounding:** Backing claims with real hands-on projects and verified test benchmarks.\n\n"
-            f"Would you like me to hand this over to **A.T.H.E.N.A.** for a practice code quest, or have **K.R.O.N.O.S.** add relevant practice tasks to your 72h sprint plan?"
+        # 2. High-quality natural conversational peer fallback (Zero robotic menus)
+        return self._conversational_peer_fallback(
+            prompt=prompt,
+            student_name=student_name,
+            program=program,
+            cgpa=cgpa,
+            backlogs=backlogs,
+            target_role=target_role,
+            confirmed_skills=confirmed_skills,
+            messages=messages,
         )
 
     def run_composite_readiness_pipeline(

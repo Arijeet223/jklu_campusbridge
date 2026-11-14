@@ -14,6 +14,7 @@ interface GhostCardProps {
   onEdit?: () => void
   onReject?: () => void
   onClickSource?: () => void
+  onChangeProficiency?: (newProficiency: ProficiencyLevel) => void
 }
 
 export default function GhostCard({
@@ -26,6 +27,7 @@ export default function GhostCard({
   onConfirm,
   onReject,
   onClickSource,
+  onChangeProficiency,
 }: GhostCardProps) {
   const [localStatus, setLocalStatus] = useState<EvidenceStatus>(evidenceStatus)
   const [isRejected, setIsRejected] = useState(false)
@@ -72,10 +74,29 @@ export default function GhostCard({
               {isGhost ? '0.5x Ghost' : '1.0x Solid'}
             </span>
           </div>
-          <p className="text-xs text-on-surface-variant font-medium truncate">
-            Proficiency: <strong className="text-on-surface">{proficiency}</strong> • Match Confidence:{' '}
-            {Math.round(confidence * 100)}%
-          </p>
+          <div className="flex items-center gap-2 mt-1 text-xs text-on-surface-variant font-medium flex-wrap">
+            <span className="text-outline">Proficiency:</span>
+            {onChangeProficiency ? (
+              <select
+                aria-label={`Select proficiency for ${skillName}`}
+                value={proficiency}
+                onChange={(e) => onChangeProficiency(e.target.value as ProficiencyLevel)}
+                className={`text-xs font-bold rounded-lg px-2 py-0.5 border cursor-pointer transition-colors ${
+                  proficiency === 'Advanced' || proficiency === 'Expert'
+                    ? 'bg-tertiary-container text-on-tertiary-container border-tertiary-fixed-dim'
+                    : 'bg-surface-container-high text-on-surface border-outline-variant'
+                }`}
+              >
+                <option value="Beginner">Beginner (55%)</option>
+                <option value="Intermediate">Intermediate (72%)</option>
+                <option value="Advanced">Advanced (88% - High)</option>
+                <option value="Expert">Expert (96% - High)</option>
+              </select>
+            ) : (
+              <strong className="text-on-surface">{proficiency}</strong>
+            )}
+            <span className="text-outline">• Match Confidence: {Math.round(confidence * 100)}%</span>
+          </div>
         </div>
 
         <button

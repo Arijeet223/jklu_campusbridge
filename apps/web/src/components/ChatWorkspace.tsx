@@ -426,7 +426,7 @@ export default function ChatWorkspace({
     id: 'msg-welcome',
     sender: 'assistant',
     agentName: '🤖 J.A.R.V.I.S.',
-    text: `Hey ${name || 'there'}! 👋 I'm J.A.R.V.I.S., your placement co-pilot alongside T.E.R.R.A. and R.O.N.E.N. I've mapped your TechCorp readiness and 72-hour sprint milestones. What would you like to dive into?`,
+    text: `Hey ${name || 'there'}! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?`,
     timestamp: formatAppTime(new Date()),
     widgetType: 'none',
     trace: defaultTrace1,
@@ -1181,28 +1181,37 @@ export default function ChatWorkspace({
     // Grounded Fallback: crisp 1-3 conversational sentences matching LiveKit voice agent persona
     let fallbackReply = ''
     if (lower.match(/^(hey|hi|hello|whatsapp|what's up|yo)\b/i) && !lower.includes('plan') && !lower.includes('skill') && !lower.includes('eligible')) {
-      fallbackReply = `Hey! What's up? 👋 Always here to guide your career path. What would you like to tackle today — prep for your drives, review your skills, or check your 72h sprint plan?`
+      fallbackReply = `Hey! What's up?`
+      widget = 'none'
+    } else if (lower.includes('who are you') || lower.includes('what are you') || lower.includes('your name')) {
+      fallbackReply = `I'm J.A.R.V.I.S., your companion for CampusBridge. I help you navigate placement drives, prep for technical interviews, and track your skills.`
+      widget = 'none'
+    } else if (lower.includes('what is this app') || lower.includes('what is campusbridge')) {
+      fallbackReply = `CampusBridge is an AI placement platform for students. It tracks your verified skills, checks your eligibility against company job descriptions, and helps you practice for interview rounds.`
+      widget = 'none'
+    } else if (lower.includes('what now') || lower.includes('what should i do')) {
+      fallbackReply = `Depends on what you want to focus on. We can practice some DSA or SQL, review your resume alignment against active drives, or draft an outreach note. What are you in the mood for?`
       widget = 'none'
     } else if (widget === 'match_card' || lower.includes('fit') || lower.includes('match') || lower.includes('techcorp') || lower.includes('razorpay') || lower.includes('eligible')) {
-      fallbackReply = `🛡️ **R.O.N.E.N. Policy Check:** Good news! With your academic standing and zero backlogs, all hard institutional cutoff gates for TechCorp India are cleared (**MEETS**). Take a look at the live match breakdown below to see how a quick skill defense bumps your fit score to 88+!`
+      fallbackReply = `🛡️ **R.O.N.E.N. Policy Check:** With your academic standing and zero backlogs, all hard institutional cutoff gates for TechCorp India are cleared (**MEETS**). Your profile is eligible for technical rounds.`
       widget = 'match_card'
     } else if (widget === 'micro_defense' || lower.includes('defense') || lower.includes('interview')) {
-      fallbackReply = `⚡ **A.T.H.E.N.A. Micro-Defense Ready:** Technical challenge loaded. Answer 3 targeted questions within 120 seconds below to prove code ownership and upgrade your verified recruiter badge!`
+      fallbackReply = `⚡ **A.T.H.E.N.A. Micro-Defense:** Technical challenge loaded. Answer 3 targeted questions within 120 seconds below to prove code ownership and upgrade your verified badge.`
       widget = 'micro_defense'
     } else if (widget === 'ghost_cards' || lower.includes('skill') || lower.includes('check') || lower.includes('detect')) {
-      fallbackReply = `🌿 **T.E.R.R.A. Evidence Audit:** I inspected your resume and extracted your technical skills and project entities. Review your unconfirmed Ghost Cards below and click confirm to make them visible to approved recruiters under DPDP privacy protection!`
+      fallbackReply = `🌿 **T.E.R.R.A. Evidence Audit:** I inspected your resume and extracted your technical skills. Review your unconfirmed Ghost Cards below and click confirm to make them visible to recruiters.`
       widget = 'ghost_cards'
     } else if (widget === 'resume_preview' || lower.includes('resume') || lower.includes('cv')) {
       fallbackReply = `🌿 **T.E.R.R.A. Institutional Resume Preview:** I've rendered your verified Word-style document sheet below. You can inspect all verified competencies, click through to your GitHub repositories, or expand the full preview sheet.`
       widget = 'resume_preview'
     } else if (widget === 'sprint_plan' || lower.includes('sprint') || lower.includes('prep') || lower.includes('72h')) {
-      fallbackReply = `⏱️ **K.R.O.N.O.S. 72-Hour Sprint:** You've got 3 high-impact milestones before Friday's placement drive: a 15-min SQL challenge, pushing your project artifact, and a 2-min micro-defense. Here is your targeted sprint roadmap below!`
+      fallbackReply = `⏱️ **K.R.O.N.O.S. 72-Hour Sprint:** Here is your targeted sprint roadmap below for upcoming placement drives.`
       widget = 'sprint_plan'
     } else if (widget === 'applications_tracker' || lower.includes('application') || lower.includes('drive')) {
-      fallbackReply = `📊 **Active Placement Pipeline:** You have active company workflows right now—TechCorp India is shortlisted for interview, and Razorpay eligibility is confirmed (**MEETS**). Check your live milestone tracker below!`
+      fallbackReply = `📊 **Active Placement Pipeline:** TechCorp India is shortlisted for interview, and Razorpay eligibility is confirmed (**MEETS**). Live milestone tracker rendered below.`
       widget = 'applications_tracker'
     } else {
-      fallbackReply = `I'm tracking your placement readiness with zero active backlogs. Would you like to review your 72-hour sprint plan, check your TechCorp eligibility, or verify your detected skills?`
+      fallbackReply = `Regarding ${text.trim()}: The key for technical rounds is articulating trade-offs clearly, verifying edge cases, and connecting theoretical concepts to real implementations.`
     }
 
     const fallbackTrace: AITrace = {

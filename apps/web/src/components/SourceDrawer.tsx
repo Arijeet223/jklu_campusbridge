@@ -80,20 +80,24 @@ export default function SourceDrawer({
               {/* Full text with highlighted span */}
               <div className="max-w-prose text-body leading-relaxed text-ink-primary">
                 {sourceDocument.fullText ? (
-                  <p>
-                    {sourceDocument.fullText.split(sourceDocument.highlightedText).map(
-                      (part, i, arr) => (
-                        <span key={i}>
-                          {part}
-                          {i < arr.length - 1 && (
-                            <mark className="rounded bg-yellow-100 px-0.5 py-0.5 text-ink-primary">
-                              {sourceDocument.highlightedText}
-                            </mark>
-                          )}
-                        </span>
-                      ),
+                  <div className="whitespace-pre-wrap font-sans text-xs p-4 bg-surface-container-low rounded-2xl border border-outline-variant/60 leading-relaxed max-h-[68vh] overflow-y-auto shadow-inner">
+                    {sourceDocument.highlightedText ? (
+                      sourceDocument.fullText.split(sourceDocument.highlightedText).map(
+                        (part, i, arr) => (
+                          <span key={i}>
+                            {part}
+                            {i < arr.length - 1 && (
+                              <mark className="rounded bg-yellow-200 text-on-surface px-1 py-0.5 font-bold shadow-xs">
+                                {sourceDocument.highlightedText}
+                              </mark>
+                            )}
+                          </span>
+                        ),
+                      )
+                    ) : (
+                      <span>{sourceDocument.fullText}</span>
                     )}
-                  </p>
+                  </div>
                 ) : (
                   <div className="rounded-lg border border-amber-border bg-amber-surface p-3">
                     <mark className="rounded bg-yellow-100 px-0.5 py-0.5 text-ink-primary">

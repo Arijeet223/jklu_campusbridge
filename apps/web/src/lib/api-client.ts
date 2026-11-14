@@ -153,7 +153,8 @@ export async function apiFetch<T = any>(
 
       if (response.status === 500) {
         const msg = errorData.detail || 'Internal server error on AI backend'
-        throw new ApiError(`Server Error (500): ${msg}`, 500, errorData)
+        lastError = new ApiError(`Server Error (500): ${msg}`, 500, errorData)
+        continue
       }
 
       if (response.status === 404) {
@@ -171,8 +172,8 @@ export async function apiFetch<T = any>(
         errorData
       )
     } catch (err: any) {
-      if (err instanceof ApiError && (err.status === 422 || err.status === 500)) {
-        throw err // Do not retry fatal 422 or 500 errors
+      if (err instanceof ApiError && err.status === 422) {
+        throw err // Do not retry fatal 422 validation errors
       }
       lastError = err
     }

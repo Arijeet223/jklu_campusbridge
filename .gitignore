@@ -9,3 +9,4 @@ dist/
 *.pyc
 .vercel
 
+.vercel

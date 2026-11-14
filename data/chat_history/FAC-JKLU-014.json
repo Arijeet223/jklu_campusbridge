@@ -1,0 +1,214 @@
+[
+  {
+    "id": "msg-welcome",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey Dr. Kavita Iyer! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
+    "timestamp": "18:10",
+    "widgetType": "none",
+    "trace": {
+      "engine": {
+        "name": "Qwen 2.5 (Local Ollama)",
+        "model": "qwen2.5:7b",
+        "prompt_tokens": 342,
+        "completion_tokens": 78,
+        "total_tokens": 420,
+        "latency_ms": 1240.5,
+        "degraded_mode": false
+      },
+      "mcp_tools": [
+        {
+          "server": "student-profile",
+          "tool": "get_my_profile",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.2,
+          "summary": "Profile loaded: CGPA 8.2"
+        },
+        {
+          "server": "student-profile",
+          "tool": "list_my_evidence",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.5,
+          "summary": "3 verified evidence items"
+        },
+        {
+          "server": "matching",
+          "tool": "run_match_preview",
+          "status": "ALLOWED",
+          "execution_time_ms": 2.1,
+          "summary": "Match status: MEETS (74/100)"
+        },
+        {
+          "server": "career-knowledge",
+          "tool": "search_role_guides",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.8,
+          "summary": "2 Backend guides matched"
+        }
+      ],
+      "rag_chunks": [
+        {
+          "chunk_id": "chunk-priya-001",
+          "document_id": "doc-001",
+          "document_name": "Priya_Sharma_Resume_v3.pdf",
+          "section": "Education & Technical Skills",
+          "char_span": [
+            45,
+            180
+          ],
+          "similarity_score": 0.94,
+          "content_preview": "B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: 8.2/10.0)..."
+        },
+        {
+          "chunk_id": "chunk-priya-002",
+          "document_id": "doc-001",
+          "document_name": "Priya_Sharma_Resume_v3.pdf",
+          "section": "Projects / Distributed Order Service",
+          "char_span": [
+            181,
+            410
+          ],
+          "similarity_score": 0.89,
+          "content_preview": "Built asynchronous order matching engine in Python and FastAPI..."
+        }
+      ],
+      "guardrail": {
+        "status": "Verified Grounded (0 hallucinations)",
+        "valid_citations": [
+          "[chunk-priya-001]",
+          "[chunk-priya-002]"
+        ],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 1243.2
+    }
+  },
+  {
+    "id": "usr-1794679687930",
+    "sender": "user",
+    "text": "hey",
+    "timestamp": "18:08",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794679687930",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey! What's going on?",
+    "timestamp": "18:08",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 621.61
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 621.61
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794679698825",
+    "sender": "user",
+    "text": "who are you",
+    "timestamp": "18:08",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794679698825",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "I'm J.A.R.V.I.S., your companion for CampusBridge. I help you navigate placement drives, prep for technical interviews, and track your skills.",
+    "timestamp": "18:08",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 617.7
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 617.7
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794679733784",
+    "sender": "user",
+    "text": "what is ben 10",
+    "timestamp": "18:08",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794679733784",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Regarding what is ben 10: When preparing for technical rounds, the key is articulating trade-offs clearly, verifying edge cases, and connecting your theoretical concepts to real implementations.",
+    "timestamp": "18:08",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 614.84
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 614.84
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794679775430",
+    "sender": "user",
+    "text": "what is my skill",
+    "timestamp": "18:09",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794679775430",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "You're currently in B.Tech CSE with a CGPA of 8.42 and 0 backlogs. Your profile has verified skills in Python, SQL, targeting Software Engineer roles.",
+    "timestamp": "18:09",
+    "widgetType": "ghost_cards",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 620
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 620
+    },
+    "citations": []
+  }
+]

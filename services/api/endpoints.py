@@ -10,13 +10,15 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
+import re
 import time
 import uuid
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,6 +83,11 @@ from domain.models import (
     SourceSpan,
 )
 from domain.sandbox import simulate_counterfactual
+from services.hybrid_resume_parser import (
+    extract_raw_text_from_bytes,
+    extract_candidate_metadata,
+    extract_hybrid_skills,
+)
 
 router = APIRouter(prefix="/v1")
 
@@ -1037,6 +1044,245 @@ async def upload_document(request: DocumentUploadRequest) -> dict:
     }
 
 
+@router.post("/documents/upload")
+async def upload_resume_hybrid(
+    file: UploadFile = File(...),
+    student_id: str = Form("STU-101"),
+    institution_id: str = Form("inst-nitk-001"),
+) -> dict[str, Any]:
+    """Production-ready in-memory PDF & DOCX parsing + 2-step hybrid skill extraction (Qwen 2.5 + Massive Dictionary)."""
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    # 1. Parse raw text completely in memory (PyMuPDF / pdfplumber for PDF, python-docx for DOCX)
+    raw_text, pages = extract_raw_text_from_bytes(file_bytes, file.filename)
+    if not raw_text or not raw_text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract text from document. Ensure it is a valid, readable PDF or DOCX file.",
+        )
+
+    # 2. Extract candidate profile metadata (name, email, cgpa, program)
+    metadata = extract_candidate_metadata(raw_text)
+
+    # 3. Two-step hybrid skill extraction (Qwen + Dictionary correlation)
+    hybrid_skills = extract_hybrid_skills(
+        raw_text=raw_text,
+        filename=file.filename,
+        gateway=_orchestrator.gateway,
+    )
+
+    doc_id = f"doc_{uuid.uuid4().hex[:12]}"
+
+    # 4. Chunk & register in _CHUNKS_STORE for RAG
+    chunk_size = 500
+    overlap = 150
+    start = 0
+    idx = 1
+    while start < len(raw_text):
+        chunk_content = raw_text[start : start + chunk_size]
+        _CHUNKS_STORE.append({
+            "chunk_id": f"chunk-{doc_id}-{idx}",
+            "document_id": doc_id,
+            "document_name": file.filename,
+            "student_user_id": student_id,
+            "institution_id": institution_id,
+            "content": chunk_content,
+            "section_path": f"{file.filename} > Section {idx}",
+            "char_start": start,
+            "char_end": min(len(raw_text), start + chunk_size),
+            "page_number": 1,
+        })
+        start += chunk_size - overlap
+        idx += 1
+
+    tech_count = len([s for s in hybrid_skills if not s.get("is_soft_skill")])
+    soft_count = len([s for s in hybrid_skills if s.get("is_soft_skill")])
+
+    return {
+        "success": True,
+        "document_id": doc_id,
+        "file_name": file.filename,
+        "file_size_bytes": len(file_bytes),
+        "raw_text_preview": raw_text[:350],
+        "candidate_metadata": metadata,
+        "extracted_skills": hybrid_skills,
+        "total_skills_count": len(hybrid_skills),
+        "technical_skills_count": tech_count,
+        "soft_skills_count": soft_count,
+        "status": "OK",
+        "engine": "Hybrid AI + Dictionary Correlator (Qwen 2.5 + PyMuPDF/docx)",
+    }
+
+
+class ConfirmedSkillItem(BaseModel):
+    id: str | None = None
+    name: str
+    category: str | None = "Technical Skills"
+    proficiency: str = "Intermediate"
+    evidenceStatus: str = "STUDENT_CONFIRMED"
+    sourceSpan: str | None = None
+    sourceDocumentId: str | None = None
+    confidence: float = 0.95
+    is_soft_skill: bool = False
+    snippet: str | None = None
+
+
+class OnboardingCompleteRequest(BaseModel):
+    student_id: str = "STU-101"
+    confirmed_skills: list[ConfirmedSkillItem]
+    candidate_metadata: dict[str, Any] | None = None
+    document_id: str | None = None
+    file_name: str | None = None
+
+
+@router.post("/onboarding/complete")
+async def complete_onboarding(request: OnboardingCompleteRequest) -> dict[str, Any]:
+    """Solidify user-confirmed Ghost Cards, calculate mathematical readiness score & radar graph, activate account."""
+    store = get_excel_store()
+    student_id = request.student_id.strip()
+
+    # 1. Register confirmed skills in SHEET_EVIDENCE
+    doc_id = request.document_id or f"doc_resume_{uuid.uuid4().hex[:8]}"
+    doc_name = request.file_name or "Resume.pdf"
+
+    for idx, sk in enumerate(request.confirmed_skills):
+        prof = sk.proficiency.capitalize()
+        multiplier = 0.95 if sk.evidenceStatus == "STUDENT_CONFIRMED" else 1.0
+        store.insert_row(
+            SHEET_EVIDENCE,
+            {
+                "evidence_id": f"ev-{student_id.lower()}-{int(time.time())}-{idx + 1}",
+                "student_id": student_id,
+                "skill_name": sk.name,
+                "category": sk.category or ("Soft Skills" if sk.is_soft_skill else "Technical Skills"),
+                "proficiency": prof,
+                "evidence_status": "STUDENT_CONFIRMED",
+                "tier": "1_STUDENT_CONFIRMED",
+                "tier_multiplier": multiplier,
+                "source_doc": doc_name,
+                "source_span": sk.sourceSpan or f"{doc_name} • {sk.category or 'Skills'}",
+                "confidence": sk.confidence,
+                "verified_by": "STUDENT_SELF_CLAIM",
+            },
+        )
+
+    # 2. Deterministic Mathematical Readiness Score Calculation
+    def _prof_val(p: str) -> int:
+        p_low = p.lower()
+        if "expert" in p_low:
+            return 96
+        if "adv" in p_low:
+            return 88
+        if "beg" in p_low:
+            return 55
+        return 72
+
+    sql_regex = re.compile(r"\b(sql|postgresql|postgres|mysql|sqlite|database|indexing|cte|dense_rank|window|acid)\b", re.I)
+    dsa_regex = re.compile(r"\b(python|c\+\+|cpp|java|golang|rust|algorithms|data structures|dsa|dynamic programming|binary search)\b", re.I)
+    backend_regex = re.compile(r"\b(fastapi|django|flask|express|spring|rest|graphql|microservices|celery|kafka|redis)\b", re.I)
+    cloud_regex = re.compile(r"\b(docker|kubernetes|aws|gcp|azure|linux|ci\/cd|terraform|nginx)\b", re.I)
+    ai_regex = re.compile(r"\b(machine learning|deep learning|pytorch|tensorflow|rag|qdrant|pandas|numpy|nlp|llm)\b", re.I)
+
+    sql_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if sql_regex.search(s.name) or sql_regex.search(s.category or "")]
+    dsa_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if dsa_regex.search(s.name) or dsa_regex.search(s.category or "")]
+    backend_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if backend_regex.search(s.name) or backend_regex.search(s.category or "")]
+    cloud_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if cloud_regex.search(s.name) or cloud_regex.search(s.category or "")]
+    ai_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if ai_regex.search(s.name) or ai_regex.search(s.category or "")]
+    soft_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if s.is_soft_skill or "soft" in (s.category or "").lower()]
+
+    dim_sql = max(sql_scores) if sql_scores else 48
+    dim_dsa = max(dsa_scores) if dsa_scores else 60
+    dim_backend = max(backend_scores) if backend_scores else 55
+    dim_cloud = max(cloud_scores) if cloud_scores else 50
+    dim_ai = max(ai_scores) if ai_scores else 50
+    dim_soft = max(soft_scores) if soft_scores else 70
+
+    # Breadth bonus for multiple technologies in dimension
+    dim_sql = min(98, dim_sql + min(8, max(0, len(sql_scores) - 1) * 3))
+    dim_dsa = min(98, dim_dsa + min(8, max(0, len(dsa_scores) - 1) * 3))
+    dim_backend = min(98, dim_backend + min(8, max(0, len(backend_scores) - 1) * 3))
+    dim_cloud = min(98, dim_cloud + min(8, max(0, len(cloud_scores) - 1) * 3))
+
+    # Overall weighted readiness index
+    weights = [
+        (dim_dsa, 0.25),
+        (dim_backend, 0.20),
+        (dim_sql, 0.20),
+        (dim_cloud, 0.15),
+        (dim_ai, 0.10),
+        (dim_soft, 0.10),
+    ]
+    overall_readiness = round(sum(score * w for score, w in weights))
+
+    # Radar coordinates (6-axis hexagon inscribed in 200x200 SVG box)
+    dim_order = [dim_dsa, dim_backend, dim_sql, dim_cloud, dim_ai, dim_soft]
+    radar_coords: list[tuple[float, float]] = []
+    center_x, center_y = 100.0, 100.0
+    max_radius = 80.0
+
+    for i, val in enumerate(dim_order):
+        angle = (i * 60 - 90) * (math.pi / 180.0)
+        norm_r = (val / 100.0) * max_radius
+        rx = round(center_x + norm_r * math.cos(angle), 1)
+        ry = round(center_y + norm_r * math.sin(angle), 1)
+        radar_coords.append((rx, ry))
+
+    polygon_str = " ".join(f"{x},{y}" for x, y in radar_coords)
+
+    # 3. Update student in SHEET_STUDENTS
+    meta = request.candidate_metadata or {}
+    updates: dict[str, Any] = {
+        "readiness_index": overall_readiness,
+        "account_status": "ACTIVE",
+        "needs_onboarding": False,
+        "onboarding_completed_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if meta.get("cgpa"):
+        updates["cgpa"] = float(meta["cgpa"])
+    if meta.get("program"):
+        updates["program"] = meta["program"]
+
+    store.update_row(SHEET_STUDENTS, key_col="student_id", key_val=student_id, updates=updates)
+
+    # 4. Log audit entry
+    store.insert_row(
+        SHEET_AUDIT,
+        {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "request_id": f"onboard-{student_id.lower()}-{int(time.time())}",
+            "actor_id": student_id,
+            "actor_role": "STUDENT",
+            "agent_name": "ONBOARDING_ACTIVATION_ENGINE",
+            "mcp_server": "student-profile",
+            "tool_name": "onboarding.complete",
+            "latency_ms": 12.4,
+            "status": "ACTIVE",
+            "summary": f"Onboarding completed for {student_id}. Activated {len(request.confirmed_skills)} skills with overall readiness {overall_readiness}%.",
+        },
+    )
+
+    return {
+        "success": True,
+        "message": "Onboarding completed successfully. Profile activated.",
+        "student_id": student_id,
+        "status": "ACTIVE",
+        "needs_onboarding": False,
+        "readiness_index": overall_readiness,
+        "radar_scores": {
+            "dsa": dim_dsa,
+            "backend": dim_backend,
+            "sql": dim_sql,
+            "cloud": dim_cloud,
+            "ai_ml": dim_ai,
+            "soft_skills": dim_soft,
+        },
+        "radar_polygon": polygon_str,
+        "confirmed_skills_count": len(request.confirmed_skills),
+    }
+
+
 @router.get("/documents/{document_id}/chunks")
 async def get_document_chunks(document_id: str) -> list[dict]:
     """Retrieve all chunks belonging to a document for Source Drawer navigation."""
@@ -1210,7 +1456,8 @@ class AgentDispatchRequest(BaseModel):
 
 
 class AIChatRequest(BaseModel):
-    message: str
+    message: str = ""
+    messages: list[dict[str, Any]] | None = None
     actor_id: str = _PRIYA_ID
     actor_role: str = "STUDENT"
     institution_id: str = "inst-nitk-001"
@@ -1287,6 +1534,15 @@ async def get_ai_health() -> dict[str, Any]:
 @router.post("/ai/chat")
 async def ai_chat(request: AIChatRequest) -> dict[str, Any]:
     """Execute live grounded conversation: Scoped MCP Tools -> Hybrid RAG -> Qwen 2.5 -> Citation Validator."""
+    user_prompt = request.message
+    if not user_prompt and request.messages:
+        for m in reversed(request.messages):
+            if m.get("role") == "user":
+                user_prompt = m.get("content", "")
+                break
+    if not user_prompt:
+        user_prompt = "Hello"
+
     ctx = SecurityContext(
         actor_id=request.actor_id,
         actor_role=request.actor_role,
@@ -1294,10 +1550,11 @@ async def ai_chat(request: AIChatRequest) -> dict[str, Any]:
         purpose="career_companion_chat",
     )
     pipeline_res = _orchestrator.run_live_grounded_pipeline(
-        prompt=request.message,
+        prompt=user_prompt,
         context=ctx,
         target_job_id=request.target_job_id,
         stored_chunks=_CHUNKS_STORE,
+        messages=request.messages,
     )
     return {
         "success": True,
@@ -1340,10 +1597,12 @@ async def chat_completions(req: ChatCompletionRequest):
         institution_id="inst-nitk-001",
         purpose="career_companion_chat",
     )
+    messages_payload = [{"role": m.role, "content": m.content} for m in req.messages]
     pipeline_res = _orchestrator.run_live_grounded_pipeline(
         prompt=user_prompt,
         context=ctx,
         stored_chunks=_CHUNKS_STORE,
+        messages=messages_payload,
     )
 
     response_text = pipeline_res.get("response", "")

@@ -24,15 +24,14 @@ MAX_OUTPUT_TOKENS = 2048
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_SYSTEM_INSTRUCTION = (
-    "You are CampusBridge AI's friendly Career Companion — a supportive, warm, human-like placement mentor for university students.\n"
-    "Tone & Style Guidelines:\n"
-    "1. Handle Casual Greetings: If a student says 'HEY', 'hi', 'sup', or casual remarks, respond like a friendly human mentor "
-    "('Hey! 👋 What are we tackling today? Want to check your job matches or prep for an interview?'). Never do a stiff robotic data dump for casual greetings.\n"
-    "2. Plain English UX: Use simple, encouraging student language (refer to verified skills instead of technical database terms like 'Ghost Cards', "
-    "and keep responses concise and actionable).\n"
-    "3. Keep answers supportive, clear, and focused on helping the student succeed."
-)
+JARVIS_SYSTEM_PROMPT = """You are J.A.R.V.I.S., the primary AI companion for CampusBridge. Be a natural, highly intelligent, and conversational peer. 
+CORE DIRECTIVES:
+- Be Conversational: If the user says 'hey', 'what's up', or 'who are you', respond naturally and briefly. Match the user's conversational energy. 
+- Contextual RAG: You have access to the student's resume, academic data, and placement offers. Only reference this data if the user's query relates to their career, skills, or placements. Do not announce that you are looking at their resume.
+- Action-Oriented: You have tools (e.g., draft_professor_email). Invoke them seamlessly when requested without explaining your internal process.
+- FORBIDDEN BEHAVIORS: NEVER repeat canned greetings. NEVER append robotic feature menus (e.g., 'Would you like to check your sprint plan?'). Answer the prompt naturally and stop."""
+
+DEFAULT_SYSTEM_INSTRUCTION = JARVIS_SYSTEM_PROMPT
 
 CASUAL_GREETINGS = {
     "hi", "hey", "sup", "hello", "yo", "hey there", "hi there", "what's up", "whats up",
@@ -87,7 +86,24 @@ class ModelGateway:
         elif env_timeout:
             self.timeout_seconds = float(env_timeout)
         else:
-            self.timeout_seconds = 30.0
+            self.timeout_seconds = 15.0
+
+        self._last_health_ts = 0.0
+        self._cached_online = False
+
+    def is_server_available(self) -> bool:
+        """Fast probe to avoid long connection hangs when Ollama is offline."""
+        now = time.time()
+        if now - self._last_health_ts < 3.0:
+            return self._cached_online
+        self._last_health_ts = now
+        try:
+            req = urllib.request.Request(f"{self.ollama_base_url}/api/tags")
+            with urllib.request.urlopen(req, timeout=0.3) as resp:
+                self._cached_online = (resp.status == 200)
+        except Exception:
+            self._cached_online = False
+        return self._cached_online
 
     def _detect_qwen_model(self) -> str | None:
         """Query Ollama local catalog to find the active Qwen 2.5 model variant."""
@@ -140,32 +156,46 @@ class ModelGateway:
         self,
         prompt: str,
         system_instruction: str = DEFAULT_SYSTEM_INSTRUCTION,
+        messages: list[dict[str, Any]] | None = None,
         response_schema: Type[T] | None = None,
         deterministic_fallback_fn: Any | None = None,
-        temperature: float = 0.65,
-        max_tokens: int = 150,
+        temperature: float = 0.7,
+        max_tokens: int = 600,
         frequency_penalty: float = 0.7,
         presence_penalty: float = 0.5,
     ) -> ModelGatewayResponse:
         """Execute a completion with hard resource bounds and deterministic degradation."""
         t0 = time.perf_counter()
 
-        # 1. Guardrail: Max prompt length check (PRD §10)
-        total_prompt_len = len(prompt) + len(system_instruction)
-        if total_prompt_len > MAX_PROMPT_LENGTH_CHARS:
-            raise ModelGatewayBudgetExceeded(
-                f"Prompt exceeds hard limit of {MAX_PROMPT_LENGTH_CHARS} characters "
-                f"(received {total_prompt_len} characters)."
-            )
+        if messages:
+            chat_messages: list[dict[str, str]] = []
+            has_system = False
+            for m in messages:
+                role = str(m.get("role", "user")).lower()
+                content = str(m.get("content", ""))
+                if role == "system":
+                    has_system = True
+                chat_messages.append({"role": role, "content": content})
+            if not has_system:
+                chat_messages.insert(0, {"role": "system", "content": system_instruction})
+        else:
+            chat_messages = [
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": prompt},
+            ]
 
-        messages = [
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": prompt},
-        ]
+        # 1. Guardrail: Max prompt length check (PRD §10)
+        total_prompt_len = sum(len(m.get("content", "")) for m in chat_messages)
+        if total_prompt_len > MAX_PROMPT_LENGTH_CHARS:
+            sys_msg = chat_messages[0] if chat_messages and chat_messages[0].get("role") == "system" else None
+            turns = chat_messages[1:] if sys_msg else chat_messages
+            while sum(len(m.get("content", "")) for m in turns) + (len(sys_msg.get("content", "")) if sys_msg else 0) > MAX_PROMPT_LENGTH_CHARS and len(turns) > 1:
+                turns.pop(0)
+            chat_messages = ([sys_msg] if sys_msg else []) + turns
 
         payload = {
             "model": self.model_name,
-            "messages": messages,
+            "messages": chat_messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
             "frequency_penalty": frequency_penalty,
@@ -174,6 +204,8 @@ class ModelGateway:
 
         # Attempt local LLM inference
         try:
+            if not self.is_server_available():
+                raise ConnectionError("Local Ollama server is offline.")
             req_data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
                 self.endpoint_url,
@@ -209,10 +241,11 @@ class ModelGateway:
             # If local model server is offline or saturated, run deterministic fallback
             elapsed = (time.perf_counter() - t0) * 1000
 
-            # Friendly mentor handling for casual greetings
+            # Friendly, natural peer handling for casual greetings
             clean_prompt = prompt.strip().lower().rstrip("!?.,")
-            if clean_prompt in CASUAL_GREETINGS:
-                greeting_content = "Hey! 👋 What are we tackling today? Want to check your job matches or prep for an interview?"
+            if clean_prompt in CASUAL_GREETINGS or clean_prompt in ("what's up", "whats up", "what now", "what now?"):
+                # Natural peer response matching user energy without canned feature menus
+                greeting_content = "Hey! What's up?"
                 return ModelGatewayResponse(
                     content=greeting_content,
                     parsed_json={"message": greeting_content, "intent": "greeting"},

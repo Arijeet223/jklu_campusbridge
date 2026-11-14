@@ -3,8 +3,8 @@
     "id": "msg-welcome",
     "sender": "assistant",
     "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Hey Arijeet Basak! 👋 I'm J.A.R.V.I.S., your placement co-pilot alongside T.E.R.R.A. and R.O.N.E.N. I've mapped your TechCorp readiness and 72-hour sprint milestones. What would you like to dive into?",
-    "timestamp": "12:49",
+    "text": "Hey Arijeet Basak! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
+    "timestamp": "17:55",
     "widgetType": "none",
     "trace": {
       "engine": {
@@ -371,5 +371,166 @@
         "doc_id": "doc-github"
       }
     ]
+  },
+  {
+    "id": "usr-1794678934075",
+    "sender": "user",
+    "text": "hey",
+    "timestamp": "17:55",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794678934075",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey! What's going on?",
+    "timestamp": "17:55",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 612.36
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 612.36
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794678951910",
+    "sender": "user",
+    "text": "who are you",
+    "timestamp": "17:55",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794678951910",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "I'm J.A.R.V.I.S., your companion for CampusBridge. I help you navigate placement drives, prep for technical interviews, and track your skills.",
+    "timestamp": "17:55",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 623.61
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 623.61
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794678967256",
+    "sender": "user",
+    "text": "what is my 72 hours plan",
+    "timestamp": "17:56",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794678967256",
+    "sender": "assistant",
+    "agentName": "⏱️ K.R.O.N.O.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** You've got 3 high-impact items left before Friday's SDE-1 (Backend & Distributed Systems) at RazorpayX Labs placement drive: a 15-min SQL challenge, pushing your project artifact, and a 2-min micro-defense. Ready to tackle the SQL challenge first?\n\n---\n\n⏱️ **K.R.O.N.O.S.:** I've compiled your 72-hour sprint kit below with your exact 3 milestones to boost your readiness from 100% to 98% (+30% gain). Which checkpoint do you want to hit first?",
+    "timestamp": "17:56",
+    "widgetType": "sprint_plan",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_2: SPECIALIST_AGENT_DELEGATION",
+      "delegated_agent": "K.R.O.N.O.S.",
+      "engine": {
+        "name": "Multi-Agent Pantheon (K.R.O.N.O.S.)",
+        "latency_ms": 2241.99
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Verified Grounded",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 2241.99
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794678988476",
+    "sender": "user",
+    "text": "i want to test dsa question",
+    "timestamp": "17:56",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794678988476",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Regarding i want to test dsa question: When preparing for technical rounds, the key is articulating trade-offs clearly, verifying edge cases, and connecting your theoretical concepts to real implementations.",
+    "timestamp": "17:56",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 616.86
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 616.86
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794679008664",
+    "sender": "user",
+    "text": "what is my cgpa if you know",
+    "timestamp": "17:56",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794679008664",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "You're currently in BTech078 with a CGPA of 8.41 and 0 backlogs. Your profile has verified skills in Python, SQL, JavaScript, C, targeting AI/ML Engineer, LLM Systems, Agentic Workflows roles.",
+    "timestamp": "17:56",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 624.07
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 624.07
+    },
+    "citations": []
   }
 ]

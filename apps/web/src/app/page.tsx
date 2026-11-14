@@ -15,7 +15,14 @@ export default function RootHomePage() {
   const [skills, setSkills] = useState<Skill[]>(mockSkills)
 
   const handleOpenSource = (docId: string = 'doc_resume_v3') => {
-    setSelectedDoc(mockSourceDocuments[docId] || mockSourceDocuments['doc_resume_v3'])
+    let doc = mockSourceDocuments[docId]
+    if (!doc && typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('cb_uploaded_documents') || '{}')
+        if (stored[docId]) doc = stored[docId]
+      } catch {}
+    }
+    setSelectedDoc(doc || mockSourceDocuments['doc_resume_v3'])
     setSourceDrawerOpen(true)
   }
 

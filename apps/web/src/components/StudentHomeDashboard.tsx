@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import type { Skill, ReadinessDimension, ResumeVersion } from '@/lib/types'
-import { mockReadinessDimensions } from '@/lib/mock-data'
+import { mockReadinessDimensions, mockResumeVersions, mockSkills } from '@/lib/mock-data'
+import { computeReadinessProfile } from '@/lib/readiness-calculator'
 
 interface StudentHomeDashboardProps {
   studentId?: string
-  studentName: string
-  cgpa: number
-  branch: string
+  studentName?: string
+  cgpa?: number
+  branch?: string
   institution?: string
-  skills: Skill[]
+  skills?: Skill[]
   onNavigate?: (view: 'skills' | 'sandbox' | 'sprint' | 'defense' | 'applications') => void
   onOpenPrivacyVault?: () => void
   onUploadResume?: (fileName: string, newSkills: Skill[]) => void
@@ -28,27 +29,76 @@ export default function StudentHomeDashboard({
   onNavigate,
   onOpenPrivacyVault,
   onUploadResume,
+  onOpenSourceDoc,
 }: StudentHomeDashboardProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [uploadNotice, setUploadNotice] = useState<string | null>(null)
   const [isProcessingFile, setIsProcessingFile] = useState(false)
+  const [latestDocId, setLatestDocId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const verifiedSkills = skills.filter(
+  // Local skills state initialized from localStorage, props, or mock data
+  const [localSkills, setLocalSkills] = useState<Skill[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cb_user_skills')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+        }
+      } catch {}
+    }
+    return skills.length > 0 ? skills : mockSkills
+  })
+
+  // Synchronize when external skills prop changes
+  useEffect(() => {
+    if (skills && skills.length > 0) {
+      setLocalSkills(skills)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cb_user_skills', JSON.stringify(skills))
+      }
+    }
+  }, [skills])
+
+  // Real-time listener for skill changes (e.g. from profile-evidence or home)
+  useEffect(() => {
+    const handleSkillsUpdated = (e: any) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setLocalSkills(e.detail)
+      } else if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('cb_user_skills')
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            if (Array.isArray(parsed)) setLocalSkills(parsed)
+          }
+        } catch {}
+      }
+    }
+
+    window.addEventListener('cb_skills_updated', handleSkillsUpdated)
+    window.addEventListener('storage', handleSkillsUpdated)
+    return () => {
+      window.removeEventListener('cb_skills_updated', handleSkillsUpdated)
+      window.removeEventListener('storage', handleSkillsUpdated)
+    }
+  }, [])
+
+  // Dynamic mathematical readiness calculation grounded in active skills & CGPA
+  const readinessProfile = computeReadinessProfile(localSkills, cgpa)
+  const overallReadiness = readinessProfile.overallReadiness
+
+  const verifiedSkills = localSkills.filter(
     (s) =>
       s.evidenceStatus === 'INSTITUTION_VERIFIED' ||
       s.evidenceStatus === 'ASSESSMENT_VERIFIED' ||
       s.evidenceStatus === 'STUDENT_CONFIRMED',
   )
 
-  const overallReadiness = Math.round(
-    mockReadinessDimensions.reduce((acc, dim) => acc + dim.score, 0) /
-      mockReadinessDimensions.length,
-  )
-
   const handleUploadDocument = async (file: File) => {
     setIsProcessingFile(true)
-    setUploadNotice(`Parsing and scanning "${file.name}" with Python PDF parser in isolated sandbox...`)
+    setUploadNotice(`Parsing and scanning "${file.name}" with Vercel Serverless Parser in isolated sandbox...`)
 
     try {
       let activeId = studentId || 'STU-101'
@@ -77,7 +127,7 @@ export default function StudentHomeDashboard({
           id: sk.id || `sk_upload_${Date.now()}_${i}`,
           name: sk.name,
           category: sk.category,
-          proficiency: sk.proficiency || 'Intermediate',
+          proficiency: sk.proficiency || 'Advanced',
           evidenceStatus: 'EXTRACTED',
           sourceDocumentId: data.document_id || 'doc_resume_v4',
           sourceSpan: sk.sourceSpan || `${file.name} • p.${sk.sourcePage || 1}`,
@@ -85,12 +135,69 @@ export default function StudentHomeDashboard({
           confidence: sk.confidence || 0.94,
         }))
 
+        // 1. Record new version into cb_resume_versions in localStorage
+        let existingVersions: ResumeVersion[] = []
+        try {
+          const storedVersions = localStorage.getItem('cb_resume_versions')
+          if (storedVersions) existingVersions = JSON.parse(storedVersions)
+        } catch {}
+        if (!existingVersions.length) existingVersions = [...mockResumeVersions]
+
+        const nextVersionNum = existingVersions.length + 1
+        const newVersion: ResumeVersion = {
+          id: `rv_${Date.now()}`,
+          versionNumber: nextVersionNum,
+          fileName: file.name,
+          uploadedAt: new Date().toISOString(),
+          fileSize: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+          extractedSkillsCount: extracted.length,
+          sourceDocumentId: data.document_id || `doc_resume_v${nextVersionNum}`,
+          isCurrent: true,
+        }
+        const updatedVersions = [newVersion, ...existingVersions.map((v) => ({ ...v, isCurrent: false }))]
+        localStorage.setItem('cb_resume_versions', JSON.stringify(updatedVersions))
+
+        // 2. Merge extracted skills with localSkills (Ghost Cards)
+        const updatedSkills = [...localSkills]
+        for (const es of extracted) {
+          const idx = updatedSkills.findIndex(
+            (s) => s.name.toLowerCase() === es.name.toLowerCase(),
+          )
+          if (idx >= 0) {
+            updatedSkills[idx] = es
+          } else {
+            updatedSkills.unshift(es)
+          }
+        }
+        setLocalSkills(updatedSkills)
+        localStorage.setItem('cb_user_skills', JSON.stringify(updatedSkills))
+        window.dispatchEvent(new CustomEvent('cb_skills_updated', { detail: updatedSkills }))
+
+        // 3. Save document text to cb_uploaded_documents for inspection
+        const docRecordId = data.document_id || `doc_resume_v${nextVersionNum}`
+        const docRecord = {
+          id: docRecordId,
+          fileName: file.name,
+          pageNumber: 1,
+          uploadedAt: new Date().toISOString(),
+          fileSize: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+          fullText: data.raw_text || `Resume text for ${file.name}\n\nExtracted Skills:\n${extracted.map((s: Skill) => `• ${s.name} (${s.proficiency}) - ${s.sourceSpan}`).join('\n')}`,
+          highlightedText: extracted[0]?.name || 'SQL',
+        }
+        try {
+          const storedDocs = JSON.parse(localStorage.getItem('cb_uploaded_documents') || '{}')
+          storedDocs[docRecordId] = docRecord
+          localStorage.setItem('cb_uploaded_documents', JSON.stringify(storedDocs))
+        } catch {}
+
+        setLatestDocId(docRecordId)
+
         if (onUploadResume) {
           onUploadResume(file.name, extracted)
         }
         setIsProcessingFile(false)
         setUploadNotice(
-          `Successfully uploaded and parsed "${file.name}"! Found ${extracted.length} provisional skills (Ghost Cards) ready for verification.`,
+          `Successfully uploaded and parsed "${file.name}"! Found ${extracted.length} provisional skills (Ghost Cards). Resume history updated & scores recalculated!`,
         )
       } else {
         const err = await res.json().catch(() => ({ detail: 'Failed to process document' }))
@@ -121,18 +228,42 @@ export default function StudentHomeDashboard({
     <div className="space-y-7 pb-12 font-body-md text-on-surface">
       {/* Upload Notification Toast */}
       {uploadNotice && (
-        <div className="flex items-center justify-between rounded-2xl border border-tertiary-fixed-dim bg-tertiary-container/40 p-4 text-xs font-semibold text-on-tertiary-container shadow-[0_3px_0_#c3ecd6] animate-in fade-in duration-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-tertiary-fixed-dim bg-tertiary-container/40 p-4 text-xs font-semibold text-on-tertiary-container shadow-[0_3px_0_#c3ecd6] animate-in fade-in duration-200">
           <div className="flex items-center gap-2.5">
             <span className="material-symbols-outlined text-base text-tertiary">check_circle</span>
             <span>{uploadNotice}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setUploadNotice(null)}
-            className="text-[11px] underline hover:text-on-surface"
-          >
-            Dismiss
-          </button>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {latestDocId && (
+              <button
+                type="button"
+                onClick={() => onOpenSourceDoc?.(latestDocId)}
+                className="px-3 py-1 bg-secondary text-on-secondary rounded-full text-xs font-bold shadow-[0_2px_0_#2b5b75] hover:brightness-105 flex items-center gap-1 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">find_in_page</span>
+                <span>Inspect Resume Text →</span>
+              </button>
+            )}
+            <Link
+              href="/student/profile-evidence"
+              className="px-3 py-1 bg-primary text-on-primary rounded-full text-xs font-bold shadow-[0_2px_0_#320e26] hover:brightness-105"
+            >
+              Review Ghost Cards →
+            </Link>
+            <Link
+              href="/student/privacy-shield"
+              className="px-3 py-1 bg-surface-container border border-outline-variant text-on-surface rounded-full text-xs font-bold hover:bg-surface-container-high"
+            >
+              Resume History →
+            </Link>
+            <button
+              type="button"
+              onClick={() => setUploadNotice(null)}
+              className="text-[11px] underline hover:text-on-surface ml-1"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 
@@ -201,15 +332,18 @@ export default function StudentHomeDashboard({
             </div>
             <div className="flex items-baseline gap-2 mt-3">
               <span className="text-headline-lg font-headline-lg text-on-surface font-extrabold">
-                {verifiedSkills.length > 0 ? `${verifiedSkills.length} / ${skills.length || 8}` : '6 / 8'}
+                {`${verifiedSkills.length} / ${localSkills.length}`}
               </span>
               <span className="bg-secondary-fixed text-on-secondary-fixed text-label-sm font-label-sm px-2 py-0.5 rounded-full font-bold">
-                75% Locked
+                {localSkills.length > 0 ? Math.round((verifiedSkills.length / localSkills.length) * 100) : 75}% Locked
               </span>
             </div>
             <p className="text-body-sm font-body-sm text-on-secondary-container mt-1 font-medium">Solid 1.0x Tokens Locked</p>
             <div className="w-full bg-surface-container-high rounded-full h-2 mt-3 overflow-hidden">
-              <div className="bg-secondary h-full rounded-full transition-all duration-500" style={{ width: '75%' }}></div>
+              <div
+                className="bg-secondary h-full rounded-full transition-all duration-500"
+                style={{ width: `${localSkills.length > 0 ? Math.round((verifiedSkills.length / localSkills.length) * 100) : 75}%` }}
+              ></div>
             </div>
           </div>
 
@@ -476,87 +610,82 @@ export default function StudentHomeDashboard({
                 <line stroke="#d3c2c9" strokeWidth="1" x1="120" x2="120" y1="120" y2="220"></line>
                 <line stroke="#d3c2c9" strokeWidth="1" x1="120" x2="34" y1="120" y2="170"></line>
                 <line stroke="#d3c2c9" strokeWidth="1" x1="120" x2="34" y1="120" y2="70"></line>
-                {/* Student actual data polygon */}
+                {/* Dynamic mathematical student data polygon */}
                 <polygon
                   fill="#f0b6d5"
-                  fillOpacity="0.5"
-                  points="120,32 191,79 176,152 120,212 48,162 45,78"
+                  fillOpacity="0.45"
+                  points={readinessProfile.radarPoints}
                   stroke="#7e506b"
                   strokeWidth="2.5"
                 ></polygon>
-                <circle cx="120" cy="32" fill="#7e506b" r="4.5" stroke="#ffffff" strokeWidth="2"></circle>
-                <circle cx="191" cy="79" fill="#406373" r="4.5" stroke="#ffffff" strokeWidth="2"></circle>
-                <circle cx="176" cy="152" fill="#ba1a1a" r="4.5" stroke="#ffffff" strokeWidth="2"></circle>
-                <circle cx="120" cy="212" fill="#416655" r="4.5" stroke="#ffffff" strokeWidth="2"></circle>
-                <circle cx="48" cy="162" fill="#406373" r="4.5" stroke="#ffffff" strokeWidth="2"></circle>
-                <circle cx="45" cy="78" fill="#7e506b" r="4.5" stroke="#ffffff" strokeWidth="2"></circle>
+                {readinessProfile.radarCircles.map((circle, idx) => (
+                  <circle
+                    key={idx}
+                    cx={circle.cx}
+                    cy={circle.cy}
+                    fill={circle.color}
+                    r="4.5"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                  />
+                ))}
               </svg>
             </div>
 
-            {/* Dimension Breakdown List */}
+            {/* Dynamic Mathematical Dimension Breakdown List */}
             <div className="space-y-3 mt-4">
-              <div>
-                <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
-                  <span>1. DSA &amp; Problem Solving</span>
-                  <span className="text-primary font-bold">88%</span>
-                </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: '88%' }}></div>
-                </div>
-              </div>
+              {readinessProfile.dimensionList.map((dim) => {
+                const isSql = dim.id === 'sql'
+                if (dim.isAttentionNeeded) {
+                  return (
+                    <div
+                      key={dim.id}
+                      className="p-2.5 rounded-xl bg-error-container/40 border border-error/20 transition-all"
+                    >
+                      <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
+                        <span className="flex items-center gap-1.5 text-error">
+                          <span className="material-symbols-outlined text-sm">warning</span>
+                          <span>{dim.label}</span>
+                        </span>
+                        <span className="text-error font-bold">{dim.statusLabel}</span>
+                      </div>
+                      <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-error rounded-full transition-all duration-500"
+                          style={{ width: `${dim.score}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )
+                }
 
-              <div>
-                <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
-                  <span>2. System Design &amp; Concurrency</span>
-                  <span className="text-secondary font-bold">82%</span>
-                </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-secondary rounded-full" style={{ width: '82%' }}></div>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-error-container/40 border border-error/20">
-                <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
-                  <span className="flex items-center gap-1.5 text-error">
-                    <span className="material-symbols-outlined text-sm">warning</span>
-                    <span>3. Database &amp; SQL Windowing</span>
-                  </span>
-                  <span className="text-error font-bold">65% (Attention Needed!)</span>
-                </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-error rounded-full" style={{ width: '65%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
-                  <span>4. Live Code Defense (120s)</span>
-                  <span className="text-tertiary font-bold">92%</span>
-                </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-tertiary rounded-full" style={{ width: '92%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
-                  <span>5. Coursework &amp; CGPA</span>
-                  <span className="text-secondary font-bold">84%</span>
-                </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-secondary rounded-full" style={{ width: '84%' }}></div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
-                  <span>6. Provenance &amp; Portfolio Proofs</span>
-                  <span className="text-primary font-bold">75%</span>
-                </div>
-                <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: '75%' }}></div>
-                </div>
-              </div>
+                return (
+                  <div
+                    key={dim.id}
+                    className={
+                      isSql
+                        ? 'p-2.5 rounded-xl bg-tertiary-container/20 border border-tertiary-fixed-dim/40 transition-all'
+                        : ''
+                    }
+                  >
+                    <div className="flex justify-between text-body-sm font-body-sm mb-1 font-bold text-on-surface">
+                      <span className={isSql ? 'flex items-center gap-1.5 text-tertiary' : ''}>
+                        {isSql && (
+                          <span className="material-symbols-outlined text-sm">check_circle</span>
+                        )}
+                        <span>{dim.label}</span>
+                      </span>
+                      <span className={`${dim.statusColor} font-bold`}>{dim.statusLabel}</span>
+                    </div>
+                    <div className="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${dim.barColor} rounded-full transition-all duration-500`}
+                        style={{ width: `${dim.score}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
@@ -582,7 +711,15 @@ export default function StudentHomeDashboard({
 
             <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/60 shadow-inner">
               <p className="text-body-sm font-body-sm text-on-surface leading-relaxed">
-                &ldquo;Aarav, completing the <strong className="font-bold text-primary">DENSE_RANK() SQL quest</strong> will push your RazorpayX fit score past the <strong className="font-bold">80% automated interview shortlist threshold</strong>. Your Redis defense was rated in the top 5% of the cohort!&rdquo;
+                {readinessProfile.dimensions.sql.score < 70 ? (
+                  <>
+                    &ldquo;Aarav, completing the <strong className="font-bold text-primary">DENSE_RANK() SQL quest</strong> or selecting high SQL proficiency on your parsed Ghost Cards will push your Database score past 70% and unlock the <strong className="font-bold">80% automated interview shortlist threshold</strong>. Your Redis defense was rated in the top 5%!&rdquo;
+                  </>
+                ) : (
+                  <>
+                    &ldquo;Aarav, excellent work! Your verified <strong className="font-bold text-tertiary">SQL score is now {readinessProfile.dimensions.sql.score}% (Proficient ✓)</strong>. You have surpassed the automated shortlist threshold for the RazorpayX Backend drive!&rdquo;
+                  </>
+                )}
               </p>
             </div>
 
@@ -612,13 +749,23 @@ export default function StudentHomeDashboard({
               Upload updated PDF resumes to extract provisional skills (Ghost Cards) grounded in verifiable char spans.
             </p>
           </div>
-          <Link
-            href="/student/privacy-shield"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high transition-colors"
-          >
-            <span className="material-symbols-outlined text-sm text-tertiary">shield</span>
-            <span>Manage Access &amp; History</span>
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => onOpenSourceDoc?.(latestDocId || 'doc_resume_v3')}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-primary text-on-primary shadow-[0_2px_0_#320e26] hover:brightness-105 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">visibility</span>
+              <span>Inspect Current Resume</span>
+            </button>
+            <Link
+              href="/student/privacy-shield"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-surface-container border border-outline-variant text-on-surface hover:bg-surface-container-high transition-colors"
+            >
+              <span className="material-symbols-outlined text-sm text-tertiary">shield</span>
+              <span>Manage Access &amp; History</span>
+            </Link>
+          </div>
         </div>
 
         <div
