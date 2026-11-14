@@ -114,7 +114,7 @@ export default function AppLayout({
   ]
 
   const teacherNavItems = [
-    { label: 'Faculty Mentor Hub', href: '/teacher/panel', icon: GraduationCap },
+    { label: 'Advisee Roster & Capstones', href: '/teacher/panel', icon: GraduationCap },
     { label: 'AI Orbital Check', href: '/admin/diagnostics', icon: Activity },
   ]
 

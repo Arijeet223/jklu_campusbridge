@@ -60,6 +60,28 @@ export async function POST(req: NextRequest) {
               },
             })
           }
+        } else if (role === 'TEACHER' || role === 'FACULTY') {
+          const rows = await sql`
+            SELECT staff_id, full_name, email, role, department, institution_id
+            FROM staff_users
+            WHERE LOWER(email) = ${identifier}
+            LIMIT 1
+          `
+          if (rows.length > 0) {
+            const u = rows[0]
+            return NextResponse.json({
+              status: 'OK',
+              token: `cb-jwt-${u.staff_id}-${Date.now()}`,
+              user: {
+                id: u.staff_id,
+                name: u.full_name,
+                email: u.email,
+                role: 'TEACHER',
+                department: u.department || 'Computer Science & Engineering',
+                institution: u.institution_id || 'JKLU',
+              },
+            })
+          }
         } else if (role === 'STUDENT') {
           const rows = await sql`
             SELECT student_id, full_name, email, roll_no, program, cgpa, cohort_year
@@ -104,12 +126,18 @@ export async function POST(req: NextRequest) {
         institution: 'JKLU (JK Lakshmipat University)',
         isVerifiedOfficer: true,
       }
-    } else if (role === 'FACULTY') {
+    } else if (
+      role === 'FACULTY' ||
+      role === 'TEACHER' ||
+      identifier.includes('kavita') ||
+      identifier.includes('faculty') ||
+      identifier.includes('teacher')
+    ) {
       userPayload = {
         id: 'FAC-JKLU-014',
         name: 'Dr. Kavita Iyer',
         email: identifier.includes('@') ? identifier : 'kavita.iyer@jklu.edu.in',
-        role: 'FACULTY',
+        role: 'TEACHER',
         department: 'Computer Science & Engineering',
         institution: 'JKLU (JK Lakshmipat University)',
       }

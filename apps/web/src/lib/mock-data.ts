@@ -651,6 +651,19 @@ export const mockRecruiterConsents: RecruiterConsent[] = [
 
 export const mockFacultyAdvisees: FacultyAdvisee[] = [
   {
+    id: 'adv_00',
+    name: 'Aarav Sharma',
+    rollNumber: '231CS001',
+    department: 'Computer Science & Engineering',
+    cgpa: 8.42,
+    overallReadiness: 88,
+    skillsCount: 7,
+    verifiedCount: 5,
+    featuredProject: 'High-Throughput Concurrency Pipeline (FastAPI + Redis Streams)',
+    featuredSkillId: 'sk_02',
+    institutionVerified: false,
+  },
+  {
     id: 'adv_01',
     name: 'Priya Sharma',
     rollNumber: '231CS042',
@@ -688,6 +701,19 @@ export const mockFacultyAdvisees: FacultyAdvisee[] = [
     featuredProject: 'Vector Search Semantic Index (Python + pgvector)',
     featuredSkillId: 'sk_05',
     institutionVerified: false,
+  },
+  {
+    id: 'adv_04',
+    name: 'Arijeet Basak',
+    rollNumber: '231CS128',
+    department: 'B.Tech CS (Artificial Intelligence)',
+    cgpa: 8.85,
+    overallReadiness: 94,
+    skillsCount: 9,
+    verifiedCount: 8,
+    featuredProject: 'CampusBridge Placement Intelligence Engine & RAG Pipeline',
+    featuredSkillId: 'sk_03',
+    institutionVerified: true,
   },
 ]
 

@@ -87,13 +87,33 @@ export default function LoginPage() {
     }
 
     const resolveDestination = (defaultPath: string) => {
-      if (
-        callbackTarget &&
-        (authRole === 'OFFICER' ||
-          (!callbackTarget.startsWith('/pto') &&
-            !callbackTarget.startsWith('/tpo') &&
-            !callbackTarget.startsWith('/officer')))
-      ) {
+      if (callbackTarget && callbackTarget !== '/' && callbackTarget !== '/login') {
+        if (
+          authRole === 'STUDENT' &&
+          (callbackTarget.startsWith('/teacher') ||
+            callbackTarget.startsWith('/officer') ||
+            callbackTarget.startsWith('/admin') ||
+            callbackTarget.startsWith('/pto') ||
+            callbackTarget.startsWith('/tpo'))
+        ) {
+          return defaultPath
+        }
+        if (
+          authRole === 'FACULTY' &&
+          (callbackTarget.startsWith('/student') ||
+            callbackTarget.startsWith('/officer') ||
+            callbackTarget.startsWith('/pto') ||
+            callbackTarget.startsWith('/tpo'))
+        ) {
+          return defaultPath
+        }
+        if (
+          authRole === 'OFFICER' &&
+          (callbackTarget.startsWith('/student') ||
+            callbackTarget.startsWith('/teacher'))
+        ) {
+          return defaultPath
+        }
         return callbackTarget
       }
       return defaultPath

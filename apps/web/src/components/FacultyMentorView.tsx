@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   GraduationCap,
   Award,
@@ -32,6 +32,24 @@ export default function FacultyMentorView({
   const [endorseNotice, setEndorseNotice] = useState<string | null>(null)
   const [selectedResumeStudent, setSelectedResumeStudent] = useState<FacultyAdvisee | null>(null)
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('cb_faculty_endorsements')
+      if (stored) {
+        const endorsedIds = JSON.parse(stored) as string[]
+        if (Array.isArray(endorsedIds) && endorsedIds.length > 0) {
+          setAdvisees((prev) =>
+            prev.map((a) =>
+              endorsedIds.includes(a.id)
+                ? { ...a, institutionVerified: true, verifiedCount: Math.min(a.skillsCount, a.verifiedCount + 1) }
+                : a
+            )
+          )
+        }
+      }
+    } catch {}
+  }, [])
+
   const handleEndorse = (adviseeId: string, skillId: string, studentName: string) => {
     setAdvisees((prev) =>
       prev.map((a) => {
@@ -41,6 +59,14 @@ export default function FacultyMentorView({
         return a
       }),
     )
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('cb_faculty_endorsements') || '[]')
+      if (!stored.includes(adviseeId)) {
+        stored.push(adviseeId)
+        localStorage.setItem('cb_faculty_endorsements', JSON.stringify(stored))
+      }
+    } catch {}
 
     onSkillEndorsed?.(skillId)
     setEndorseNotice(
