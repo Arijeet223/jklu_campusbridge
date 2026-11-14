@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import os
+import time
 import urllib.request
 from typing import Any, Sequence
 
@@ -39,13 +40,14 @@ class EmbeddingGateway:
         self.model_name = os.getenv("EMBEDDING_MODEL", model_name)
         self.api_key = api_key
         self.target_dimensions = target_dimensions
+        self._last_offline_time: float = 0.0
 
     def check_health(self) -> dict[str, Any]:
         """Check nomic-embed-text readiness on Ollama."""
         is_online = False
         try:
             req = urllib.request.Request(f"{self.ollama_base_url}/api/tags")
-            with urllib.request.urlopen(req, timeout=0.4) as resp:
+            with urllib.request.urlopen(req, timeout=0.2) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode("utf-8"))
                     models = [m.get("name", "") for m in data.get("models", [])]
@@ -69,6 +71,10 @@ class EmbeddingGateway:
         if not texts:
             return []
 
+        # If recently detected as offline (within 10s), short-circuit directly to deterministic fallback
+        if time.time() - self._last_offline_time < 10.0:
+            return [self._deterministic_vector(t) for t in texts]
+
         # Attempt local Ollama nomic-embed-text batch endpoint (/api/embed)
         try:
             req_data = json.dumps({
@@ -82,40 +88,15 @@ class EmbeddingGateway:
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
+            with urllib.request.urlopen(req, timeout=0.8) as resp:
                 if resp.status == 200:
                     body = json.loads(resp.read().decode("utf-8"))
                     raw_embeddings = body.get("embeddings", [])
                     if raw_embeddings:
                         return [self._format_vector(emb) for emb in raw_embeddings]
         except Exception:
-            pass
-
-        # Attempt local single endpoint (/api/embeddings)
-        try:
-            results = []
-            for t in texts:
-                req_data = json.dumps({
-                    "model": self.model_name,
-                    "prompt": t,
-                }).encode("utf-8")
-                req = urllib.request.Request(
-                    self.single_endpoint_url,
-                    data=req_data,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(req, timeout=1.0) as resp:
-                    if resp.status == 200:
-                        body = json.loads(resp.read().decode("utf-8"))
-                        results.append(self._format_vector(body.get("embedding", [])))
-            if results and len(results) == len(texts):
-                return results
-        except Exception:
-            pass
-
-        # Fallback to deterministic local vector generation
-        return [self._deterministic_vector(t) for t in texts]
+            self._last_offline_time = time.time()
+            return [self._deterministic_vector(t) for t in texts]
 
     def _format_vector(self, vec: list[float]) -> list[float]:
         """Ensure vector matches target dimensions while preserving L2-norm and cosine angles."""

@@ -1,0 +1,39 @@
+# Git and Version Control
+.git
+.gitignore
+.github
+
+# Virtual Environments & Python Cache
+.venv
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache
+.coverage
+htmlcov/
+
+# Node.js & Frontend Artifacts (Backend Docker image does not need Next.js files)
+apps/web/
+node_modules/
+.next/
+dist/
+build/
+
+# Local data & environment overrides
+.env
+.env.local
+.env.*.local
+*.log
+data/qdrant_storage/
+tmp/
+scratch/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+

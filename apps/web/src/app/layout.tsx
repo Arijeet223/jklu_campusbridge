@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { AuthProvider } from '@/components/providers/AuthProvider'
 
 export const metadata: Metadata = {
   title: 'CampusBridge AI — Readiness & Career Intelligence',
@@ -22,8 +23,11 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-canvas text-ink-primary font-sans antialiased">
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )
 }
+

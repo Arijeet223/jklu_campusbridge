@@ -5,9 +5,11 @@ export async function GET(req: NextRequest) {
   const studentId = searchParams.get('student_id') || 'STU-101'
   const studentName = searchParams.get('student_name') || ''
   const room = searchParams.get('room') || ''
+  const jobId = searchParams.get('job_id') || ''
 
   try {
-    const backendUrl = `http://127.0.0.1:8000/v1/voice/token?student_id=${encodeURIComponent(studentId)}&student_name=${encodeURIComponent(studentName)}&room=${encodeURIComponent(room)}`
+    const jobParam = jobId ? `&job_id=${encodeURIComponent(jobId)}` : ''
+    const backendUrl = `http://127.0.0.1:8000/v1/voice/token?student_id=${encodeURIComponent(studentId)}&student_name=${encodeURIComponent(studentName)}&room=${encodeURIComponent(room)}${jobParam}`
     const res = await fetch(backendUrl, { cache: 'no-store' })
     if (!res.ok) {
       throw new Error(`Backend token service returned status ${res.status}`)

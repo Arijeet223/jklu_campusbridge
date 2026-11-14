@@ -30,7 +30,7 @@ import {
   ExternalLink,
   Code,
 } from 'lucide-react'
-import type { ChatMessage, Skill, JobMatch, EligibilityRule, UserRole, AITrace } from '@/lib/types'
+import type { ChatMessage, Skill, JobMatch, EligibilityRule, UserRole, AITrace, EvidenceStatus } from '@/lib/types'
 import {
   mockJobMatches,
 } from '@/lib/mock-data'
@@ -626,11 +626,11 @@ export default function ChatWorkspace({
   // Skill confirm handler
   const handleConfirmSkill = (skillId: string) => {
     onSetSkills?.((prev) => {
-      const updated = prev.map((s) =>
+      const updated: Skill[] = prev.map((s) =>
         s.id === skillId
           ? {
             ...s,
-            evidenceStatus: 'STUDENT_CONFIRMED',
+            evidenceStatus: 'STUDENT_CONFIRMED' as EvidenceStatus,
             confirmedAt: new Date().toISOString(),
           }
           : s,

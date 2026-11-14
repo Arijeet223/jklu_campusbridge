@@ -1185,7 +1185,13 @@ class ExcelStore:
     # ═══════════════════════════════════════════════════════════════════════
 
     def run_dsa_test(self, code: str, test_cases_json: str) -> Dict[str, Any]:
-        """Executes candidate Python code against test cases in an isolated local namespace."""
+        """Executes candidate Python code in the secured QduOJSandbox with strict cgroups & timeout."""
+        try:
+            from backend.sandbox import get_sandbox
+            return get_sandbox().execute_submission(code, test_cases_json)
+        except Exception as e:
+            logger.warning(f"Sandbox runner error, falling back to local runner: {e}")
+
         try:
             test_cases = json.loads(test_cases_json) if isinstance(test_cases_json, str) else test_cases_json
         except Exception:

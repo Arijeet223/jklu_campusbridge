@@ -1,3 +1,4 @@
+import json
 import time
 import os
 import re
@@ -109,22 +110,31 @@ async def synthesize_speech(
 async def get_voice_token(
     student_id: str = Query("STU-101", description="Student ID for room context"),
     student_name: Optional[str] = Query(None, description="Candidate display name"),
+    job_id: Optional[str] = Query(None, description="Optional Job ID to trigger recruiter persona with dynamic JD RAG"),
     room: Optional[str] = Query(None, description="Optional custom room name"),
+    agent_name: Optional[str] = Query(None, description="Target LiveKit agent name (defaults to campusbridge-local)"),
 ):
     """
     Dispatches a signed JWT AccessToken for real-time WebRTC LiveKit voice connection
-    to J.A.R.V.I.S. with dynamic unique room name and explicit agent dispatch to 'campusbridge-local'.
+    to J.A.R.V.I.S. with dynamic unique room name, job metadata, and explicit agent dispatch
+    to 'campusbridge-local'.
     """
     try:
         if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
-            raise HTTPException(status_code=500, detail="LiveKit API credentials missing")
+            raise HTTPException(status_code=500, detail="LiveKit API credentials missing on cloud backend")
+
+        # Normalize parameters for direct function calls and HTTP queries
+        clean_student_id = student_id if isinstance(student_id, str) else "STU-101"
+        clean_job_id = job_id.strip() if isinstance(job_id, str) and job_id.strip() else None
+        clean_room = room.strip() if isinstance(room, str) and room.strip() else None
+        target_agent = (agent_name if isinstance(agent_name, str) and agent_name.strip() else os.getenv("LIVEKIT_AGENT_NAME", "campusbridge-local")).strip()
 
         # Resolve student name if missing
-        display_name = student_name
+        display_name = student_name if isinstance(student_name, str) else None
         if not display_name:
             try:
                 from backend.db.excel_store import excel_store
-                student = excel_store.get_student_by_id(student_id)
+                student = excel_store.get_student_by_id(clean_student_id)
                 if student:
                     display_name = student.get("full_name") or student.get("name")
             except Exception:
@@ -133,7 +143,18 @@ async def get_voice_token(
             display_name = "Aarav Sharma"
 
         # Dynamic unique room name per session prevents stale LiveKit Cloud room reuse
-        unique_room = room or f"campusbridge-{student_id}-{int(time.time())}"
+        clean_job_suffix = f"-{clean_job_id}" if clean_job_id else ""
+        unique_room = clean_room or f"campusbridge-{clean_student_id}{clean_job_suffix}-{int(time.time())}"
+
+        # Construct room and agent metadata payload
+        metadata_dict = {
+            "student_id": clean_student_id,
+            "student_name": display_name,
+        }
+        if clean_job_id:
+            metadata_dict["job_id"] = clean_job_id
+
+        metadata_json = json.dumps(metadata_dict)
 
         grants = VideoGrants(
             room_join=True,
@@ -145,12 +166,18 @@ async def get_voice_token(
 
         token = (
             AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
-            .with_identity(student_id)
+            .with_identity(clean_student_id)
             .with_name(display_name)
+            .with_metadata(metadata_json)
             .with_grants(grants)
             .with_room_config(
                 RoomConfiguration(
-                    agents=[RoomAgentDispatch(agent_name="campusbridge-local")]
+                    agents=[
+                        RoomAgentDispatch(
+                            agent_name=target_agent,
+                            metadata=metadata_json,
+                        )
+                    ]
                 )
             )
             .to_jwt()
@@ -161,8 +188,75 @@ async def get_voice_token(
             "room_name": unique_room,
             "room": unique_room,
             "url": LIVEKIT_URL,
-            "identity": student_id,
+            "identity": clean_student_id,
             "name": display_name,
+            "agent_dispatched": target_agent,
+            "job_id": clean_job_id,
+            "metadata": metadata_dict,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate voice token: {str(e)}")
+
+
+@router.get("/worker-config")
+async def get_worker_config():
+    """Returns LiveKit Cloud connection metadata for local GPU workers (campusbridge-local)."""
+    return {
+        "status": "CONFIGURED" if (LIVEKIT_API_KEY and LIVEKIT_API_SECRET) else "MISSING_CREDENTIALS",
+        "livekit_url": LIVEKIT_URL,
+        "default_agent_name": os.getenv("LIVEKIT_AGENT_NAME", "campusbridge-local"),
+        "cloud_backend": True,
+        "server_time": time.time(),
+    }
+
+
+@router.get("/worker-token")
+async def get_worker_token(
+    worker_name: str = Query("campusbridge-local", description="Local worker agent identifier"),
+    room: Optional[str] = Query(None, description="Optional room restriction"),
+):
+    """Generates an authenticated agent worker token for the local machine LiveKit worker."""
+    if not LIVEKIT_API_KEY or not LIVEKIT_API_SECRET:
+        raise HTTPException(status_code=500, detail="LiveKit credentials missing on cloud backend")
+
+    try:
+        grants = VideoGrants(
+            agent=True,
+            room_join=bool(room),
+            room=room,
+            room_list=True,
+            can_publish=True,
+            can_subscribe=True,
+            can_publish_data=True,
+        )
+
+        token = (
+            AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+            .with_identity(f"agent-{worker_name}")
+            .with_name(f"CampusBridge Voice Worker ({worker_name})")
+            .with_grants(grants)
+            .to_jwt()
+        )
+
+        return {
+            "token": token,
+            "livekit_url": LIVEKIT_URL,
+            "agent_name": worker_name,
+            "identity": f"agent-{worker_name}",
+            "room": room,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate worker token: {str(e)}")
+
+
+@router.get("/health")
+async def voice_health():
+    """Reports LiveKit Cloud integration health."""
+    has_creds = bool(LIVEKIT_API_KEY and LIVEKIT_API_SECRET and LIVEKIT_URL)
+    return {
+        "status": "ONLINE" if has_creds else "DEGRADED",
+        "livekit_url": LIVEKIT_URL,
+        "agent_name": os.getenv("LIVEKIT_AGENT_NAME", "campusbridge-local"),
+        "edge_tts_available": EDGE_TTS_AVAILABLE,
+        "cloud_dispatch_ready": has_creds,
+    }

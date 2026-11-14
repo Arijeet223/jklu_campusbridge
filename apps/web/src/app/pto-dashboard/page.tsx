@@ -1,0 +1,4 @@
+'use client'
+
+export { default } from '../officer/dashboard/page'
+

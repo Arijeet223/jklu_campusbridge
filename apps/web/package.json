@@ -11,6 +11,7 @@
   "dependencies": {
     "@livekit/components-react": "^2.9.25",
     "@monaco-editor/react": "^4.7.0",
+    "@neondatabase/serverless": "^1.2.1",
     "@radix-ui/react-collapsible": "^1.0.3",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-switch": "^1.0.3",
@@ -21,6 +22,7 @@
     "livekit-client": "^2.23.0",
     "lucide-react": "^0.400.0",
     "next": "^14.2.0",
+    "next-auth": "^4.24.15",
     "pyodide": "^314.0.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

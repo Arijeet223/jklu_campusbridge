@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CampusBridge AI — Production Requirements (Render / Koyeb Free Tier Optimized)
+# Minimal memory footprint: ~120MB RSS under Gunicorn + UvicornWorker
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Web Framework & ASGI Server
+fastapi>=0.104.0,<1.0.0
+uvicorn[standard]>=0.24.0,<1.0.0
+gunicorn>=21.2.0,<24.0.0
+pydantic>=2.5.0,<3.0.0
+python-multipart>=0.0.6
+httpx>=0.25.0
+
+# Database & ORM (Neon.tech Serverless PostgreSQL)
+sqlalchemy>=2.0.25,<2.1.0
+asyncpg>=0.29.0
+greenlet>=3.0.0
+alembic>=1.13.0
+
+# Cloud Vector Database (Qdrant Cloud)
+qdrant-client>=1.8.0
+
+# LiveKit WebRTC Token & Voice Dispatch
+livekit-api>=0.7.0
+livekit-agents>=1.0.0
+
+# Code Execution Sandbox & Container Security (qdu-oj)
+docker>=7.0.0
+
+# Document & Resume Ingestion (PDF + Word OpenXML)
+pdfplumber>=0.10.0
+pypdf>=3.17.0
+openpyxl>=3.1.2
+pandas>=2.1.0
+
+# Neural TTS & Utilities
+edge-tts>=6.1.0
+python-dotenv>=1.0.0
+

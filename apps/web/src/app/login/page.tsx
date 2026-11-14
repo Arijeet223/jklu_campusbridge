@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { signIn } from 'next-auth/react'
 import {
   GraduationCap,
   Briefcase,
@@ -30,6 +31,22 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Institutional Security Notice (from Next.js Middleware RBAC redirects)
+  const [rbacNotice, setRbacNotice] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const err = params.get('error')
+      const msg = params.get('message')
+      if (err === 'jklu_officer_access_required') {
+        setRbacNotice(msg || 'Restricted Area: Access to the Placement & Training Officer (/pto-dashboard) console is strictly restricted to verified JKLU placement officers.')
+      } else if (err === 'faculty_access_required') {
+        setRbacNotice('Restricted Area: Faculty Advisory Console requires verified faculty credentials.')
+      }
+    }
+  }, [])
 
   // Registration Form State
   const [regFullName, setRegFullName] = useState('Devansh Gupta')
@@ -59,6 +76,36 @@ export default function LoginPage() {
   const executeAuth = async (authRole: LoginRole, authIdentifier: string, authPassword: string) => {
     setIsLoading(true)
     setErrorMsg(null)
+
+    // 1. Synchronize NextAuth.js signed JWT cookie for Edge Middleware RBAC
+    try {
+      await signIn('credentials', {
+        email: authIdentifier.trim(),
+        password: authPassword.trim(),
+        redirect: false,
+      })
+    } catch (authCookieErr) {
+      console.warn('[NextAuth] Cookie generation notice:', authCookieErr)
+    }
+
+    let callbackTarget: string | null = null
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      callbackTarget = params.get('callbackUrl')
+    }
+
+    const resolveDestination = (defaultPath: string) => {
+      if (
+        callbackTarget &&
+        (authRole === 'OFFICER' ||
+          (!callbackTarget.startsWith('/pto') &&
+            !callbackTarget.startsWith('/tpo') &&
+            !callbackTarget.startsWith('/officer')))
+      ) {
+        return callbackTarget
+      }
+      return defaultPath
+    }
 
     const payload = {
       email: authIdentifier.trim(),
@@ -105,12 +152,12 @@ export default function LoginPage() {
           if (data.needs_onboarding || data.user?.needs_onboarding) {
             router.push('/student/onboarding')
           } else {
-            router.push('/student/dashboard')
+            router.push(resolveDestination('/student/dashboard'))
           }
         } else if (authRole === 'FACULTY') {
-          router.push('/teacher/panel')
+          router.push(resolveDestination('/teacher/panel'))
         } else {
-          router.push('/officer/dashboard')
+          router.push(resolveDestination('/officer/dashboard'))
         }
         return
       }
@@ -155,11 +202,11 @@ export default function LoginPage() {
       }
 
       if (authRole === 'STUDENT') {
-        router.push('/student/dashboard')
+        router.push(resolveDestination('/student/dashboard'))
       } else if (authRole === 'FACULTY') {
-        router.push('/teacher/panel')
+        router.push(resolveDestination('/teacher/panel'))
       } else {
-        router.push('/officer/dashboard')
+        router.push(resolveDestination('/officer/dashboard'))
       }
     } finally {
       setIsLoading(false)
@@ -399,6 +446,13 @@ export default function LoginPage() {
                   </button>
                 </div>
 
+                {rbacNotice && (
+                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-[#92400E] font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#B45309]" />
+                    <span>{rbacNotice}</span>
+                  </div>
+                )}
+
                 {errorMsg && (
                   <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-[#BE123C] font-semibold flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 flex-shrink-0" />
@@ -535,6 +589,13 @@ export default function LoginPage() {
                     Direct atomic ledger write to Accounts_Students
                   </p>
                 </div>
+
+                {rbacNotice && (
+                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-[#92400E] font-semibold flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#B45309]" />
+                    <span>{rbacNotice}</span>
+                  </div>
+                )}
 
                 {errorMsg && (
                   <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-[#BE123C] font-semibold flex items-center gap-2">

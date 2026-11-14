@@ -17,6 +17,7 @@ from typing import Any, Sequence
 
 from rag.embeddings import EmbeddingGateway
 from rag.reranking import CrossEncoderReranker, RerankedCandidate
+from rag.qdrant_service import QdrantService, get_qdrant_service
 
 
 @dataclass
@@ -44,10 +45,18 @@ class HybridRetrievalEngine:
         embedding_gateway: EmbeddingGateway | None = None,
         reranker: CrossEncoderReranker | None = None,
         rrf_k: int = 60,
+        qdrant_service: QdrantService | None = None,
     ):
         self.embedding_gateway = embedding_gateway or EmbeddingGateway()
         self.reranker = reranker or CrossEncoderReranker(top_k=5)
         self.rrf_k = rrf_k
+        self._qdrant_service = qdrant_service
+
+    @property
+    def qdrant_service(self) -> QdrantService:
+        if self._qdrant_service is None:
+            self._qdrant_service = get_qdrant_service()
+        return self._qdrant_service
 
     @staticmethod
     def _bm25_score(query_terms: list[str], content: str) -> float:
@@ -156,4 +165,74 @@ class HybridRetrievalEngine:
             total_candidates=len(authorized),
             execution_time_ms=elapsed_ms,
         )
+
+    def search_qdrant(
+        self,
+        query: RetrievalQuery,
+    ) -> RetrievalResult:
+        """Execute vector similarity search directly against the Qdrant Cloud / Vector database."""
+        import time
+        t0 = time.perf_counter()
+
+        qs = self.qdrant_service
+        hits = qs.search_chunks(
+            query_text=query.query_text,
+            student_id=query.student_user_id,
+            top_k=query.top_k,
+            score_threshold=query.min_score_threshold,
+        )
+
+        candidates = [
+            RerankedCandidate(
+                chunk_id=h["chunk_id"],
+                document_id=h["document_id"],
+                content=h["content"],
+                section_path=h["section_path"],
+                page_number=h["page"],
+                char_start=h["char_start"],
+                char_end=h["char_end"],
+                initial_score=h["similarity_score"],
+                rerank_score=h["similarity_score"],
+            )
+            for h in hits
+        ]
+
+        if candidates and len(candidates) > 1:
+            raw_dicts = [
+                {
+                    "chunk_id": c.chunk_id,
+                    "document_id": c.document_id,
+                    "content": c.content,
+                    "section_path": c.section_path,
+                    "page_number": c.page_number,
+                    "char_start": c.char_start,
+                    "char_end": c.char_end,
+                }
+                for c in candidates
+            ]
+            candidates = self.reranker.rerank(query.query_text, raw_dicts)[: query.top_k]
+
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        return RetrievalResult(
+            query=query.query_text,
+            results=candidates,
+            total_candidates=len(candidates),
+            execution_time_ms=elapsed_ms,
+        )
+
+    def search(
+        self,
+        query: RetrievalQuery,
+        stored_chunks: Sequence[dict[str, Any]] | None = None,
+    ) -> RetrievalResult:
+        """Production hybrid search: queries Qdrant vector database first, falling back to in-memory store."""
+        try:
+            q_res = self.search_qdrant(query)
+            if q_res.results:
+                return q_res
+        except Exception:
+            pass
+
+        return self.search_in_memory(query, stored_chunks or [])
+
 
