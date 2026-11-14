@@ -1,19 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import type { EvidenceStatus, ProficiencyLevel } from '@/lib/types'
-
-/* ------------------------------------------------------------------ */
-/*  GhostCard — Student-Friendly AI Skill Suggestion Card             */
-/*  Dashed soft violet (unconfirmed) → solid warm card (confirmed)     */
-/* ------------------------------------------------------------------ */
 
 interface GhostCardProps {
   skillName: string
   proficiency: ProficiencyLevel
-  sourcePage: string
-  sourceSection: string
-  confidence: number
+  sourcePage?: string
+  sourceSection?: string
+  confidence?: number
   evidenceStatus: EvidenceStatus
   onConfirm?: () => void
   onEdit?: () => void
@@ -21,55 +16,24 @@ interface GhostCardProps {
   onClickSource?: () => void
 }
 
-function tierBadge(status: EvidenceStatus) {
-  switch (status) {
-    case 'ASSESSMENT_VERIFIED':
-    case 'INSTITUTION_VERIFIED':
-      return {
-        label: '✓ Verified by Assessment',
-        className: 'bg-emerald-surface text-emerald border border-emerald-border',
-      }
-    case 'ARTIFACT_LINKED':
-      return {
-        label: '🔗 Linked to Project Code',
-        className: 'bg-oxford-surface text-oxford border border-oxford-border',
-      }
-    case 'STUDENT_CONFIRMED':
-      return {
-        label: '✓ Confirmed by You',
-        className: 'bg-emerald-surface text-emerald border border-emerald-border',
-      }
-    case 'EXPIRED':
-      return {
-        label: '⏱ Needs Refresh',
-        className: 'bg-amber-surface text-amber border border-amber-border',
-      }
-    default:
-      return null
-  }
-}
-
 export default function GhostCard({
   skillName,
   proficiency,
-  sourcePage,
-  sourceSection,
-  confidence,
+  sourcePage = 'p.1',
+  sourceSection = 'Technical Skills',
+  confidence = 0.92,
   evidenceStatus,
   onConfirm,
-  onEdit,
   onReject,
   onClickSource,
 }: GhostCardProps) {
   const [localStatus, setLocalStatus] = useState<EvidenceStatus>(evidenceStatus)
-  const [confirmedAt, setConfirmedAt] = useState<string | null>(null)
   const [isRejected, setIsRejected] = useState(false)
 
   const isGhost = localStatus === 'EXTRACTED'
 
   const handleConfirm = () => {
     setLocalStatus('STUDENT_CONFIRMED')
-    setConfirmedAt(new Date().toISOString())
     onConfirm?.()
   }
 
@@ -78,104 +42,85 @@ export default function GhostCard({
     onReject?.()
   }
 
-  const badge = tierBadge(localStatus)
-
   if (isRejected) {
     return (
-      <div className="rounded-xl border border-dashed border-border-hairline bg-subtle/50 p-3 text-center text-xs text-ink-muted">
-        Skill removed from suggestions.
+      <div className="rounded-3xl border border-dashed border-outline-variant bg-surface-container-low p-4 text-center text-xs text-outline">
+        Skill claim dismissed.
       </div>
     )
   }
 
   return (
     <div
-      className={`rounded-xl p-4 transition-all duration-200 ${
+      className={`rounded-3xl p-5 transition-all duration-200 ${
         isGhost
-          ? 'border-[1.5px] border-dashed border-[#C4B5FD] bg-[#F5F3FF]'
-          : 'border border-solid border-[#E6E3DC] bg-white shadow-2xs'
+          ? 'border-2 border-dashed border-primary-container bg-primary-container/15 shadow-[0_3px_0_#DE95BE]'
+          : 'border-[1.5px] border-outline-variant bg-surface-container-lowest shadow-[0_4px_0_#EAD7E2]'
       }`}
-      style={{
-        transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)',
-      }}
     >
-      {/* Friendly Header Badge */}
-      {isGhost ? (
-        <div className="mb-2 flex items-center justify-between text-xs font-medium text-[#6D28D9]">
-          <span>✨ AI Found in Resume • Needs Your Confirmation</span>
-          <span className="font-mono text-[10px] opacity-75">
-            {Math.round(confidence * 100)}% match
-          </span>
-        </div>
-      ) : (
-        badge && (
-          <div className="mb-2">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-extrabold text-sm text-on-surface">{skillName}</h4>
             <span
-              className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${badge.className}`}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                isGhost
+                  ? 'bg-primary-container text-on-primary-container border border-outline-variant'
+                  : 'bg-tertiary-container text-on-tertiary-container border border-tertiary-fixed-dim'
+              }`}
             >
-              {badge.label}
+              {isGhost ? '0.5x Ghost' : '1.0x Solid'}
             </span>
           </div>
-        )
-      )}
+          <p className="text-xs text-on-surface-variant font-medium">
+            Proficiency: <strong className="text-on-surface">{proficiency}</strong> • Match Confidence:{' '}
+            {Math.round(confidence * 100)}%
+          </p>
+        </div>
 
-      {/* Skill Name & Level */}
-      <h3 className="font-display text-base font-semibold text-ink-primary">
-        {skillName}
-      </h3>
-      <p className="mt-0.5 text-xs text-ink-secondary">
-        Level: <strong className="text-ink-primary font-medium">{proficiency}</strong>
-      </p>
-
-      {/* Monospace Provenance Source Button */}
-      <div className="mt-2.5">
         <button
           type="button"
           onClick={onClickSource}
-          className={`inline-flex min-h-[38px] items-center rounded-md border px-2.5 py-1 text-xs font-mono transition-colors hover:opacity-90 ${
-            isGhost
-              ? 'border-[#DDD6FE] bg-[#F5F3FF] text-[#6D28D9]'
-              : 'border-[#E6E3DC] bg-[#F3F1EC] text-ink-secondary'
-          }`}
-          title="Click to view exact resume highlight"
+          className="text-xs text-secondary font-bold hover:underline flex items-center gap-1 bg-secondary-container/40 px-2.5 py-1 rounded-full border border-secondary-fixed-dim shadow-[0_1px_0_#85B5CE]"
         >
-          📄 Found in Resume_v3.pdf • {sourcePage}, {sourceSection}
+          <span className="material-symbols-outlined text-sm">find_in_page</span>
+          <span>Provenance</span>
         </button>
       </div>
 
-      {/* Confirmed timestamp */}
-      {confirmedAt && (
-        <p className="mt-2 text-xs font-medium text-emerald">
-          ✓ Added to your verified profile facts
-        </p>
-      )}
+      <div className="mt-4 pt-3 border-t border-dashed border-outline-variant/60 flex items-center justify-between flex-wrap gap-2 text-xs">
+        <span className="text-[11px] text-outline font-medium flex items-center gap-1">
+          <span className="material-symbols-outlined text-sm">description</span>
+          <span>
+            {sourceSection} • {sourcePage}
+          </span>
+        </span>
 
-      {/* Friendly Warm Action Bar */}
-      {isGhost && (
-        <div className="mt-3.5 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg bg-emerald px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-emerald/90"
-          >
-            ✓ Looks Good, Confirm
-          </button>
-          <button
-            type="button"
-            onClick={onEdit}
-            className="inline-flex min-h-[36px] items-center rounded-lg border border-border-hairline bg-surface px-3 py-1.5 text-xs font-medium text-ink-secondary hover:bg-subtle hover:text-ink-primary transition-colors"
-          >
-            ✎ Edit Level
-          </button>
-          <button
-            type="button"
-            onClick={handleReject}
-            className="inline-flex min-h-[36px] items-center rounded-lg border border-transparent px-2.5 py-1.5 text-xs font-medium text-ink-muted hover:text-crimson hover:bg-crimson-surface transition-colors"
-          >
-            ✕ Not My Skill
-          </button>
-        </div>
-      )}
+        {isGhost ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleReject}
+              className="text-[11px] text-outline font-bold hover:text-error transition-colors px-2 py-1"
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="bg-primary text-on-primary font-bold text-xs px-3.5 py-1.5 rounded-full border border-on-primary-fixed-variant shadow-[0_2px_0_#320e26] active:translate-y-[1px] transition-all flex items-center gap-1 hover:brightness-105"
+            >
+              <span className="material-symbols-outlined text-sm">check</span>
+              <span>Confirm &amp; Solidify</span>
+            </button>
+          </div>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-tertiary bg-tertiary-fixed px-2.5 py-0.5 rounded-full">
+            <span className="material-symbols-outlined text-sm">verified</span>
+            <span>Verified in Profile</span>
+          </span>
+        )}
+      </div>
     </div>
   )
 }

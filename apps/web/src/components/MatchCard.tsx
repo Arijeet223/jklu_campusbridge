@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown, Calendar, Building2, Sparkles, CheckCircle2 } from 'lucide-react'
+import { ChevronDown, Building2, Calendar, Sparkles } from 'lucide-react'
 import type { EligibilityRule, AlignmentFactor, SandboxToggle } from '@/lib/types'
 import { ClientOnlyDate } from '@/lib/date-format'
 import CounterfactualSandbox from './CounterfactualSandbox'
@@ -11,12 +11,14 @@ interface MatchCardProps {
   jobTitle: string
   company: string
   deadline: string
+  compensationTarget?: string
   eligibilityRules: EligibilityRule[]
   alignmentScore: number
   factorBreakdown: AlignmentFactor[]
   sandboxToggles: SandboxToggle[]
   onAddPlan?: () => void
   onOpenDispute?: (rule: EligibilityRule, jobTitle: string, company: string) => void
+  onOpenSource?: (docId: string) => void
 }
 
 function EligibilityPill({
@@ -32,39 +34,39 @@ function EligibilityPill({
 }) {
   const config = {
     MEETS: {
-      bg: 'bg-emerald-surface',
-      text: 'text-emerald',
-      border: 'border-emerald-border',
-      icon: '✓',
-      labelSuffix: 'Met',
+      bg: 'bg-tertiary-container/40',
+      text: 'text-on-tertiary-container',
+      border: 'border-tertiary-fixed-dim',
+      icon: 'check',
+      labelSuffix: 'Met ✓',
     },
     UNKNOWN: {
-      bg: 'bg-amber-surface',
-      text: 'text-amber',
-      border: 'border-amber-border',
-      icon: '?',
+      bg: 'bg-primary-container/30',
+      text: 'text-on-primary-container',
+      border: 'border-primary-container',
+      icon: 'help',
       labelSuffix: 'Click to Clarify',
     },
     DOES_NOT_MEET: {
-      bg: 'bg-crimson-surface',
-      text: 'text-crimson',
-      border: 'border-crimson-border',
-      icon: '✕',
+      bg: 'bg-error-container/40',
+      text: 'text-error',
+      border: 'border-error/30',
+      icon: 'close',
       labelSuffix: 'Not Met',
     },
   }
-  const c = config[rule.status]
+  const c = config[rule.status] || config.UNKNOWN
 
   return (
     <button
       type="button"
       onClick={() => onClickDispute?.(rule, jobTitle, company)}
-      className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:opacity-90 ${c.bg} ${c.text} ${c.border}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold transition-all shadow-[0_1px_0_rgba(0,0,0,0.06)] hover:brightness-95 cursor-pointer ${c.bg} ${c.text} ${c.border}`}
       title={rule.clarificationHint || `Click to review or clarify ${rule.label}`}
     >
-      <span aria-hidden="true" className="font-bold">{c.icon}</span>
+      <span className="material-symbols-outlined text-sm font-bold">{c.icon}</span>
       <span>{rule.label}</span>
-      <span className="font-mono text-[10px] opacity-75">({c.labelSuffix})</span>
+      <span className="text-[10px] opacity-80">({c.labelSuffix})</span>
     </button>
   )
 }
@@ -73,25 +75,49 @@ export default function MatchCard({
   jobTitle,
   company,
   deadline,
+  compensationTarget = '₹18–24 LPA',
   eligibilityRules,
   alignmentScore,
   factorBreakdown,
   sandboxToggles,
   onAddPlan,
   onOpenDispute,
+  onOpenSource,
 }: MatchCardProps) {
   const [sandboxOpen, setSandboxOpen] = useState(false)
-  const totalWeight = factorBreakdown.reduce((s, f) => s + f.weight, 0)
+  const totalWeight = factorBreakdown.reduce((s, f) => s + f.weight, 0) || 1
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border-hairline bg-surface shadow-2xs">
-      {/* Top Bar: Mandatory Eligibility Checklist */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E6E3DC] bg-[#FAF8F5] px-4 py-2.5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold text-ink-primary">
-            Mandatory Criteria:
-          </span>
+    <article className="overflow-hidden rounded-3xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0_4px_0_#EAD7E2] transition-all hover:border-primary-container font-body-md text-on-surface">
+      {/* Header & Compensation */}
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-outline-variant/60">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-9 h-9 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-extrabold text-xs border border-secondary-fixed-dim shadow-[0_2px_0_#85B5CE]">
+              {company.slice(0, 2).toUpperCase()}
+            </span>
+            <h3 className="text-base font-extrabold text-on-surface">{jobTitle}</h3>
+          </div>
+          <p className="text-xs text-on-surface-variant font-medium">
+            {company} • Compensation Target: <strong>{compensationTarget}</strong> • Closes{' '}
+            <span suppressHydrationWarning>
+              <ClientOnlyDate date={deadline} />
+            </span>
+          </p>
         </div>
+
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1 rounded-full bg-primary-container text-on-primary-container border border-outline-variant font-bold text-xs shadow-[0_2px_0_#DE95BE]">
+            {alignmentScore}% Projected Fit
+          </div>
+        </div>
+      </div>
+
+      {/* Mandatory Eligibility Checklist */}
+      <div className="my-4 p-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/60 space-y-2">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-outline block">
+          Mandatory Criteria &amp; Policy Gates:
+        </span>
         <div className="flex flex-wrap items-center gap-2">
           {eligibilityRules.map((rule) => (
             <EligibilityPill
@@ -105,95 +131,70 @@ export default function MatchCard({
         </div>
       </div>
 
-      {/* Main Card Body */}
-      <div className="p-4 sm:p-5">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-display text-base font-semibold text-ink-primary">
-              {jobTitle}
-            </h3>
-            <div className="mt-1 flex items-center gap-3 text-xs text-ink-secondary">
-              <span className="flex items-center gap-1">
-                <Building2 className="h-3.5 w-3.5 text-oxford" />
-                {company}
-              </span>
-              <span className="flex items-center gap-1" suppressHydrationWarning>
-                <Calendar className="h-3.5 w-3.5 text-amber" />
-                Apply by <ClientOnlyDate date={deadline} />
+      {/* Alignment Proportional Bar */}
+      <div className="mt-4">
+        <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-container">
+          {factorBreakdown.map((factor) => {
+            const proportion = (factor.score * factor.weight) / totalWeight
+            return (
+              <div
+                key={factor.id}
+                className={`${factor.color} transition-all duration-300`}
+                style={{ width: `${proportion}%` }}
+                title={`${factor.label}: ${factor.score}/100`}
+              />
+            )
+          })}
+        </div>
+
+        <div className="mt-2.5 flex items-center justify-between text-xs">
+          <span className="font-mono text-on-surface font-bold">
+            <span className="text-primary text-sm">{alignmentScore}</span>
+            <span className="text-outline"> / 100 Match Alignment</span>
+          </span>
+          <span className="text-[10px] text-outline font-semibold">
+            Deterministic Python/SQL math (Zero hallucination)
+          </span>
+        </div>
+
+        {/* Legend */}
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-on-surface-variant font-medium">
+          {factorBreakdown.map((factor) => (
+            <div key={factor.id} className="flex items-center gap-1.5">
+              <span className={`inline-block h-2 w-2 rounded-full ${factor.color}`} />
+              <span>
+                {factor.label}: <strong>{factor.score}</strong>
               </span>
             </div>
-          </div>
+          ))}
         </div>
-
-        {/* Proportional Match Bar */}
-        <div className="mt-4">
-          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#F3F1EC]">
-            {factorBreakdown.map((factor) => {
-              const proportion = (factor.score * factor.weight) / totalWeight
-              return (
-                <div
-                  key={factor.id}
-                  className={`${factor.color} transition-all duration-200`}
-                  style={{ width: `${proportion}%` }}
-                  title={`${factor.label}: ${factor.score}/100`}
-                />
-              )
-            })}
-          </div>
-
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <span className="font-mono text-ink-primary">
-              <span className="font-bold text-sm text-oxford">{alignmentScore}</span>
-              <span className="text-ink-secondary"> / 100 Match Alignment</span>
-            </span>
-            <span className="text-[11px] text-ink-muted">
-              Deterministic rubric match (not a hiring guarantee)
-            </span>
-          </div>
-
-          {/* Factor legend */}
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-secondary">
-            {factorBreakdown.map((factor) => (
-              <div key={factor.id} className="flex items-center gap-1">
-                <span className={`inline-block h-2 w-2 rounded-full ${factor.color}`} />
-                <span>{factor.label}: {factor.score}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Collapsible Sandbox */}
-        <Collapsible.Root
-          open={sandboxOpen}
-          onOpenChange={setSandboxOpen}
-          className="mt-4"
-        >
-          <Collapsible.Trigger asChild>
-            <button
-              type="button"
-              className="flex min-h-[40px] w-full items-center justify-between rounded-lg border border-dashed border-border-ai-dashed bg-ai-ghost px-3.5 py-2 text-xs font-semibold text-iris transition-colors hover:bg-iris-surface"
-            >
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" />
-                Test What-If Improvements ⚡ (Simulate instant score boost)
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 transition-transform duration-200 ${
-                  sandboxOpen ? 'rotate-180' : ''
-                }`}
-              />
-            </button>
-          </Collapsible.Trigger>
-
-          <Collapsible.Content className="mt-3">
-            <CounterfactualSandbox
-              baseScore={alignmentScore}
-              toggles={sandboxToggles}
-              onAddPlan={onAddPlan}
-            />
-          </Collapsible.Content>
-        </Collapsible.Root>
       </div>
-    </div>
+
+      {/* Collapsible Sandbox */}
+      <Collapsible.Root open={sandboxOpen} onOpenChange={setSandboxOpen} className="mt-5">
+        <Collapsible.Trigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-full border border-primary-container bg-primary-container/20 px-4 py-2 text-xs font-bold text-on-primary-container shadow-[0_2px_0_#DE95BE] active:translate-y-[1px] hover:bg-primary-container/30 transition-all cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span>Simulate What-If Improvements ⚡ (Pass 120s quests to jump fit)</span>
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 transition-transform duration-200 ${sandboxOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+        </Collapsible.Trigger>
+
+        <Collapsible.Content className="mt-4">
+          <CounterfactualSandbox
+            baseScore={alignmentScore}
+            toggles={sandboxToggles}
+            onAddPlan={onAddPlan}
+          />
+        </Collapsible.Content>
+      </Collapsible.Root>
+    </article>
   )
 }

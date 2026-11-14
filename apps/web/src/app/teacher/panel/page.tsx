@@ -27,21 +27,21 @@ export default function TeacherPanelPage() {
     >
       <div className="space-y-6">
         {/* Header */}
-        <div className="rounded-3xl bg-white border-2 border-[#E6E3DC] p-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="rounded-3xl bg-surface-container-low border border-outline-variant p-6 shadow-[0_4px_0_#EADECE] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-iris-surface text-iris border border-iris-border">
-              <Award className="h-3.5 w-3.5" />
-              Faculty Departmental Advisory Console
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container border border-secondary-fixed-dim shadow-[0_2px_0_#85B5CE]">
+              <span className="material-symbols-outlined text-sm">school</span>
+              <span>Faculty Departmental Advisory Console • JKLU</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-ink-primary tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
               Advisee Roster &amp; Capstone Endorsements
             </h2>
-            <p className="text-xs sm:text-sm text-ink-muted">
+            <p className="text-xs sm:text-sm text-on-surface-variant font-medium">
               Inspect student transcripts and capstone deliverables; endorse verified project proficiencies (upgrades skills to Level 3 in Excel DB).
             </p>
           </div>
 
-          <span className="font-mono text-2xs rounded-full bg-iris-surface px-3 py-1 text-iris font-bold border border-iris-border">
+          <span className="text-xs font-bold rounded-full bg-tertiary-container text-on-tertiary-container px-3.5 py-1.5 border border-tertiary-fixed-dim shadow-[0_2px_0_#a8cfbb]">
             Academic Scope Authority
           </span>
         </div>

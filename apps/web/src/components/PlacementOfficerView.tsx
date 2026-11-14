@@ -44,78 +44,78 @@ export default function PlacementOfficerView({ onOpenSource }: PlacementOfficerV
   return (
     <div className="space-y-6">
       {/* Top Banner: Placement Officer Authority Console */}
-      <div className="rounded-xl border border-border-hairline bg-surface p-5 shadow-2xs">
+      <div className="bg-surface-container-low border border-outline-variant rounded-3xl p-6 shadow-[0_4px_0_#EADECE]">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-md bg-oxford-surface px-2.5 py-1 text-xs font-semibold text-oxford">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              Institutional Placement Officer Authority Scope
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary-container text-on-secondary-container px-3 py-1 text-xs font-bold border border-secondary-fixed-dim shadow-[0_2px_0_#85B5CE]">
+              <span className="material-symbols-outlined text-sm">shield</span>
+              <span>Institutional Placement Officer Authority Scope • JKLU</span>
             </div>
-            <h1 className="mt-2 font-display text-display-h1 text-ink-primary">
+            <h1 className="mt-2 text-headline-sm font-headline-sm font-extrabold text-on-surface">
               Opportunity Calibration &amp; Cohort Operations Studio
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-ink-secondary">
+            <p className="mt-1 text-xs sm:text-sm text-on-surface-variant font-medium">
               Review AI-parsed recruiter job criteria, simulate candidate pool liquidity in real time, and adjudicate student eligibility exceptions.
             </p>
           </div>
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-lg border border-border-hairline bg-canvas p-3 text-center">
-              <div className="text-[11px] font-medium text-ink-muted">Eligible Cohort</div>
-              <div className="font-mono text-lg font-bold text-ink-primary">240</div>
+            <div className="rounded-2xl border-2 border-outline-variant bg-surface-container-lowest p-3 text-center shadow-[0_2px_0_#d3c2c9]">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-outline">Eligible Cohort</div>
+              <div className="font-extrabold text-lg text-primary">240</div>
             </div>
-            <div className="rounded-lg border border-border-hairline bg-canvas p-3 text-center">
-              <div className="text-[11px] font-medium text-ink-muted">Active Postings</div>
-              <div className="font-mono text-lg font-bold text-emerald">3</div>
+            <div className="rounded-2xl border-2 border-tertiary-fixed-dim bg-tertiary-container/30 p-3 text-center shadow-[0_2px_0_#a8cfbb]">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-tertiary">Active Drives</div>
+              <div className="font-extrabold text-lg text-tertiary">3</div>
             </div>
-            <div className="rounded-lg border border-border-hairline bg-canvas p-3 text-center">
-              <div className="text-[11px] font-medium text-ink-muted">Pending Tickets</div>
-              <div className="font-mono text-lg font-bold text-amber">1</div>
+            <div className="rounded-2xl border-2 border-primary-container bg-primary-container/30 p-3 text-center shadow-[0_2px_0_#DE95BE]">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-primary">Pending Tickets</div>
+              <div className="font-extrabold text-lg text-primary">1</div>
             </div>
           </div>
         </div>
 
-        {/* 3-Tab Operational Workspace Navigation Bar */}
-        <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border-hairline pt-4">
+        {/* 4-Tab Operational Workspace Navigation Bar */}
+        <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-dashed border-outline-variant/60 pt-4">
           <button
             type="button"
             onClick={() => setActiveTab('INGESTION')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
               activeTab === 'INGESTION'
-                ? 'bg-oxford text-white shadow-2xs'
-                : 'border border-border-hairline bg-canvas text-ink-secondary hover:bg-subtle'
+                ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                : 'border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container'
             }`}
           >
             <FileText className="h-3.5 w-3.5" />
-            1. JD Ingestion &amp; Approval Studio (FR-030 &amp; FR-031)
+            1. JD Ingestion &amp; Approval Studio
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('SIMULATOR')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
               activeTab === 'SIMULATOR'
-                ? 'bg-oxford text-white shadow-2xs'
-                : 'border border-border-hairline bg-canvas text-ink-secondary hover:bg-subtle'
+                ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                : 'border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container'
             }`}
           >
             <Sliders className="h-3.5 w-3.5" />
-            2. Cohort Liquidity Simulator (FR-038)
+            2. Cohort Liquidity Simulator
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('EXCEPTIONS')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
               activeTab === 'EXCEPTIONS'
-                ? 'bg-oxford text-white shadow-2xs'
-                : 'border border-border-hairline bg-canvas text-ink-secondary hover:bg-subtle'
+                ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                : 'border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container'
             }`}
           >
             <ShieldAlert className="h-3.5 w-3.5" />
-            3. Student Eligibility Exception Queue (FR-036)
-            <span className="rounded-full bg-amber px-1.5 py-0.2 text-[10px] font-bold text-white">
+            3. Student Eligibility Exception Queue
+            <span className="rounded-full bg-primary-container text-on-primary-container px-2 py-0.5 text-[10px] font-extrabold border border-outline-variant">
               1 Pending
             </span>
           </button>
@@ -123,10 +123,10 @@ export default function PlacementOfficerView({ onOpenSource }: PlacementOfficerV
           <button
             type="button"
             onClick={() => setActiveTab('ROSTER')}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all ${
               activeTab === 'ROSTER'
-                ? 'bg-oxford text-white shadow-2xs'
-                : 'border border-border-hairline bg-canvas text-ink-secondary hover:bg-subtle'
+                ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                : 'border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container'
             }`}
           >
             <Users className="h-3.5 w-3.5" />

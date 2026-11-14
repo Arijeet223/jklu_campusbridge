@@ -98,8 +98,8 @@ class HybridRetrievalEngine:
         # Step 1: Pre-retrieval security filter (institution & student isolation)
         authorized = [
             c for c in stored_chunks
-            if c.get("student_user_id") == query.student_user_id
-            and c.get("institution_id") == query.institution_id
+            if (c.get("student_user_id") == query.student_user_id or c.get("student_id") == query.student_user_id)
+            and (not query.institution_id or not c.get("institution_id") or c.get("institution_id") == query.institution_id)
         ]
 
         if not authorized:

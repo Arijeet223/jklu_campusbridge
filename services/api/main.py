@@ -1,5 +1,6 @@
 """CampusBridge AI — FastAPI application entry-point."""
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,12 +16,30 @@ app = FastAPI(
     description="Deterministic career readiness, Excel two-way engine, and MCP matching platform",
 )
 
+# ── Dynamic CORS Configuration for Vercel Deployments & Local Dev ─────────────
+CORS_ORIGIN_REGEX = r"^https:\/\/.*\.vercel\.app$"
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+]
+frontend_env = os.getenv("FRONTEND_URL")
+if frontend_env:
+    for origin in frontend_env.split(","):
+        cleaned = origin.strip().rstrip("/")
+        if cleaned and cleaned not in ALLOWED_ORIGINS:
+            ALLOWED_ORIGINS.append(cleaned)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 

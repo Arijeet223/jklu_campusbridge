@@ -153,7 +153,7 @@ export default function StudentDashboardPage() {
             studentName={student?.full_name || 'Student Candidate'}
             cgpa={parseFloat(student?.cgpa || 8.0)}
             branch={student?.program || 'B.Tech CSE'}
-            institution="NIT Karnataka, Surathkal"
+            institution="JKLU (JK Lakshmipat University)"
             skills={skills}
             onNavigate={handleNavigate}
             onOpenPrivacyVault={() => {}}

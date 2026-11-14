@@ -44,7 +44,7 @@ export default function RootHomePage() {
           studentName="Aarav Sharma"
           cgpa={8.42}
           branch="B.Tech Computer Science"
-          institution="NIT Karnataka, Surathkal"
+          institution="JKLU (JK Lakshmipat University)"
           skills={skills}
           onNavigate={handleNavigate}
           onOpenPrivacyVault={() => {}}

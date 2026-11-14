@@ -1304,6 +1304,9 @@ async def ai_chat(request: AIChatRequest) -> dict[str, Any]:
         "response": pipeline_res["response"],
         "trace": pipeline_res["trace"],
         "session_id": pipeline_res["session_id"],
+        "widget_type": pipeline_res.get("widget_type", "none"),
+        "agent_name": pipeline_res.get("agent_name", "🤖 J.A.R.V.I.S."),
+        "delegated_agent": pipeline_res.get("delegated_agent"),
     }
 
 

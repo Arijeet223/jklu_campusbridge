@@ -27,6 +27,7 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  PhoneCall,
   ExternalLink,
   Code,
 } from 'lucide-react'
@@ -42,6 +43,7 @@ import MicroDefenseChatCard from './MicroDefenseChatCard'
 import SprintPlanChatCard from './SprintPlanChatCard'
 import ApplicationsTrackerView from './ApplicationsTrackerView'
 import WordResumePreview from './WordResumePreview'
+import LiveKitVoiceModal from './LiveKitVoiceModal'
 import type { ActiveWorkspaceView } from './CollapsibleNavDrawer'
 
 export function getAgentBadge(agentName?: string) {
@@ -163,6 +165,7 @@ export default function ChatWorkspace({
 
   // Direct In-Chat Web Speech Recognition, Auto-Voice & Multi-Voice Neural TTS State
   const [autoVoiceEnabled, setAutoVoiceEnabled] = useState(true)
+  const [isLiveKitOpen, setIsLiveKitOpen] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [interimTranscript, setInterimTranscript] = useState('')
   const [isSpeakingResponse, setIsSpeakingResponse] = useState(false)
@@ -1339,6 +1342,17 @@ export default function ChatWorkspace({
             <Mic className="h-3.5 w-3.5 text-emerald-600" />
             <span>Voice Mic Ready</span>
           </span>
+
+          {/* Real-Time LiveKit WebRTC Voice Call */}
+          <button
+            type="button"
+            onClick={() => setIsLiveKitOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-oxford text-white border border-oxford text-[11px] font-semibold transition-all shadow-2xs hover:bg-oxford/90 cursor-pointer active:translate-y-0.5"
+            title="Start real-time LiveKit WebRTC audio session with J.A.R.V.I.S."
+          >
+            <PhoneCall className="h-3.5 w-3.5 text-emerald-400" />
+            <span>LiveKit Call</span>
+          </button>
         </div>
       </div>
 
@@ -1975,6 +1989,14 @@ export default function ChatWorkspace({
           </form>
         </div>
       </div>
+
+      {/* LiveKit Real-Time WebRTC Voice Modal */}
+      <LiveKitVoiceModal
+        isOpen={isLiveKitOpen}
+        onClose={() => setIsLiveKitOpen(false)}
+        studentId={activeStudentId}
+        studentName={activeStudentName}
+      />
     </div>
   )
 }

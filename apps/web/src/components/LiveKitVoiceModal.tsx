@@ -15,6 +15,8 @@ interface LiveKitVoiceModalProps {
   onClose: () => void
   studentId: string
   studentName: string
+  roomId?: string
+  jobId?: string
 }
 
 function InnerVoiceSession({
@@ -233,11 +235,17 @@ export default function LiveKitVoiceModal({
   onClose,
   studentId,
   studentName,
+  roomId,
+  jobId,
 }: LiveKitVoiceModalProps) {
   const [token, setToken] = useState<string | null>(null)
   const [url, setUrl] = useState<string>('wss://first-w4gv5xp4.livekit.cloud')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
+
+  // Explicit, deterministic room ID for session
+  const targetRoom = roomId || `campusbridge-${studentId}`
 
   useEffect(() => {
     if (!isOpen) {
@@ -250,12 +258,21 @@ export default function LiveKitVoiceModal({
     setLoading(true)
     setError(null)
 
+    const params = new URLSearchParams({
+      student_id: studentId,
+      student_name: studentName,
+      room: targetRoom,
+    })
+    if (jobId) params.append('job_id', jobId)
+
+    const qs = params.toString()
+
     // Request voice JWT from API route or backend
-    fetch(`/api/v1/voice/token?student_id=${encodeURIComponent(studentId)}&student_name=${encodeURIComponent(studentName)}`)
+    fetch(`/api/v1/voice/token?${qs}`)
       .then(async (res) => {
         if (!res.ok) {
           // Fallback to Next.js route
-          return fetch(`/api/livekit-token?student_id=${encodeURIComponent(studentId)}&student_name=${encodeURIComponent(studentName)}`)
+          return fetch(`/api/livekit-token?${qs}`)
         }
         return res
       })
@@ -265,8 +282,9 @@ export default function LiveKitVoiceModal({
         if (data.token) {
           setToken(data.token)
           if (data.url) setUrl(data.url)
+          setError(null)
         } else {
-          setError(data.error || 'Failed to obtain signed LiveKit token')
+          setError(data.error || data.detail || 'Failed to obtain signed LiveKit token')
         }
       })
       .catch((err) => {
@@ -280,7 +298,7 @@ export default function LiveKitVoiceModal({
     return () => {
       isMounted = false
     }
-  }, [isOpen, studentId, studentName])
+  }, [isOpen, studentId, studentName, targetRoom, jobId, retryKey])
 
   if (!isOpen) return null
 
@@ -296,7 +314,7 @@ export default function LiveKitVoiceModal({
                 Real-Time Voice Assistant
               </h3>
               <p className="text-[10px] text-ink-muted">
-                Powered by LiveKit WebRTC & Qwen 2.5
+                Room: <span className="font-mono">{targetRoom}</span>
               </p>
             </div>
           </div>
@@ -318,7 +336,7 @@ export default function LiveKitVoiceModal({
               Connecting to LiveKit Cloud...
             </p>
             <p className="text-[11px] text-ink-muted mt-1">
-              Establishing audio session for {studentName} ({studentId})
+              Establishing audio session for {studentName} in {targetRoom}
             </p>
           </div>
         ) : error ? (
@@ -330,13 +348,22 @@ export default function LiveKitVoiceModal({
             <p className="text-[11px] text-ink-muted mt-1 max-w-xs">
               {error}
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-5 px-4 py-2 rounded-xl text-xs font-medium bg-oxford text-white hover:bg-oxford/90 shadow-2xs"
-            >
-              Close
-            </button>
+            <div className="flex items-center gap-3 mt-5">
+              <button
+                type="button"
+                onClick={() => setRetryKey((k) => k + 1)}
+                className="px-4 py-2 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs cursor-pointer"
+              >
+                Retry Connection
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl text-xs font-medium bg-surface border border-border-hairline text-ink-primary hover:bg-subtle shadow-2xs cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         ) : token ? (
           <LiveKitRoom
@@ -345,6 +372,10 @@ export default function LiveKitVoiceModal({
             connect={true}
             audio={true}
             video={false}
+            onError={(err) => {
+              console.error('[LiveKitRoom] Audio room error:', err)
+              setError(err?.message || 'LiveKit WebRTC audio connection failed')
+            }}
             onDisconnected={onClose}
           >
             <RoomAudioRenderer />

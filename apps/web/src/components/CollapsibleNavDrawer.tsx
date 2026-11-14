@@ -121,7 +121,7 @@ export default function CollapsibleNavDrawer({
                 {studentName}
               </h4>
               <p className="truncate font-mono text-[11px] text-ink-secondary">
-                NIT Surathkal • CS &apos;27
+                JKLU • CS &apos;27
               </p>
               <div className="mt-1 flex items-center gap-2">
                 <span className="font-mono text-[10px] text-emerald font-semibold">

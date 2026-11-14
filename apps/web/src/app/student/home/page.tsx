@@ -216,29 +216,29 @@ export default function StudentHomePage() {
         )}
 
         {/* Header & Mode Switcher */}
-        <div className="rounded-3xl bg-white border-2 border-[#E6E3DC] p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="rounded-3xl bg-surface-container-low border border-outline-variant p-6 sm:p-8 shadow-[0_4px_0_#EADECE] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#F0B6D5]/40 text-[#6D3B56] border border-[#F0B6D5]">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-primary-container text-on-primary-container border border-outline-variant shadow-[0_2px_0_#DE95BE]">
               <Sparkles className="h-3.5 w-3.5" />
-              Ghost-to-Solid Profile Studio
+              Ghost-to-Solid Profile Studio • JKLU
             </div>
-            <h2 className="text-2xl sm:text-3xl font-display font-extrabold text-ink-primary tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
               Skill Provenance &amp; Verification Map
             </h2>
-            <p className="text-xs sm:text-sm text-ink-muted">
+            <p className="text-xs sm:text-sm text-on-surface-variant font-medium">
               Every skill requires verifiable evidence before it can be shared with campus recruiters.
             </p>
           </div>
 
           {/* Time-Horizon Switcher */}
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#F1EFEA] border border-[#E6E3DC]">
+          <div className="flex items-center gap-2 p-1.5 rounded-full bg-surface-container border border-outline-variant/60">
             <button
               type="button"
               onClick={() => setTimeHorizon('sprint')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
                 timeHorizon === 'sprint'
-                  ? 'bg-[#6D3B56] text-white shadow-xs'
-                  : 'text-ink-muted hover:text-ink-primary'
+                  ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               <Flame className="h-4 w-4" />
@@ -248,10 +248,10 @@ export default function StudentHomePage() {
             <button
               type="button"
               onClick={() => setTimeHorizon('marathon')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
                 timeHorizon === 'marathon'
-                  ? 'bg-oxford text-white shadow-xs'
-                  : 'text-ink-muted hover:text-ink-primary'
+                  ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                  : 'text-on-surface-variant hover:text-on-surface'
               }`}
             >
               <Calendar className="h-4 w-4" />

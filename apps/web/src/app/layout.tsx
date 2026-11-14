@@ -3,8 +3,8 @@ import './globals.css'
 import { AuthProvider } from '@/components/providers/AuthProvider'
 
 export const metadata: Metadata = {
-  title: 'CampusBridge AI — Readiness & Career Intelligence',
-  description: 'University-grade local-first career readiness and opportunity simulation platform.',
+  title: 'CampusBridge AI — Tactile Gamified Studio',
+  description: 'University-grade local-first career readiness, unforgeable proof-of-work defense, and prescriptive opportunity sandbox.',
 }
 
 export default function RootLayout({
@@ -18,11 +18,15 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+          rel="stylesheet"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="bg-canvas text-ink-primary font-sans antialiased">
+      <body className="bg-surface text-on-surface font-body-md antialiased min-h-screen selection:bg-primary-container selection:text-on-primary-container">
         <AuthProvider>
           {children}
         </AuthProvider>
@@ -30,4 +34,3 @@ export default function RootLayout({
     </html>
   )
 }
-

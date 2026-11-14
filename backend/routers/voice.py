@@ -142,9 +142,9 @@ async def get_voice_token(
         if not display_name:
             display_name = "Aarav Sharma"
 
-        # Dynamic unique room name per session prevents stale LiveKit Cloud room reuse
+        # Deterministic room binding ensures frontend and worker connect to the exact same room ID
         clean_job_suffix = f"-{clean_job_id}" if clean_job_id else ""
-        unique_room = clean_room or f"campusbridge-{clean_student_id}{clean_job_suffix}-{int(time.time())}"
+        unique_room = clean_room or f"campusbridge-{clean_student_id}{clean_job_suffix}"
 
         # Construct room and agent metadata payload
         metadata_dict = {
@@ -164,6 +164,21 @@ async def get_voice_token(
             can_publish_data=True,
         )
 
+        # Ensure worker dispatch intercepts both explicitly named worker and generic default worker
+        dispatches = [
+            RoomAgentDispatch(
+                agent_name=target_agent,
+                metadata=metadata_json,
+            )
+        ]
+        if target_agent and target_agent != "":
+            dispatches.append(
+                RoomAgentDispatch(
+                    agent_name="",
+                    metadata=metadata_json,
+                )
+            )
+
         token = (
             AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
             .with_identity(clean_student_id)
@@ -172,12 +187,9 @@ async def get_voice_token(
             .with_grants(grants)
             .with_room_config(
                 RoomConfiguration(
-                    agents=[
-                        RoomAgentDispatch(
-                            agent_name=target_agent,
-                            metadata=metadata_json,
-                        )
-                    ]
+                    name=unique_room,
+                    empty_timeout=300,
+                    agents=dispatches,
                 )
             )
             .to_jwt()

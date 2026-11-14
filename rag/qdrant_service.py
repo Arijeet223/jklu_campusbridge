@@ -70,10 +70,19 @@ class QdrantService:
         else:
             storage_dir = Path(LOCAL_STORAGE_PATH)
             storage_dir.mkdir(parents=True, exist_ok=True)
-            self.client = QdrantClient(path=str(storage_dir))
+            try:
+                self.client = QdrantClient(path=str(storage_dir))
+                self.mode = "LOCAL_STORAGE"
+                self.endpoint_display = f"local-disk://{storage_dir.as_posix()}"
+            except Exception as e:
+                logger.warning(
+                    f"Could not lock local Qdrant storage at {storage_dir} ({e}); "
+                    "falling back to in-memory Qdrant instance for hermetic/concurrent operation."
+                )
+                self.client = QdrantClient(location=":memory:")
+                self.mode = "IN_MEMORY"
+                self.endpoint_display = "memory://"
             self.async_client = None
-            self.mode = "LOCAL_STORAGE"
-            self.endpoint_display = f"local-disk://{storage_dir.as_posix()}"
 
         # Provision collection on startup
         self.ensure_collection()
@@ -94,8 +103,8 @@ class QdrantService:
                 logger.info(f"Created Qdrant collection '{col}' (size={self.vector_size}, distance=COSINE).")
 
             # Create payload indexes for pre-retrieval security filtering in server/cloud modes
-            if self.mode != "LOCAL_STORAGE":
-                for field in ["student_id", "department", "institution_id"]:
+            if self.mode not in ("LOCAL_STORAGE", "IN_MEMORY"):
+                for field in ["student_id", "student_user_id", "department", "institution_id"]:
                     try:
                         self.client.create_payload_index(
                             collection_name=col,
@@ -150,6 +159,7 @@ class QdrantService:
 
             payload = {
                 "student_id": clean_student_id,
+                "student_user_id": clean_student_id,
                 "department": clean_dept,
                 "skills": clean_skills,
                 "chunk_id": cid,
@@ -203,12 +213,22 @@ class QdrantService:
             query_vector = self.embedder.embed_text(query_text)
 
         # Build security filter
-        conditions: list[models.FieldCondition] = []
+        conditions: list[Any] = []
         if student_id:
+            clean_sid = str(student_id).strip()
+            # Match either student_id or student_user_id for robust tenant retrieval
             conditions.append(
-                models.FieldCondition(
-                    key="student_id",
-                    match=models.MatchValue(value=str(student_id).strip()),
+                models.Filter(
+                    should=[
+                        models.FieldCondition(
+                            key="student_id",
+                            match=models.MatchValue(value=clean_sid),
+                        ),
+                        models.FieldCondition(
+                            key="student_user_id",
+                            match=models.MatchValue(value=clean_sid),
+                        ),
+                    ]
                 )
             )
         if department:
@@ -250,7 +270,8 @@ class QdrantService:
                     "char_end": p.get("char_end", len(p.get("content", ""))),
                     "page": p.get("page", 1),
                     "similarity_score": round(float(pt.score or 0.0), 4),
-                    "student_id": p.get("student_id"),
+                    "student_id": p.get("student_id") or p.get("student_user_id"),
+                    "student_user_id": p.get("student_user_id") or p.get("student_id"),
                     "department": p.get("department"),
                     "skills": p.get("skills", []),
                 })

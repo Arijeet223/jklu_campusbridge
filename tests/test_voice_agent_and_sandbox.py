@@ -154,6 +154,32 @@ class TestVoiceAgentAndSandbox(unittest.TestCase):
         self.assertIn("Google", instructions)
         self.assertIn("NEVER use robotic filler phrases", instructions)
         self.assertIn("2-3 punchy sentences maximum per turn", instructions)
+        self.assertIn("Limit every response to a maximum of 2 short sentences", instructions)
+        self.assertIn("NEVER repeat what the user just said", instructions)
+        self.assertIn("Never offer unsolicited advice unless asked", instructions)
+
+    def test_jarvis_lobotomy_extreme_brevity_directives(self):
+        """Test 9b: Verify J.A.R.V.I.S. standard prompt enforces extreme brevity and zero unsolicited advice."""
+        profile = {"name": "Aarav Sharma", "target_role": "Software Engineer", "skills": ["Python", "FastAPI"]}
+        instructions = create_agent_instructions(profile)
+        self.assertIn("You are a fast-paced conversationalist", instructions)
+        self.assertIn("Limit every response to a maximum of 2 short sentences", instructions)
+        self.assertIn("NEVER repeat what the user just said", instructions)
+        self.assertIn("Never offer unsolicited advice unless asked", instructions)
+        self.assertIn("NEVER use robotic filler phrases", instructions)
+
+    def test_voice_token_with_specific_room_id_dispatch(self):
+        """Test 9c: Verify specific room ID is strictly respected and dispatched in RoomConfiguration."""
+        res = asyncio.run(
+            get_voice_token(
+                student_id="STU-101",
+                student_name="Aarav Sharma",
+                room="campusbridge-STU-101-custom",
+            )
+        )
+        self.assertEqual(res["room_name"], "campusbridge-STU-101-custom")
+        self.assertEqual(res["room"], "campusbridge-STU-101-custom")
+        self.assertEqual(res["agent_dispatched"], "campusbridge-local")
 
     def test_conversational_agent_sliding_window_truncation(self):
         """Test 10: Verify 10-turn sliding window preserves system instructions while capping history."""

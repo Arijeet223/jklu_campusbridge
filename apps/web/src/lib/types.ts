@@ -37,6 +37,8 @@ export interface Skill {
   confirmedAt?: string
   artifactUrl?: string
   assessmentId?: string
+  sourcePage?: number | string
+  category?: string
 }
 
 /** One hard eligibility rule for a job opportunity. */
@@ -76,6 +78,8 @@ export interface JobMatch {
   alignmentScore: number
   factorBreakdown: AlignmentFactor[]
   sandboxToggles: SandboxToggle[]
+  compensationTarget?: string
+  category?: string
 }
 
 /** Cohort funnel step for the Placement Officer view. */

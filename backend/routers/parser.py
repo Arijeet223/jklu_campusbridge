@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 import os
 import re
 import time
@@ -23,6 +24,18 @@ from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from pydantic import BaseModel
+
+logger = logging.getLogger("campusbridge.parser")
+
+try:
+    import pymupdf  # PyMuPDF
+    PYMUPDF_AVAILABLE = True
+except ImportError:
+    try:
+        import fitz
+        PYMUPDF_AVAILABLE = True
+    except ImportError:
+        PYMUPDF_AVAILABLE = False
 
 try:
     import pdfplumber
@@ -136,29 +149,58 @@ def extract_text_and_pages_from_pdf(file_bytes: bytes, file_name: str = "") -> t
         if pages_data and full_text.strip():
             return pages_data, full_text
 
-    # 2. Primary PDF engine: pdfplumber for high-fidelity text & layout
-    if PDFPLUMBER_AVAILABLE and (file_bytes.startswith(b"%PDF") or not file_name or file_name.lower().endswith(".pdf")):
+    # 2. High-Performance PDF engine: PyMuPDF (fitz) for robust block & multi-column extraction
+    if PYMUPDF_AVAILABLE and (file_bytes.startswith(b"%PDF") or not file_name or file_name.lower().endswith(".pdf")):
+        try:
+            doc = pymupdf.open(stream=file_bytes, filetype="pdf")
+            for idx, page in enumerate(doc):
+                page_num = idx + 1
+                txt = page.get_text() or ""
+                if txt.strip():
+                    pages_data.append({"page": page_num, "text": txt})
+                    full_text += f"\n--- Page {page_num} ---\n{txt}"
+            doc.close()
+            if pages_data and full_text.strip():
+                logger.info(f"PyMuPDF extracted {len(pages_data)} pages ({len(full_text)} chars) from '{file_name}'.")
+                return pages_data, full_text
+        except Exception as e:
+            logger.warning(f"PyMuPDF extraction failed for '{file_name}': {e}. Falling back to pdfplumber.")
+            pages_data = []
+            full_text = ""
+
+    # 3. Secondary PDF engine: pdfplumber for high-fidelity text & tabular layout
+    if (not pages_data or not full_text.strip()) and PDFPLUMBER_AVAILABLE and (file_bytes.startswith(b"%PDF") or not file_name or file_name.lower().endswith(".pdf")):
         try:
             with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
                 for idx, page in enumerate(pdf.pages):
                     page_num = idx + 1
                     txt = page.extract_text() or ""
-                    pages_data.append({"page": page_num, "text": txt})
-                    full_text += f"\n--- Page {page_num} ---\n{txt}"
-        except Exception:
+                    if txt.strip():
+                        pages_data.append({"page": page_num, "text": txt})
+                        full_text += f"\n--- Page {page_num} ---\n{txt}"
+            if pages_data and full_text.strip():
+                logger.info(f"pdfplumber extracted {len(pages_data)} pages ({len(full_text)} chars) from '{file_name}'.")
+                return pages_data, full_text
+        except Exception as e:
+            logger.warning(f"pdfplumber extraction failed for '{file_name}': {e}. Falling back to pypdf.")
             pages_data = []
             full_text = ""
 
-    # 3. Secondary PDF fallback: pypdf
+    # 4. Tertiary PDF fallback: pypdf
     if (not pages_data or not full_text.strip()) and PYPDF_AVAILABLE:
         try:
             reader = PdfReader(io.BytesIO(file_bytes))
             for idx, page in enumerate(reader.pages):
                 page_num = idx + 1
                 txt = page.extract_text() or ""
-                pages_data.append({"page": page_num, "text": txt})
-                full_text += f"\n--- Page {page_num} ---\n{txt}"
-        except Exception:
+                if txt.strip():
+                    pages_data.append({"page": page_num, "text": txt})
+                    full_text += f"\n--- Page {page_num} ---\n{txt}"
+            if pages_data and full_text.strip():
+                logger.info(f"pypdf extracted {len(pages_data)} pages from '{file_name}'.")
+                return pages_data, full_text
+        except Exception as e:
+            logger.warning(f"pypdf extraction failed for '{file_name}': {e}.")
             pages_data = []
             full_text = ""
 
@@ -404,6 +446,7 @@ def chunk_document_text(
                 "chunk_id": chunk_id,
                 "document_id": doc_id,
                 "student_user_id": student_id,
+                "student_id": student_id,
                 "institution_id": "inst-nitk-001",
                 "document_name": file_name,
                 "section_path": f"p.{p_num} • Content",
@@ -487,22 +530,37 @@ async def upload_document_endpoint(
         file_name = "resume.pdf"
 
     if len(file_bytes) == 0:
+        logger.warning("[RESUME_UPLOAD_REJECTED] Uploaded file is empty (0 bytes).")
         raise HTTPException(status_code=400, detail="Uploaded file is empty (0 bytes).")
 
-    # 1. Real-time text extraction (DOCX OpenXML + pdfplumber + pypdf)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB limit
+    if len(file_bytes) > MAX_FILE_SIZE:
+        logger.warning(f"[RESUME_UPLOAD_REJECTED] File size ({len(file_bytes)/(1024*1024):.2f}MB) exceeds 10MB limit.")
+        raise HTTPException(
+            status_code=413,
+            detail=f"Uploaded file exceeds the maximum 10MB limit ({len(file_bytes)/(1024*1024):.2f}MB). Please upload a smaller document."
+        )
+
+    logger.info(f"--> [RESUME_UPLOAD_START] file='{file_name}' ({len(file_bytes)} bytes), student_id='{target_student_id}'")
+
+    # 1. Real-time text extraction (DOCX OpenXML + PyMuPDF + pdfplumber + pypdf)
     pages_data, full_text = extract_text_and_pages_from_pdf(file_bytes, file_name)
     if not full_text.strip():
+        logger.error(f"[RESUME_UPLOAD_ERROR] Could not extract text from '{file_name}'.")
         raise HTTPException(
             status_code=422,
-            detail=f"Could not extract readable text from '{file_name}'. Please ensure it is a valid, unencrypted PDF document."
+            detail=f"Could not extract readable text from '{file_name}'. Please ensure it is a valid, unencrypted PDF or Word document."
         )
+    logger.info(f"[RESUME_UPLOAD_TEXT] Extracted {len(pages_data)} pages, {len(full_text)} characters.")
 
     # 2. Dynamic multi-pass skill, project, and experience extraction
     skills = parse_skills_dynamically(pages_data, file_name, doc_id)
     candidate_meta = extract_candidate_metadata(full_text)
+    logger.info(f"[RESUME_UPLOAD_SKILLS] Recognized {len(skills)} candidate skills and metadata: {candidate_meta}")
 
     # 3. Live text chunking and Nomic vector embeddings
     chunks = chunk_document_text(pages_data, doc_id, file_name, target_student_id)
+    logger.info(f"[RESUME_UPLOAD_CHUNKS] Created {len(chunks)} semantic chunks with 1536-dim embeddings.")
 
     # 4. Ingest chunks into live RAG vector store
     try:
@@ -527,16 +585,18 @@ async def upload_document_endpoint(
                     verified_at=None,
                 )
                 evs.append(new_evidence)
-    except Exception:
-        pass
+        logger.info(f"[RESUME_UPLOAD_MEM_STORE] Ingested {len(chunks)} chunks into live in-memory _CHUNKS_STORE.")
+    except Exception as e:
+        logger.warning(f"[RESUME_UPLOAD_MEM_STORE_WARN] In-memory chunk store update warning: {e}")
 
-    # 4b. Upsert chunks into Qdrant Cloud / Vector Database with rich metadata (student_id, department, skills)
+    # 4b. Upsert chunks into Qdrant Cloud / Vector Database with rich metadata (student_id, student_user_id, department, skills)
     qdrant_points_upserted = 0
     try:
         from rag.qdrant_service import get_qdrant_service
         qdrant_svc = get_qdrant_service()
         candidate_dept = candidate_meta.get("program") or candidate_meta.get("department") or "B.Tech Computer Science"
         extracted_skill_names = [sk["name"] for sk in skills]
+        logger.info(f"[RESUME_UPLOAD_QDRANT] Upserting to collection '{qdrant_svc.collection_name}' for student '{target_student_id}' (mode={qdrant_svc.mode})...")
         qdrant_points_upserted = qdrant_svc.upsert_resume_chunks(
             chunks=chunks,
             student_id=target_student_id,
@@ -545,8 +605,9 @@ async def upload_document_endpoint(
             document_id=doc_id,
             document_name=file_name,
         )
-    except Exception:
-        pass
+        logger.info(f"[RESUME_UPLOAD_QDRANT_SUCCESS] Successfully upserted {qdrant_points_upserted} points into Qdrant.")
+    except Exception as e:
+        logger.error(f"[RESUME_UPLOAD_QDRANT_ERROR] Failed to upsert chunks into Qdrant: {e}", exc_info=True)
 
     # 5. Persist extracted Skills into campusbridge_db.xlsx under Skill_Evidence
     store = get_excel_store()
@@ -569,6 +630,7 @@ async def upload_document_endpoint(
             )
         except Exception:
             pass
+    logger.info(f"[RESUME_UPLOAD_EXCEL] Persisted {len(skills)} evidence items into Excel store.")
 
     # 6. Update student profile in Accounts_Students (CGPA, Program, Readiness)
     new_readiness = min(98, 55 + len(skills) * 2)
@@ -682,8 +744,10 @@ async def upload_document_json(payload: DocumentUploadPayload) -> dict[str, Any]
     doc_id = f"doc_{int(time.time())}_{uuid.uuid4().hex[:6]}"
     raw_bytes = (payload.content_text or "").encode("utf-8")
     if not raw_bytes:
+        logger.warning("[RESUME_UPLOAD_JSON_ERROR] Content text cannot be empty.")
         raise HTTPException(status_code=400, detail="Content text cannot be empty.")
 
+    logger.info(f"--> [RESUME_UPLOAD_JSON] file='{payload.file_name}', student_id='{payload.student_id}' ({len(raw_bytes)} bytes)")
     pages_data, full_text = extract_text_and_pages_from_pdf(raw_bytes, payload.file_name)
     skills = parse_skills_dynamically(pages_data, payload.file_name, doc_id)
     chunks = chunk_document_text(pages_data, doc_id, payload.file_name, payload.student_id)
@@ -692,8 +756,8 @@ async def upload_document_json(payload: DocumentUploadPayload) -> dict[str, Any]
         from services.api.endpoints import _CHUNKS_STORE
         for c in chunks:
             _CHUNKS_STORE.append(c)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"[RESUME_UPLOAD_JSON_WARN] Could not sync in-memory chunks: {e}")
 
     qdrant_points_upserted = 0
     try:
@@ -708,8 +772,9 @@ async def upload_document_json(payload: DocumentUploadPayload) -> dict[str, Any]
             document_id=doc_id,
             document_name=payload.file_name,
         )
-    except Exception:
-        pass
+        logger.info(f"[RESUME_UPLOAD_JSON_SUCCESS] Upserted {qdrant_points_upserted} points into Qdrant Cloud.")
+    except Exception as e:
+        logger.error(f"[RESUME_UPLOAD_JSON_ERROR] Qdrant upsert failed: {e}", exc_info=True)
 
     return {
         "status": "SUCCESS",

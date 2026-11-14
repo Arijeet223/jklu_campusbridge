@@ -144,7 +144,7 @@ export default function NavRail({
           <p className="mt-1 text-[11px] text-ink-muted">
             {isStudent
               ? '2 Recruiter scopes active • Zero PII leak'
-              : 'Institutional Tenant: NIT Surathkal'}
+              : 'Institutional Tenant: JKLU (JK Lakshmipat University)'}
           </p>
         </div>
       </div>

@@ -74,27 +74,36 @@ export default function StudentOnboardingPage() {
   }, [])
 
   const handleProcessFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setUploadError('Only authentic PDF documents (.pdf) are supported for resume ingestion.')
+    const isPdf = file.name.toLowerCase().endsWith('.pdf')
+    const isDocx = file.name.toLowerCase().endsWith('.docx')
+    if (!isPdf && !isDocx) {
+      setUploadError('Please upload an authentic PDF (.pdf) or Word document (.docx) for resume ingestion.')
+      return
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File size exceeds 10MB limit. Please upload a smaller document.')
       return
     }
 
     setSelectedFile(file)
     setIsUploading(true)
     setUploadError(null)
-    setUploadProgressMsg('Running pdfplumber layout extraction on uploaded file...')
+    setUploadProgressMsg('Extracting high-fidelity text blocks via PyMuPDF / pdfplumber...')
 
     const formData = new FormData()
     formData.append('file', file)
     formData.append('student_id', studentProfile.id || 'STU-101')
 
     try {
-      // Step A: pdfplumber extraction
+      // Step A: extraction & embeddings
       setTimeout(() => {
-        setUploadProgressMsg('Computing 1536-dim Nomic embeddings & indexing vector chunks...')
+        setUploadProgressMsg('Computing 1536-dim Nomic embeddings & upserting to Qdrant Cloud...')
       }, 700)
 
+      const backendBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '')
       const endpoints = [
+        ...(backendBase ? [`${backendBase}/api/v1/documents/upload`, `${backendBase}/v1/documents/upload`] : []),
         '/api/v1/documents/upload',
         'http://localhost:8000/api/v1/documents/upload',
         'http://localhost:8000/v1/documents/upload',
@@ -308,7 +317,7 @@ export default function StudentOnboardingPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,application/pdf"
+                accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 className="hidden"
                 onChange={(e) => {
                   if (e.target.files && e.target.files[0]) {
@@ -329,10 +338,10 @@ export default function StudentOnboardingPage() {
                 <h3 className="font-display font-bold text-base text-ink-primary">
                   {isUploading
                     ? 'Processing Document...'
-                    : 'Click to select or drag & drop your PDF resume'}
+                    : 'Click to select or drag & drop your resume'}
                 </h3>
                 <p className="text-xs text-ink-muted mt-1">
-                  Supports multi-page PDF resumes (Max 15MB). Instant local extraction.
+                  Supports PDF (.pdf) and Word (.docx) resumes (Max 10MB). High-fidelity extraction & vector indexing.
                 </p>
               </div>
 

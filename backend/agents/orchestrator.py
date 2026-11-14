@@ -29,6 +29,7 @@ from agents.specialists import (
     PlacementOperationsCopilot,
     ProfileIntelligenceAgent,
     ReadinessCoachAgent,
+    WorkspaceCopilot,
 )
 from agents.state import WorkflowState
 from core.model_gateway import ModelGateway
@@ -52,16 +53,27 @@ from backend.db.excel_store import (
 
 
 class CognitiveIntent(str, Enum):
-    """The 4 cognitive routing tiers for J.A.R.V.I.S."""
+    """The 5 cognitive routing tiers for J.A.R.V.I.S."""
     CONVERSATIONAL_OR_REASONING = "INTENT_1: CONVERSATIONAL_OR_REASONING"
     SPECIALIST_AGENT_DELEGATION = "INTENT_2: SPECIALIST_AGENT_DELEGATION"
     CONTEXTUAL_RAG_RETRIEVAL = "INTENT_3: CONTEXTUAL_RAG_RETRIEVAL"
     ACTION_DISPATCH = "INTENT_4: ACTION_DISPATCH"
+    WORKSPACE_AUTOMATION = "INTENT_5: WORKSPACE_AUTOMATION"
 
 
 def classify_intent(prompt: str, context: Optional[SecurityContext] = None) -> CognitiveIntent:
     """Classifies incoming user prompt into one of the 4 cognitive intent categories."""
     p_lower = prompt.strip().lower()
+
+    # INTENT_5: WORKSPACE_AUTOMATION (Gmail, Calendar, Markdown Notes via WorkspaceCopilot)
+    workspace_keywords = [
+        "send email", "send an email", "draft email", "draft an email", "gmail",
+        "email to", "email the", "email professor", "schedule", "calendar", "calendar invite",
+        "calendar event", "create event", "create meeting", "schedule mock", "schedule interview",
+        "take notes", "take a note", "save note", "markdown note", "write note", "add note",
+    ]
+    if any(k in p_lower for k in workspace_keywords):
+        return CognitiveIntent.WORKSPACE_AUTOMATION
 
     # INTENT_4: ACTION_DISPATCH (Explicit state mutation commands or profile updates)
     action_keywords = [
@@ -140,6 +152,7 @@ class AgentOrchestrator:
         self.explainer_agent = CareerMatchExplanationAgent(self.registry, self.gateway)
         self.interview_agent = InterviewCoachAgent(self.registry, self.gateway)
         self.copilot_agent = PlacementOperationsCopilot(self.registry, self.gateway)
+        self.workspace_agent = WorkspaceCopilot(self.registry, self.gateway)
 
         self._agents = {
             "profile_intelligence": self.profile_agent,
@@ -148,7 +161,47 @@ class AgentOrchestrator:
             "career_match_explainer": self.explainer_agent,
             "interview_coach": self.interview_agent,
             "placement_ops_copilot": self.copilot_agent,
+            "workspace_copilot": self.workspace_agent,
         }
+
+    def classify_intent_dynamic(self, prompt: str, context: Optional[SecurityContext] = None) -> CognitiveIntent:
+        """Uses the Model Gateway for dynamic semantic routing instead of rigid keyword lists."""
+        routing_prompt = f"""
+        Analyze the user prompt and classify it into EXACTLY ONE of the following intents. 
+        Respond ONLY with the intent number (1, 2, 3, 4, or 5).
+        
+        1. CONVERSATIONAL_OR_REASONING: Greetings, general tech questions, coding concepts, DSA logic.
+        2. SPECIALIST_AGENT_DELEGATION: Checking job eligibility, 72-hour sprint plans, taking practice tests.
+        3. CONTEXTUAL_RAG_RETRIEVAL: Queries specifically asking to read their resume, evidence, or match scores.
+        4. ACTION_DISPATCH: Explicit commands to update profile, change CGPA, add skills, or set target role.
+        5. WORKSPACE_AUTOMATION: Requests to send an email, schedule a calendar event, or take notes.
+        
+        User Prompt: "{prompt}"
+        """
+
+        try:
+            res = self.gateway.generate(
+                prompt=routing_prompt,
+                system_instruction="You are a strict semantic router. Return ONLY a single digit 1, 2, 3, 4, or 5.",
+                temperature=0.1,
+                max_tokens=10,
+            )
+            raw = res.content.strip()
+            if "5" in raw:
+                return CognitiveIntent.WORKSPACE_AUTOMATION
+            if "4" in raw:
+                return CognitiveIntent.ACTION_DISPATCH
+            if "3" in raw:
+                return CognitiveIntent.CONTEXTUAL_RAG_RETRIEVAL
+            if "2" in raw:
+                return CognitiveIntent.SPECIALIST_AGENT_DELEGATION
+            if "1" in raw:
+                return CognitiveIntent.CONVERSATIONAL_OR_REASONING
+        except Exception:
+            pass
+
+        # Fallback to deterministic classifier when gateway degraded or offline
+        return classify_intent(prompt, context)
 
     def dispatch(
         self,
@@ -243,8 +296,8 @@ class AgentOrchestrator:
             actual_id = context.actor_id or "STU-101"
             student_backlogs = 0
 
-        # Classify the intent
-        intent = classify_intent(prompt, context)
+        # Classify the intent via dynamic semantic router with deterministic fallback
+        intent = self.classify_intent_dynamic(prompt, context)
         trace_data: dict[str, Any] = {
             "request_id": request_id,
             "actor_id": actual_id,
@@ -254,6 +307,58 @@ class AgentOrchestrator:
             "rag_chunks": [],
         }
 
+        # ── INTENT 5: WORKSPACE_AUTOMATION (Gmail, Calendar, Notes via WorkspaceCopilot) ──
+        if intent == CognitiveIntent.WORKSPACE_AUTOMATION:
+            delegated_agent = "workspace_copilot"
+            student_data = matched_student or {
+                "student_id": actual_id,
+                "full_name": student_name,
+                "email": f"{student_name.lower().replace(' ', '.')}@university.edu.in",
+                "program": student_program,
+                "cgpa": student_cgpa,
+            }
+            exec_res = self.dispatch(
+                target_agent=delegated_agent,
+                payload={"prompt": prompt, "user_context": student_data},
+                context=context,
+            )
+            exec_data = exec_res.get("data", {})
+            reply = exec_data.get("message") or "🤖 **J.A.R.V.I.S.:** Workspace productivity action completed."
+            lat_ms = round((time.perf_counter() - overall_t0) * 1000, 2)
+
+            store.insert_row(
+                SHEET_AUDIT,
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "request_id": request_id,
+                    "actor_id": actual_id,
+                    "actor_role": context.actor_role or "STUDENT",
+                    "agent_name": "JARVIS_Workspace_Copilot",
+                    "mcp_server": "workspace",
+                    "tool_name": exec_data.get("tool_used", "workspace.execute"),
+                    "latency_ms": lat_ms,
+                    "status": exec_data.get("status", "SUCCESS"),
+                    "summary": f"INTENT_5 Workspace Automation for {student_name}: {reply[:80]}...",
+                },
+            )
+
+            return {
+                "response": reply,
+                "agent_name": "🤖 J.A.R.V.I.S.",
+                "delegated_agent": delegated_agent,
+                "widget_type": "workspace_card",
+                "session_id": str(uuid.uuid4()),
+                "trace": {
+                    "intent": intent.value,
+                    "delegated_agent": delegated_agent,
+                    "engine": {"name": "Workspace Copilot", "latency_ms": lat_ms},
+                    "mcp_tools": trace_data["mcp_tools"],
+                    "rag_chunks": [],
+                    "guardrail": {"status": "Workspace Action Completed", "valid_citations": [], "hallucinations_detected": 0},
+                    "total_latency_ms": lat_ms,
+                },
+            }
+
         # ── INTENT 4: ACTION_DISPATCH (Conversational Parsing & Profile Storage) ──
         if intent == CognitiveIntent.ACTION_DISPATCH:
             p_lower = prompt.lower()
@@ -262,24 +367,64 @@ class AgentOrchestrator:
             action_status = "MUTATED"
             reply = ""
 
-            # Check for CGPA update
-            cgpa_m = re.search(r"(?:cgpa|gpa)\s*(?:is|to|=|:)?\s*(\d+\.?\d*)", p_lower)
-            if cgpa_m and ("cgpa" in p_lower or "gpa" in p_lower) and any(w in p_lower for w in ["my", "update", "set", "is", "changed"]):
-                new_cgpa_val = float(cgpa_m.group(1))
-                if 0.0 <= new_cgpa_val <= 10.0:
-                    store.update_row(
-                        SHEET_STUDENTS,
-                        key_col="student_id",
-                        key_val=actual_id,
-                        updates={"cgpa": new_cgpa_val},
-                    )
-                    reply = (
-                        f"🤖 **J.A.R.V.I.S.:** Done! I have updated your academic record with CGPA **{new_cgpa_val:.2f}** in `campusbridge_db.xlsx`. "
-                        f"All institutional cutoff checks and company matching models now reflect this updated score."
-                    )
-                    mutated = True
+            # Attempt LLM-assisted entity extraction first
+            extracted_entities = self._extract_entities_via_llm(prompt)
 
-            # Check for GitHub profile link update
+            # 1. CGPA update
+            llm_cgpa = extracted_entities.get("cgpa")
+            if llm_cgpa is not None:
+                try:
+                    new_cgpa_val = float(llm_cgpa)
+                    if 0.0 <= new_cgpa_val <= 10.0:
+                        store.update_row(
+                            SHEET_STUDENTS,
+                            key_col="student_id",
+                            key_val=actual_id,
+                            updates={"cgpa": new_cgpa_val},
+                        )
+                        reply = (
+                            f"🤖 **J.A.R.V.I.S.:** Done! I have updated your academic record with CGPA **{new_cgpa_val:.2f}** in `campusbridge_db.xlsx`. "
+                            f"All institutional cutoff checks and company matching models now reflect this updated score."
+                        )
+                        mutated = True
+                except (ValueError, TypeError):
+                    pass
+
+            if not mutated:
+                cgpa_m = re.search(r"(?:cgpa|gpa)\s*(?:is|to|=|:)?\s*(\d+\.?\d*)", p_lower)
+                if cgpa_m and ("cgpa" in p_lower or "gpa" in p_lower) and any(w in p_lower for w in ["my", "update", "set", "is", "changed"]):
+                    new_cgpa_val = float(cgpa_m.group(1))
+                    if 0.0 <= new_cgpa_val <= 10.0:
+                        store.update_row(
+                            SHEET_STUDENTS,
+                            key_col="student_id",
+                            key_val=actual_id,
+                            updates={"cgpa": new_cgpa_val},
+                        )
+                        reply = (
+                            f"🤖 **J.A.R.V.I.S.:** Done! I have updated your academic record with CGPA **{new_cgpa_val:.2f}** in `campusbridge_db.xlsx`. "
+                            f"All institutional cutoff checks and company matching models now reflect this updated score."
+                        )
+                        mutated = True
+
+            # 2. GitHub profile link update
+            llm_gh = extracted_entities.get("github_url")
+            if not mutated and llm_gh:
+                normalized_gh = str(llm_gh).strip()
+                if not normalized_gh.startswith("http"):
+                    normalized_gh = f"https://{normalized_gh}"
+                store.update_row(
+                    SHEET_STUDENTS,
+                    key_col="student_id",
+                    key_val=actual_id,
+                    updates={"github_url": normalized_gh},
+                )
+                reply = (
+                    f"🤖 **J.A.R.V.I.S.:** Linked! Recorded your verified GitHub profile **{normalized_gh}** in institutional records. "
+                    f"Faculty advisors and placement recruiters can now inspect your live repository commits directly."
+                )
+                mutated = True
+
             gh_m = re.search(r"(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_\-\.\/]+)", prompt, re.IGNORECASE)
             if not mutated and (gh_m or "github" in p_lower):
                 if gh_m:
@@ -301,7 +446,22 @@ class AgentOrchestrator:
                 )
                 mutated = True
 
-            # Check for target role update
+            # 3. Target role update
+            llm_role = extracted_entities.get("target_role")
+            if not mutated and llm_role and str(llm_role).strip():
+                new_role = str(llm_role).strip()
+                store.update_row(
+                    SHEET_STUDENTS,
+                    key_col="student_id",
+                    key_val=actual_id,
+                    updates={"target_roles": new_role},
+                )
+                reply = (
+                    f"🤖 **J.A.R.V.I.S.:** Target preference recorded! I've set your target role to **{new_role}** in your profile. "
+                    f"K.R.O.N.O.S. will align upcoming 72-hour drive sprint roadmaps to this role."
+                )
+                mutated = True
+
             if not mutated and any(w in p_lower for w in ["target role", "career preference", "aiming for", "want to apply for"]):
                 role_m = re.search(r"(?:target role|career preference|aiming for|want to apply for)\s*(?:is|to|as|=|:)?\s*([a-zA-Z0-9\s/+\-]+?)(?:\.|$|,|in\s)", prompt, re.IGNORECASE)
                 if role_m:
@@ -318,9 +478,8 @@ class AgentOrchestrator:
                     )
                     mutated = True
 
-            # Check for skill mentions / additions (e.g. "I know PyTorch and Docker", "Add LangChain to my skills")
+            # 4. Skill mentions / additions
             if not mutated:
-                # Skill taxonomy to check for mentions
                 candidate_skills = [
                     "Python", "PyTorch", "TensorFlow", "Scikit-learn", "Pandas", "NumPy",
                     "OpenAI APIs/SDKs", "CrewAI", "Hugging Face Transformers", "RAG Systems",
@@ -330,9 +489,17 @@ class AgentOrchestrator:
                     "Git & GitHub", "Jupyter", "VS Code", "LangChain", "Medallion Architecture", "Data Warehouse"
                 ]
                 detected_skills = []
+                llm_skills = extracted_entities.get("skills")
+                if isinstance(llm_skills, list) and llm_skills:
+                    for lsk in llm_skills:
+                        clean_sk = str(lsk).strip()
+                        if clean_sk and clean_sk not in detected_skills:
+                            detected_skills.append(clean_sk)
+
                 for s in candidate_skills:
                     if re.search(r"\b" + re.escape(s.lower().split()[0]) + r"\b", p_lower):
-                        detected_skills.append(s)
+                        if s not in detected_skills:
+                            detected_skills.append(s)
 
                 if detected_skills:
                     existing_names = {
@@ -681,9 +848,9 @@ class AgentOrchestrator:
         all_chunks = stored_chunks or []
         chunks_to_search = [
             c for c in all_chunks
-            if str(c.get("student_user_id", "")).strip().lower() == actual_id.lower()
-            or str(c.get("student_user_id", "")).strip().lower() == actor_id_str
-            or (actual_id.lower() in ("stu-101", "aarav.sharma@nitk.edu") and str(c.get("student_user_id", "")).strip().lower() in ("stu-101", "aarav.sharma@nitk.edu"))
+            if str(c.get("student_user_id", "") or c.get("student_id", "")).strip().lower() == actual_id.lower()
+            or str(c.get("student_user_id", "") or c.get("student_id", "")).strip().lower() == actor_id_str
+            or (actual_id.lower() in ("stu-101", "aarav.sharma@nitk.edu") and str(c.get("student_user_id", "") or c.get("student_id", "")).strip().lower() in ("stu-101", "aarav.sharma@nitk.edu"))
         ]
 
         rag_traces: list[dict[str, Any]] = []
@@ -789,8 +956,58 @@ class AgentOrchestrator:
             },
         }
 
+    def _extract_entities_via_llm(self, prompt: str) -> dict[str, Any]:
+        """Dynamically extracts entities (cgpa, github_url, target_role, skills) via LLM with structured JSON."""
+        system_prompt = (
+            "You are an entity extraction engine for a college placement platform. "
+            "Extract profile updates from the student's statement as valid JSON with keys: "
+            "'cgpa' (float or null), 'github_url' (string or null), 'target_role' (string or null), "
+            "'skills' (array of strings). Do not invent info. Output ONLY raw JSON."
+        )
+        try:
+            res = self.gateway.generate(
+                prompt=f"Student statement: \"{prompt}\"",
+                system_instruction=system_prompt,
+                temperature=0.1,
+                max_tokens=150,
+            )
+            if res.content and not res.degraded_mode:
+                text = res.content.strip()
+                match = re.search(r"\{.*\}", text, re.DOTALL)
+                if match:
+                    parsed = json.loads(match.group(0))
+                    if isinstance(parsed, dict):
+                        return parsed
+        except Exception:
+            pass
+        return {}
+
     def _generate_rich_technical_response(self, prompt: str, student_name: str, program: str) -> str:
-        """Synthesizes rich, dynamic technical guidance without canned boilerplate."""
+        """Synthesizes rich, dynamic technical guidance without canned boilerplate using Qwen 2.5."""
+        # 1. Dynamic LLM generation via ModelGateway
+        try:
+            llm_res = self.gateway.generate(
+                prompt=prompt,
+                system_instruction=(
+                    f"You are J.A.R.V.I.S., lead cognitive orchestrator for CampusBridge AI. "
+                    f"Student: {student_name}, Academic Program: {program}. "
+                    "Provide a crisp, highly technical conceptual explanation. "
+                    "Connect concepts directly to technical interview patterns, trade-offs, and production systems. "
+                    "Suggest relevant Practice Arena quests (/student/arena) or sprint roadmaps where appropriate. "
+                    "Format with markdown headings and bullet points. Never sound like a generic chatbot."
+                ),
+                temperature=0.6,
+                max_tokens=400,
+            )
+            if llm_res.content and not llm_res.degraded_mode and len(llm_res.content.strip()) > 30:
+                content = llm_res.content.strip()
+                if not content.startswith("🤖 **J.A.R.V.I.S.:**"):
+                    content = f"🤖 **J.A.R.V.I.S.:** {content}"
+                return content
+        except Exception:
+            pass
+
+        # 2. High-quality deterministic fallback if ModelGateway is offline or unseeded
         p_lower = prompt.lower()
 
         # Sliding Window / Two Pointers

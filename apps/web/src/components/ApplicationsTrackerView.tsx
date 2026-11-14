@@ -1,22 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import {
-  Building2,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  ArrowRight,
-  HelpCircle,
-  FileText,
-  AlertCircle,
-  Shield,
-  Zap,
-  ExternalLink,
-} from 'lucide-react'
+import React, { useState } from 'react'
+import Link from 'next/link'
 import { mockApplications } from '@/lib/mock-data'
 import type { ApplicationItem, ApplicationStage } from '@/lib/types'
-import { ClientOnlyDate } from '@/lib/date-format'
 
 interface ApplicationsTrackerViewProps {
   onOpenDispute: (jobTitle: string, company: string, ruleLabel: string) => void
@@ -51,48 +38,46 @@ export default function ApplicationsTrackerView({
   onOpenSprint,
   onOpenDefense,
 }: ApplicationsTrackerViewProps) {
-  const [applications, setApplications] = useState<ApplicationItem[]>(mockApplications)
+  const [applications] = useState<ApplicationItem[]>(mockApplications)
 
   return (
-    <div className="space-y-6 animate-in fade-in-50 duration-200">
+    <div className="space-y-6 font-body-md text-on-surface">
       {/* Top Banner Overview */}
-      <div className="rounded-xl border border-border-hairline bg-surface p-5 shadow-2xs">
+      <div className="bg-surface-container-low border border-outline-variant rounded-3xl p-6 shadow-[0_4px_0_#EADECE]">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-oxford-surface px-2.5 py-1 text-xs font-semibold text-oxford">
-              <Building2 className="h-3.5 w-3.5" />
-              Campus Recruitment Pipeline
-            </span>
-            <h2 className="mt-2 font-display text-base font-semibold text-ink-primary">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container border border-secondary-fixed-dim text-xs font-bold shadow-[0_2px_0_#85B5CE]">
+              <span className="material-symbols-outlined text-sm">domain</span>
+              <span>Campus Recruitment Pipeline</span>
+            </div>
+            <h2 className="mt-2 text-headline-sm font-headline-sm font-extrabold text-on-surface">
               My Active Applications &amp; Eligibility Status
             </h2>
-            <p className="mt-0.5 text-xs text-ink-secondary">
+            <p className="mt-0.5 text-xs text-on-surface-variant font-medium">
               Track your progress across campus drives, test readiness milestones, and official Placement Officer reviews.
             </p>
           </div>
 
           {/* Quick Metrics */}
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-canvas border border-border-hairline px-3 py-2 text-center">
-              <span className="font-mono text-base font-bold text-oxford">
-                {applications.length}
-              </span>
-              <p className="text-[10px] text-ink-muted">Active Drives</p>
+          <div className="flex items-center gap-3">
+            <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl px-4 py-2.5 text-center shadow-[0_2px_0_#d3c2c9]">
+              <span className="font-extrabold text-lg text-primary">{applications.length}</span>
+              <p className="text-[10px] font-bold text-outline uppercase">Active Drives</p>
             </div>
-            <div className="rounded-lg bg-emerald-surface border border-emerald-border px-3 py-2 text-center">
-              <span className="font-mono text-base font-bold text-emerald">1</span>
-              <p className="text-[10px] text-emerald">Shortlisted</p>
+            <div className="bg-tertiary-container/40 border-2 border-tertiary-fixed-dim rounded-2xl px-4 py-2.5 text-center shadow-[0_2px_0_#a8cfbb]">
+              <span className="font-extrabold text-lg text-tertiary">1</span>
+              <p className="text-[10px] font-bold text-tertiary uppercase">Shortlisted</p>
             </div>
-            <div className="rounded-lg bg-amber-surface border border-amber-border px-3 py-2 text-center">
-              <span className="font-mono text-base font-bold text-amber">1</span>
-              <p className="text-[10px] text-amber">In Review</p>
+            <div className="bg-primary-container/30 border-2 border-primary-container rounded-2xl px-4 py-2.5 text-center shadow-[0_2px_0_#DE95BE]">
+              <span className="font-extrabold text-lg text-primary">1</span>
+              <p className="text-[10px] font-bold text-primary uppercase">In Review</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Applications Cards List */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {applications.map((app) => {
           const currentIdx = getStageIndex(app.currentStage)
           const hasDispute = !!app.dispute
@@ -100,199 +85,119 @@ export default function ApplicationsTrackerView({
           const isDisputeApproved = app.dispute?.status === 'APPROVED_OVERRIDE'
 
           return (
-            <div
+            <article
               key={app.id}
-              className="overflow-hidden rounded-xl border border-border-hairline bg-surface shadow-2xs"
+              className="bg-surface-container-lowest border-[1.5px] border-outline-variant rounded-3xl p-6 shadow-[0_4px_0_#EAD7E2] transition-all hover:shadow-[0_6px_0_#DE95BE]"
             >
-              {/* Application Card Header */}
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-hairline bg-canvas px-5 py-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-outline-variant/60">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-border-hairline text-oxford font-display font-semibold text-xs shadow-2xs">
+                  <div className="w-12 h-12 rounded-2xl bg-primary-container text-on-primary-container flex items-center justify-center font-extrabold text-sm border border-outline-variant shadow-[0_2px_0_#DE95BE]">
                     {app.company.slice(0, 2).toUpperCase()}
-                  </span>
+                  </div>
                   <div>
-                    <h3 className="font-display text-sm font-semibold text-ink-primary">
-                      {app.jobTitle}
-                    </h3>
-                    <p className="text-xs text-ink-secondary" suppressHydrationWarning>
-                      {app.company} • Applied <ClientOnlyDate date={app.appliedAt} />
+                    <h3 className="text-base font-extrabold text-on-surface">{app.jobTitle}</h3>
+                    <p className="text-xs text-on-surface-variant font-medium">
+                      {app.company} • Applied on {app.appliedAt}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs rounded bg-surface border border-border-hairline px-2.5 py-1 text-ink-primary">
-                    Match: <strong className="text-oxford">{app.matchScore}</strong> / 100
+                  <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold border border-secondary-fixed-dim shadow-[0_2px_0_#85B5CE]">
+                    Target CTC: ₹22 LPA
                   </span>
-                  {app.eligibilityStatus === 'MEETS' ? (
-                    <span className="inline-flex items-center gap-1 rounded bg-emerald-surface border border-emerald-border px-2 py-0.5 text-xs font-medium text-emerald">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Eligibility Met
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded bg-amber-surface border border-amber-border px-2 py-0.5 text-xs font-medium text-amber">
-                      <Clock className="h-3 w-3" />
-                      Clarification Active
-                    </span>
-                  )}
+                  <span className="bg-tertiary-container text-on-tertiary-container px-3 py-1 rounded-full text-xs font-bold border border-tertiary-fixed-dim shadow-[0_2px_0_#a8cfbb]">
+                    Stage: {app.currentStage.replace(/_/g, ' ')}
+                  </span>
                 </div>
               </div>
 
-              {/* Body: Milestone Stepper */}
-              <div className="p-5 space-y-4">
-                {/* 4-Stage Visual Stepper */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-ink-secondary mb-1">
-                    <span className="font-semibold text-ink-primary">
-                      Current Recruitment Stage:
-                    </span>
-                    <span className="font-mono text-provenance text-oxford font-medium">
-                      {app.nextMilestone}
-                    </span>
-                  </div>
+              {/* Multi-step Pipeline Visualizer */}
+              <div className="my-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {pipelineSteps.map((step, idx) => {
+                  const isCompleted = idx < currentIdx
+                  const isCurrent = idx === currentIdx
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {pipelineSteps.map((step, idx) => {
-                      const isComplete = idx <= currentIdx
-                      const isCurrent = idx === currentIdx
-
-                      return (
-                        <div
-                          key={step.stage}
-                          className={`rounded-lg p-2.5 border text-xs transition-colors ${
-                            isCurrent
-                              ? 'border-oxford bg-oxford-surface/50 text-oxford font-semibold'
-                              : isComplete
-                              ? 'border-emerald-border bg-emerald-surface/40 text-emerald'
-                              : 'border-border-hairline bg-canvas text-ink-muted'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5">
-                            {isComplete ? (
-                              <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-emerald" />
-                            ) : (
-                              <span className="h-3.5 w-3.5 flex-shrink-0 rounded-full border border-ink-muted/40" />
-                            )}
-                            <span className="truncate">{step.label}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Eligibility Dispute Ticket Status Banner */}
-                {hasDispute && (
-                  <div
-                    className={`rounded-lg p-3 text-xs border ${
-                      isDisputePending
-                        ? 'border-amber-border bg-amber-surface text-amber'
-                        : 'border-emerald-border bg-emerald-surface text-emerald'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-2">
-                        {isDisputePending ? (
-                          <Clock className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  return (
+                    <div
+                      key={step.stage}
+                      className={`p-3 rounded-2xl border text-center transition-all ${
+                        isCurrent
+                          ? 'bg-primary-container/30 border-primary text-on-primary-container shadow-[0_2px_0_#DE95BE] font-bold'
+                          : isCompleted
+                          ? 'bg-tertiary-container/30 border-tertiary-fixed-dim text-on-tertiary-container font-medium'
+                          : 'bg-surface-container-low border-outline-variant/40 text-outline'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center mb-1">
+                        {isCompleted ? (
+                          <span className="material-symbols-outlined text-tertiary text-base font-bold">check_circle</span>
+                        ) : isCurrent ? (
+                          <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
                         ) : (
-                          <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                          <span className="w-2 h-2 rounded-full bg-outline/40"></span>
                         )}
-                        <div>
-                          <div className="font-semibold">
-                            {isDisputePending
-                              ? `Clarification Ticket ${app.dispute?.id} (Pending Placement Review)`
-                              : `Clarification Approved (${app.dispute?.id})`}
-                          </div>
-                          <p className="mt-0.5 text-[11px] text-ink-secondary leading-relaxed">
-                            <strong>Rule: </strong>
-                            {app.dispute?.ruleLabel}
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-ink-secondary italic">
-                            "{app.dispute?.studentNote}"
-                          </p>
-                          {isDisputeApproved && app.dispute?.reviewedBy && (
-                            <p className="mt-1 font-mono text-[10px] text-emerald font-semibold">
-                              ✓ Approved by {app.dispute.reviewedBy} • Equivalence Recorded
-                            </p>
-                          )}
-                        </div>
                       </div>
-
-                      {isDisputePending && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onOpenDispute(
-                              app.jobTitle,
-                              app.company,
-                              app.dispute?.ruleLabel || 'Rule'
-                            )
-                          }
-                          className="rounded bg-white px-2.5 py-1 text-xs font-semibold text-amber border border-amber-border hover:bg-subtle transition-colors flex-shrink-0"
-                        >
-                          View Ticket
-                        </button>
-                      )}
+                      <span className="text-[11px] leading-tight block">{step.label}</span>
                     </div>
-                  </div>
-                )}
+                  )
+                })}
+              </div>
 
-                {/* Action Shortcuts Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border-hairline text-xs">
-                  <div className="text-[11px] text-ink-secondary">
-                    Next step:{' '}
-                    <strong className="text-ink-primary font-medium">
-                      {app.nextMilestone}
-                    </strong>
-                  </div>
-
+              {/* Dispute Notice if present */}
+              {hasDispute && (
+                <div
+                  className={`p-3.5 rounded-2xl border mb-4 text-xs font-medium flex items-center justify-between ${
+                    isDisputeApproved
+                      ? 'bg-tertiary-container/30 border-tertiary-fixed-dim text-on-tertiary-container'
+                      : isDisputePending
+                      ? 'bg-primary-container/20 border-primary-container text-on-primary-container'
+                      : 'bg-surface-container border-outline-variant text-on-surface-variant'
+                  }`}
+                >
                   <div className="flex items-center gap-2">
-                    {app.currentStage === 'SHORTLISTED' && (
-                      <button
-                        type="button"
-                        onClick={onOpenSprint}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-oxford px-3 py-1.5 font-semibold text-white shadow-2xs hover:bg-oxford/90 transition-colors"
-                      >
-                        <Zap className="h-3 w-3 text-amber" />
-                        Open 72h Interview Sprint
-                      </button>
-                    )}
-
-                    {app.currentStage === 'MICRO_DEFENSE_COMPLETE' && (
-                      <button
-                        type="button"
-                        onClick={onOpenDefense}
-                        className="inline-flex items-center gap-1 rounded-lg border border-border-hairline bg-canvas px-3 py-1.5 font-medium text-ink-secondary hover:bg-subtle hover:text-ink-primary transition-colors"
-                      >
-                        <Shield className="h-3 w-3 text-emerald" />
-                        Practice 2-Min Defense
-                      </button>
-                    )}
-
-                    {app.eligibilityStatus === 'UNKNOWN' && !hasDispute && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenDispute(
-                            app.jobTitle,
-                            app.company,
-                            'Degree / Coursework Equivalence'
-                          )
-                        }
-                        className="inline-flex items-center gap-1 rounded-lg border border-amber-border bg-amber-surface px-3 py-1.5 font-semibold text-amber hover:bg-amber-surface/80 transition-colors"
-                      >
-                        <HelpCircle className="h-3 w-3" />
-                        Submit Clarification
-                      </button>
-                    )}
+                    <span className="material-symbols-outlined text-base">gavel</span>
+                    <span>
+                      <strong>Dispute:</strong> {app.dispute?.ruleLabel} — Status: {app.dispute?.status}
+                    </span>
                   </div>
+                  {isDisputeApproved && <span className="font-bold text-tertiary">✓ Approved by TPO</span>}
+                </div>
+              )}
+
+              {/* Card Action Footer */}
+              <div className="flex items-center justify-between flex-wrap gap-3 pt-3 border-t border-outline-variant/60">
+                <button
+                  type="button"
+                  onClick={() => onOpenDispute(app.jobTitle, app.company, 'Coursework / CGPA Equivalence')}
+                  className="text-xs text-outline hover:text-primary font-bold flex items-center gap-1 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">help</span>
+                  <span>Clarify / File Gate Exception</span>
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onOpenSprint}
+                    className="px-4 py-2 rounded-full bg-surface-container text-on-surface text-xs font-bold border border-outline-variant hover:bg-surface-container-high transition-all shadow-[0_2px_0_#d3c2c9]"
+                  >
+                    View 72h Sprint Quests
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenDefense}
+                    className="px-4 py-2 rounded-full bg-primary text-on-primary text-xs font-bold border border-on-primary-fixed-variant shadow-[0_3px_0_#320e26] active:translate-y-[2px] transition-all flex items-center gap-1 hover:brightness-105"
+                  >
+                    <span>120s Defense</span>
+                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                  </button>
                 </div>
               </div>
-            </div>
+            </article>
           )
         })}
       </div>
     </div>
   )
 }
-

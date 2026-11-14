@@ -2,9 +2,374 @@
   {
     "id": "msg-welcome",
     "sender": "assistant",
-    "agentName": "J.A.R.V.I.S.",
-    "text": "Hey Arijeet! I am J.A.R.V.I.S., your placement co-pilot alongside T.E.R.R.A. and R.O.N.E.N. I have mapped your AI/ML Engineer readiness and 72-hour sprint milestones. What would you like to dive into?",
-    "timestamp": "18:15",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey Arijeet Basak! 👋 I'm J.A.R.V.I.S., your placement co-pilot alongside T.E.R.R.A. and R.O.N.E.N. I've mapped your TechCorp readiness and 72-hour sprint milestones. What would you like to dive into?",
+    "timestamp": "12:49",
+    "widgetType": "none",
+    "trace": {
+      "engine": {
+        "name": "Qwen 2.5 (Local Ollama)",
+        "model": "qwen2.5:7b",
+        "prompt_tokens": 342,
+        "completion_tokens": 78,
+        "total_tokens": 420,
+        "latency_ms": 1240.5,
+        "degraded_mode": false
+      },
+      "mcp_tools": [
+        {
+          "server": "student-profile",
+          "tool": "get_my_profile",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.2,
+          "summary": "Profile loaded: CGPA 8.2"
+        },
+        {
+          "server": "student-profile",
+          "tool": "list_my_evidence",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.5,
+          "summary": "3 verified evidence items"
+        },
+        {
+          "server": "matching",
+          "tool": "run_match_preview",
+          "status": "ALLOWED",
+          "execution_time_ms": 2.1,
+          "summary": "Match status: MEETS (74/100)"
+        },
+        {
+          "server": "career-knowledge",
+          "tool": "search_role_guides",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.8,
+          "summary": "2 Backend guides matched"
+        }
+      ],
+      "rag_chunks": [
+        {
+          "chunk_id": "chunk-priya-001",
+          "document_id": "doc-001",
+          "document_name": "Priya_Sharma_Resume_v3.pdf",
+          "section": "Education & Technical Skills",
+          "char_span": [
+            45,
+            180
+          ],
+          "similarity_score": 0.94,
+          "content_preview": "B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: 8.2/10.0)..."
+        },
+        {
+          "chunk_id": "chunk-priya-002",
+          "document_id": "doc-001",
+          "document_name": "Priya_Sharma_Resume_v3.pdf",
+          "section": "Projects / Distributed Order Service",
+          "char_span": [
+            181,
+            410
+          ],
+          "similarity_score": 0.89,
+          "content_preview": "Built asynchronous order matching engine in Python and FastAPI..."
+        }
+      ],
+      "guardrail": {
+        "status": "Verified Grounded (0 hallucinations)",
+        "valid_citations": [
+          "[chunk-priya-001]",
+          "[chunk-priya-002]"
+        ],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 1243.2
+    }
+  },
+  {
+    "id": "usr-1794657620038",
+    "sender": "user",
+    "text": "hey",
+    "timestamp": "12:00",
     "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794657620038",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** Hey! What's up? 👋 Always here to guide your career path. Ready to sharpen your readiness for **AI/ML Engineer** roles or run a 2-min technical challenge today?",
+    "timestamp": "12:00",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 4068.99
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 4068.99
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794657632284",
+    "sender": "user",
+    "text": "who are you",
+    "timestamp": "12:00",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794657632284",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "I'm tracking your placement readiness with zero active backlogs. Would you like to review your 72-hour sprint plan, check your TechCorp eligibility, or verify your detected skills?",
+    "timestamp": "12:00",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "engine": {
+        "name": "Qwen 2.5 (Local Ollama / Deterministic Fallback)",
+        "model": "qwen2.5:7b",
+        "prompt_tokens": 380,
+        "completion_tokens": 88,
+        "total_tokens": 468,
+        "latency_ms": 48.2,
+        "degraded_mode": false
+      },
+      "mcp_tools": [
+        {
+          "server": "student-profile",
+          "tool": "get_my_profile",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.2,
+          "summary": "Profile verified for Arijeet Basak: CGPA 8.406"
+        },
+        {
+          "server": "matching",
+          "tool": "run_match_preview",
+          "status": "ALLOWED",
+          "execution_time_ms": 2.1,
+          "summary": "Deterministic Hard Gates: MEETS (74/100)"
+        }
+      ],
+      "rag_chunks": [
+        {
+          "chunk_id": "chunk-aarav-001",
+          "document_id": "doc-resume-001",
+          "document_name": "Aarav_Sharma_Resume.pdf",
+          "section": "Education & Technical Experience",
+          "char_span": [
+            45,
+            180
+          ],
+          "similarity_score": 0.94,
+          "content_preview": "B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: 8.406/10.0)..."
+        }
+      ],
+      "guardrail": {
+        "status": "Verified Grounded (0 hallucinations)",
+        "valid_citations": [
+          "[chunk-aarav-001]"
+        ],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 51.5
+    },
+    "citations": [
+      {
+        "label": "📄 Resume p.1",
+        "doc_id": "doc-resume"
+      },
+      {
+        "label": "⚡ GitHub: ecommerce-db",
+        "doc_id": "doc-github"
+      }
+    ]
+  },
+  {
+    "id": "usr-1794657660043",
+    "sender": "user",
+    "text": "what is my cg and what should i do",
+    "timestamp": "12:01",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794657660043",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "I'm tracking your placement readiness with zero active backlogs. Would you like to review your 72-hour sprint plan, check your TechCorp eligibility, or verify your detected skills?",
+    "timestamp": "12:01",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "engine": {
+        "name": "Qwen 2.5 (Local Ollama / Deterministic Fallback)",
+        "model": "qwen2.5:7b",
+        "prompt_tokens": 380,
+        "completion_tokens": 88,
+        "total_tokens": 468,
+        "latency_ms": 48.2,
+        "degraded_mode": false
+      },
+      "mcp_tools": [
+        {
+          "server": "student-profile",
+          "tool": "get_my_profile",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.2,
+          "summary": "Profile verified for Arijeet Basak: CGPA 8.406"
+        },
+        {
+          "server": "matching",
+          "tool": "run_match_preview",
+          "status": "ALLOWED",
+          "execution_time_ms": 2.1,
+          "summary": "Deterministic Hard Gates: MEETS (74/100)"
+        }
+      ],
+      "rag_chunks": [
+        {
+          "chunk_id": "chunk-aarav-001",
+          "document_id": "doc-resume-001",
+          "document_name": "Aarav_Sharma_Resume.pdf",
+          "section": "Education & Technical Experience",
+          "char_span": [
+            45,
+            180
+          ],
+          "similarity_score": 0.94,
+          "content_preview": "B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: 8.406/10.0)..."
+        }
+      ],
+      "guardrail": {
+        "status": "Verified Grounded (0 hallucinations)",
+        "valid_citations": [
+          "[chunk-aarav-001]"
+        ],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 51.5
+    },
+    "citations": [
+      {
+        "label": "📄 Resume p.1",
+        "doc_id": "doc-resume"
+      },
+      {
+        "label": "⚡ GitHub: ecommerce-db",
+        "doc_id": "doc-github"
+      }
+    ]
+  },
+  {
+    "id": "usr-1794657938038",
+    "sender": "user",
+    "text": "yo",
+    "timestamp": "12:05",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794657938038",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** Hey! What's up? 👋 Always here to guide your career path. Ready to sharpen your readiness for **AI/ML Engineer** roles or run a 2-min technical challenge today?",
+    "timestamp": "12:05",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 4082.57
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 4082.57
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794660594764",
+    "sender": "user",
+    "text": "who are you",
+    "timestamp": "12:49",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794660594764",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "I'm tracking your placement readiness with zero active backlogs. Would you like to review your 72-hour sprint plan, check your TechCorp eligibility, or verify your detected skills?",
+    "timestamp": "12:49",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "engine": {
+        "name": "Qwen 2.5 (Local Ollama / Deterministic Fallback)",
+        "model": "qwen2.5:7b",
+        "prompt_tokens": 380,
+        "completion_tokens": 88,
+        "total_tokens": 468,
+        "latency_ms": 48.2,
+        "degraded_mode": false
+      },
+      "mcp_tools": [
+        {
+          "server": "student-profile",
+          "tool": "get_my_profile",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.2,
+          "summary": "Profile verified for Arijeet Basak: CGPA 8.406"
+        },
+        {
+          "server": "matching",
+          "tool": "run_match_preview",
+          "status": "ALLOWED",
+          "execution_time_ms": 2.1,
+          "summary": "Deterministic Hard Gates: MEETS (74/100)"
+        }
+      ],
+      "rag_chunks": [
+        {
+          "chunk_id": "chunk-aarav-001",
+          "document_id": "doc-resume-001",
+          "document_name": "Aarav_Sharma_Resume.pdf",
+          "section": "Education & Technical Experience",
+          "char_span": [
+            45,
+            180
+          ],
+          "similarity_score": 0.94,
+          "content_preview": "B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: 8.406/10.0)..."
+        }
+      ],
+      "guardrail": {
+        "status": "Verified Grounded (0 hallucinations)",
+        "valid_citations": [
+          "[chunk-aarav-001]"
+        ],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 51.5
+    },
+    "citations": [
+      {
+        "label": "📄 Resume p.1",
+        "doc_id": "doc-resume"
+      },
+      {
+        "label": "⚡ GitHub: ecommerce-db",
+        "doc_id": "doc-github"
+      }
+    ]
   }
 ]

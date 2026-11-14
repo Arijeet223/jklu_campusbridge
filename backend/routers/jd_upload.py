@@ -6,6 +6,7 @@ into the LiveKit voice agent.
 """
 
 import json
+import logging
 import os
 import re
 import uuid
@@ -14,6 +15,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
+
+logger = logging.getLogger("campusbridge.jd_upload")
 
 router = APIRouter(prefix="/jd", tags=["job-descriptions"])
 
@@ -145,6 +148,7 @@ async def upload_jd(req: JDUploadRequest):
     and optionally store in PostgreSQL opportunities_jds table."""
     
     job_id = req.job_id or f"jd-{uuid.uuid4().hex[:8]}"
+    logger.info(f"--> [JD_UPLOAD_START] Company: '{req.company_name}', Role: '{req.role_title}', JobID: '{job_id}'")
     
     # 1. Extract skills from JD text
     mandatory_skills, preferred_skills = extract_skills_from_jd(req.jd_text)
@@ -153,9 +157,11 @@ async def upload_jd(req: JDUploadRequest):
     if not all_skills:
         # Fallback: use company/role hints
         all_skills = ["Python", "SQL", "Data Structures"]
+    logger.info(f"[JD_UPLOAD_SKILLS] Extracted {len(all_skills)} skills (mandatory={len(mandatory_skills)}, preferred={len(preferred_skills)})")
     
     # 2. Chunk the JD text
     chunks = chunk_jd_text(req.jd_text, job_id, req.company_name, req.role_title)
+    logger.info(f"[JD_UPLOAD_CHUNKS] Generated {len(chunks)} chunks for '{job_id}'")
     
     # 3. Upsert into Qdrant campusbridge_jds collection
     upserted_count = 0
@@ -172,8 +178,9 @@ async def upload_jd(req: JDUploadRequest):
             document_name=f"{req.company_name} — {req.role_title}",
             institution_id="JKLU",
         )
+        logger.info(f"[JD_UPLOAD_QDRANT_SUCCESS] Upserted {upserted_count} chunks to campusbridge_jds Qdrant collection")
     except Exception as e:
-        # Non-fatal: JD can still be used from metadata
+        logger.error(f"[JD_UPLOAD_QDRANT_ERROR] Qdrant upsert failed for JD '{job_id}': {e}", exc_info=True)
         upserted_count = 0
     
     # 4. Optionally store in PostgreSQL

@@ -152,7 +152,43 @@ class TestAIHealthAndChatEndpoints(unittest.TestCase):
         self.assertIn("trace", data)
         self.assertEqual(len(data["trace"]["mcp_tools"]), 4)
 
+    def test_intent_5_workspace_copilot_scheduling(self):
+        """Verifies Intent 5 workspace automation routes correctly and produces workspace card."""
+        req = AIChatRequest(
+            message="Schedule a mock interview on my calendar for tomorrow at 4pm",
+            actor_id=_PRIYA_ID,
+        )
+        data = run_coro(ai_chat(req))
+        self.assertTrue(data["success"])
+        self.assertEqual(data["widget_type"], "workspace_card")
+        self.assertEqual(data["delegated_agent"], "workspace_copilot")
+        self.assertIn("calendar", data["response"].lower())
+
+    def test_intent_5_workspace_copilot_email_draft(self):
+        """Verifies Intent 5 Gmail drafting action."""
+        req = AIChatRequest(
+            message="Draft an email to Prof. Rao asking for research internship",
+            actor_id=_PRIYA_ID,
+        )
+        data = run_coro(ai_chat(req))
+        self.assertTrue(data["success"])
+        self.assertEqual(data["widget_type"], "workspace_card")
+        self.assertEqual(data["delegated_agent"], "workspace_copilot")
+        self.assertIn("draft", data["response"].lower())
+
+    def test_zero_canned_answers_rich_technical_response(self):
+        """Verifies dynamic rich technical response for DSA and systems questions."""
+        sec_ctx = SecurityContext(actor_id=_PRIYA_ID, actor_role="STUDENT", institution_id="inst-nitk-001")
+        res = _orchestrator.run_live_grounded_pipeline(
+            prompt="Explain how sliding window optimization reduces time complexity in subarray problems",
+            context=sec_ctx,
+        )
+        self.assertIn("response", res)
+        self.assertIn("J.A.R.V.I.S.", res["response"])
+        self.assertIn("Sliding Window", res["response"])
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

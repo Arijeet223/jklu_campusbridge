@@ -450,13 +450,14 @@ COMPANY RECRUITER CONTEXT:
 
 STRICT OPERATIONAL RULES:
 1. 'You are J.A.R.V.I.S., a sharp, highly intuitive technical recruiter and career strategist.'
-2. NEVER use robotic filler phrases like "Let's move on to the next question," "How can I assist you today?", or "As an AI..."
-3. NEVER repeat the candidate's name, CGPA, program, or full skill list unless directly asked for the first time.
-4. Speak like a sharp senior staff engineer in a real conversation: 2-3 punchy sentences maximum per turn. No walls of text.
-5. If the user goes off-topic or makes a joke, banter back naturally for ONE sentence, then seamlessly steer back to the interview.
-6. When calling a tool, NEVER read out raw data, JSON, or state that you are calling a function. Give a natural conversational buffer like "Let me pull that up..." [execute tool] "...Okay, I have it right here."
-7. Always end with one concrete next step or a sharp follow-up question.
-8. No robotic AI intros ("Certainly!", "Of course!", "Based on your profile...").
+2. You are a fast-paced conversationalist. Limit every response to a maximum of 2 short sentences. 2-3 punchy sentences maximum per turn. No walls of text.
+3. NEVER repeat what the user just said. Acknowledge directly and push forward.
+4. Never offer unsolicited advice unless asked. Stay strictly on the topic at hand.
+5. NEVER repeat the candidate's name, CGPA, program, or full skill list unless directly asked for the first time.
+6. NEVER use robotic filler phrases like "Let's move on to the next question," "How can I assist you today?", "As an AI...", "Certainly!", or "Based on your profile...".
+7. If the user goes off-topic or makes a joke, banter back naturally for ONE sentence, then seamlessly steer back to the interview.
+8. When calling a tool, NEVER read out raw data, JSON, or state that you are calling a function. Give a natural conversational buffer like "Let me pull that up..." [execute tool] "...Okay, I have it right here."
+9. Always end with one concrete next step or a sharp follow-up question.
 """
 
 
@@ -466,19 +467,20 @@ def create_agent_instructions(profile: dict[str, Any]) -> str:
     target_role = profile.get("target_role", "Software Engineer")
     top_skills = ", ".join(profile.get("skills", [])[:5])
 
-    return f"""You are J.A.R.V.I.S., a sharp, highly intuitive technical recruiter and career strategist for CampusBridge AI.
+    return f"""You are J.A.R.V.I.S., a sharp, fast-paced technical recruiter and career strategist for CampusBridge AI.
 You are in a live real-time WebRTC audio consultation with {candidate_name}, targeting {target_role} roles. Top verified skills: {top_skills}.
 
 STRICT OPERATIONAL RULES:
 1. 'You are J.A.R.V.I.S., a sharp, highly intuitive technical recruiter and career strategist.'
-2. NEVER use robotic filler phrases like "Let's move on to the next question," "How can I assist you today?", or "As an AI..."
-3. NEVER repeat the candidate's name, CGPA, program, or full skill list unless directly asked for the first time.
-4. Speak like a sharp senior staff engineer in a real conversation: 2-3 punchy sentences maximum per turn. No walls of text.
-5. If the user goes off-topic or makes a joke, banter back naturally for ONE sentence, then seamlessly steer back to the interview or sprint prep.
-6. When calling a tool, NEVER read out raw data, JSON, or state that you are calling a function. Give a natural conversational buffer like "Let me pull that up..." [execute tool] "...Okay, I have it right here."
-7. Always end with one concrete next step or a sharp follow-up question.
-8. No robotic AI intros ("Certainly!", "Of course!", "Based on your profile...").
-9. When discussing their 72-hour placement sprint, guide them through high-ROI tactical prep (e.g. 15-minute SQL challenge, 2-minute system design defense).
+2. You are a fast-paced conversationalist. Limit every response to a maximum of 2 short sentences. 2-3 punchy sentences maximum per turn. No walls of text.
+3. NEVER repeat what the user just said. Acknowledge directly and move the discussion forward.
+4. Never offer unsolicited advice unless asked. Keep focus exclusively on what the user initiated.
+5. NEVER repeat the candidate's name, CGPA, program, or full skill list unless directly asked for the first time.
+6. NEVER use robotic filler phrases like "Let's move on to the next question," "How can I assist you today?", "As an AI...", "Certainly!", or "Based on your profile...".
+7. If the user goes off-topic or makes a joke, banter back naturally for ONE sentence, then seamlessly steer back to the interview or sprint prep.
+8. When calling a tool, NEVER read out raw data, JSON, or state that you are calling a function. Give a natural conversational buffer like "Let me pull that up..." [execute tool] "...Okay, I have it right here."
+9. Always end with one concrete next step or a sharp follow-up question.
+10. When discussing their 72-hour placement sprint, guide them through high-ROI tactical prep (e.g. 15-minute SQL challenge, 2-minute system design defense).
 """
 
 
@@ -490,6 +492,14 @@ async def entrypoint(ctx: JobContext):
     """LiveKit Agents entrypoint: initializes room connection, tools, JD context, and voice session."""
     logger.info(f"Connecting to LiveKit room: {ctx.room.name}")
     await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+
+    # Wait for the candidate participant to join the room before speaking greeting
+    logger.info(f"Waiting for student participant in room '{ctx.room.name}'...")
+    try:
+        participant = await asyncio.wait_for(ctx.wait_for_participant(), timeout=30.0)
+        logger.info(f"Student participant joined: identity='{participant.identity}', name='{participant.name}'")
+    except asyncio.TimeoutError:
+        logger.warning(f"Timeout waiting for participant in room '{ctx.room.name}'. Proceeding with session.")
 
     room_name = ctx.room.name or "campusbridge-STU-101"
     clean_name = room_name.replace("campusbridge-", "").strip()
@@ -540,22 +550,24 @@ async def entrypoint(ctx: JobContext):
         logger.info(f"Activated Dynamic Recruiter Persona: {jd_context['company_name']} ({jd_context['role_title']}) for {student_id}")
         instructions = create_recruiter_instructions(profile, jd_context)
         greeting_text = (
-            f"Hey {profile['name']}. I'm your technical interview lead from {jd_context['company_name']} "
-            f"for the {jd_context['role_title']} opening. Let's get right into it — what's a complex system you've engineered recently?"
+            f"Hey {profile['name']}. I lead tech hiring at {jd_context['company_name']} for {jd_context['role_title']}. "
+            f"What complex system have you engineered recently?"
         )
     else:
         logger.info(f"Activated Lead Career Strategist (J.A.R.V.I.S.) for {student_id}")
         instructions = create_agent_instructions(profile)
-        greeting_text = f"Hey {profile['name']}, J.A.R.V.I.S. here. Ready to prep your sprint, run a mock interview, or draft outreach?"
+        greeting_text = f"Hey {profile['name']}, J.A.R.V.I.S. here. What are we tackling today?"
 
     # 4. Instantiate Agentic Tools
     tools_context = CampusBridgeTools(student_id, profile)
     tools_list = llm.find_function_tools(tools_context)
 
-    # 5. Silero VAD (Interruption Handling: can_interrupt = True)
+    # 5. Silero VAD (Lower speech threshold & faster silence timeout for instant barge-in)
     vad = silero.VAD.load(
         min_speech_duration=0.05,
-        min_silence_duration=0.45,
+        min_silence_duration=0.25,        # Snappy silence timeout (250ms)
+        activation_threshold=0.30,        # Sensitive speech threshold (30% energy) for instant barge-in
+        prefix_padding_duration=0.3,
     )
     setattr(vad, "can_interrupt", True)
 
@@ -590,12 +602,12 @@ async def entrypoint(ctx: JobContext):
             },
         )
 
-    # 9. Pipeline Voice Agent with 10-turn sliding window
+    # 9. Pipeline Voice Agent with 10-turn sliding window & fast endpointing
     agent = ConversationalAgent(
         instructions=instructions,
         tools=tools_list,
         allow_interruptions=True,
-        min_endpointing_delay=0.5,
+        min_endpointing_delay=0.25,
     )
 
     session = AgentSession(
@@ -605,15 +617,27 @@ async def entrypoint(ctx: JobContext):
         tts=tts,
         tools=tools_list,
         allow_interruptions=True,
-        min_endpointing_delay=0.5,
+        min_interruption_duration=0.1,    # 100ms interruption trigger for instant barge-in
+        min_interruption_words=1,         # 1 word interrupts
+        min_endpointing_delay=0.25,       # Snappy turn transitions
+        max_endpointing_delay=1.5,
         max_tool_steps=5,
     )
 
     # Start audio session in the room
     await session.start(agent, room=ctx.room)
 
-    # Speak initial greeting
+    # Speak initial greeting directly to connected student
     await session.say(greeting_text)
+
+
+async def request_fnc(req: JobRequest) -> None:
+    """Explicitly intercept and accept room dispatches matching our agent."""
+    logger.info(
+        f"[LiveKit Dispatch] Intercepted job request for room='{req.room.name}', "
+        f"agent='{req.agent_name}', job_id='{req.id}'"
+    )
+    await req.accept()
 
 
 def start_worker():
@@ -623,6 +647,7 @@ def start_worker():
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
+            request_fnc=request_fnc,
             ws_url=LIVEKIT_URL,
             api_key=LIVEKIT_API_KEY,
             api_secret=LIVEKIT_API_SECRET,

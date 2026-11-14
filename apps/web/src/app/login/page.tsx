@@ -1,23 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { signIn } from 'next-auth/react'
-import {
-  GraduationCap,
-  Briefcase,
-  ShieldCheck,
-  Lock,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
-  KeyRound,
-  FileSpreadsheet,
-  Building2,
-  Users,
-  UserPlus,
-} from 'lucide-react'
 
 type LoginRole = 'STUDENT' | 'FACULTY' | 'OFFICER'
 type AuthMode = 'SIGN_IN' | 'REGISTER'
@@ -31,8 +17,6 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-
-  // Institutional Security Notice (from Next.js Middleware RBAC redirects)
   const [rbacNotice, setRbacNotice] = useState<string | null>(null)
 
   useEffect(() => {
@@ -41,7 +25,7 @@ export default function LoginPage() {
       const err = params.get('error')
       const msg = params.get('message')
       if (err === 'jklu_officer_access_required') {
-        setRbacNotice(msg || 'Restricted Area: Access to the Placement & Training Officer (/pto-dashboard) console is strictly restricted to verified JKLU placement officers.')
+        setRbacNotice(msg || 'Restricted Area: Access to the Placement & Training Officer console is strictly restricted to verified JKLU placement officers.')
       } else if (err === 'faculty_access_required') {
         setRbacNotice('Restricted Area: Faculty Advisory Console requires verified faculty credentials.')
       }
@@ -77,16 +61,13 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrorMsg(null)
 
-    // 1. Synchronize NextAuth.js signed JWT cookie for Edge Middleware RBAC
     try {
       await signIn('credentials', {
         email: authIdentifier.trim(),
         password: authPassword.trim(),
         redirect: false,
       })
-    } catch (authCookieErr) {
-      console.warn('[NextAuth] Cookie generation notice:', authCookieErr)
-    }
+    } catch {}
 
     let callbackTarget: string | null = null
     if (typeof window !== 'undefined') {
@@ -115,30 +96,11 @@ export default function LoginPage() {
     }
 
     try {
-      // Try endpoints: direct Next.js proxy, API route, and direct FastAPI host
-      const endpoints = [
-        '/api/v1/auth/login',
-        'http://localhost:8000/api/v1/auth/login',
-        '/api/backend/v1/auth/login',
-        'http://localhost:8000/v1/auth/login',
-      ]
-
-      let res: Response | null = null
-      for (const ep of endpoints) {
-        try {
-          const attempt = await fetch(ep, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-          if (attempt.ok || attempt.status === 401 || attempt.status === 422) {
-            res = attempt
-            break
-          }
-        } catch {
-          // continue to next endpoint
-        }
-      }
+      const res = await fetch('/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).catch(() => null)
 
       if (res && res.ok) {
         const data = await res.json()
@@ -147,7 +109,6 @@ export default function LoginPage() {
           localStorage.setItem('cb_auth_token', data.token || 'cb-session-token')
         }
 
-        // Redirect based on role and onboarding requirement
         if (authRole === 'STUDENT') {
           if (data.needs_onboarding || data.user?.needs_onboarding) {
             router.push('/student/onboarding')
@@ -168,17 +129,17 @@ export default function LoginPage() {
         return
       }
 
-      throw new Error('Backend offline')
+      throw new Error('Fallback')
     } catch {
-      // Offline fallback for smooth demo experience
+      // Offline fallback for seamless experience
       const fallbackUser =
         authRole === 'STUDENT'
           ? {
-              id: authIdentifier.includes('priya') ? 'STU-102' : authIdentifier.includes('arijeet') ? 'STU-128' : 'STU-101',
-              name: authIdentifier.includes('priya') ? 'Priya Nair' : authIdentifier.includes('arijeet') ? 'Arijeet Basak' : 'Aarav Sharma',
+              id: authIdentifier.includes('priya') ? 'STU-102' : 'STU-101',
+              name: authIdentifier.includes('priya') ? 'Priya Nair' : 'Aarav Sharma',
               email: authIdentifier,
-              program: authIdentifier.includes('priya') ? 'B.Tech AI & Data Science' : authIdentifier.includes('arijeet') ? 'B.Tech CS (Artificial Intelligence)' : 'B.Tech CSE',
-              cgpa: authIdentifier.includes('priya') ? 8.95 : authIdentifier.includes('arijeet') ? 8.406 : 8.42,
+              program: authIdentifier.includes('priya') ? 'B.Tech AI & Data Science' : 'B.Tech CSE',
+              cgpa: authIdentifier.includes('priya') ? 8.95 : 8.42,
             }
           : authRole === 'FACULTY'
           ? {
@@ -218,13 +179,6 @@ export default function LoginPage() {
     await executeAuth(role, identifier, password)
   }
 
-  const handleQuickDemoLogin = async (quickRole: LoginRole, quickIdent: string, quickPass: string) => {
-    setRole(quickRole)
-    setIdentifier(quickIdent)
-    setPassword(quickPass)
-    await executeAuth(quickRole, quickIdent, quickPass)
-  }
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -245,36 +199,13 @@ export default function LoginPage() {
     }
 
     try {
-      const endpoints = [
-        '/api/v1/auth/register-student',
-        'http://localhost:8000/api/v1/auth/register-student',
-        '/v1/auth/register-student',
-        '/api/v1/auth/register',
-        'http://localhost:8000/auth/register',
-      ]
+      const res = await fetch('/api/v1/auth/register-student', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
 
-      let res: Response | null = null
-      let errDetail = ''
-      for (const ep of endpoints) {
-        try {
-          const attempt = await fetch(ep, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-          if (attempt.ok) {
-            res = attempt
-            break
-          } else {
-            const errData = await attempt.json().catch(() => ({}))
-            errDetail = errData.detail || attempt.statusText
-          }
-        } catch {
-          // continue to next endpoint
-        }
-      }
-
-      if (res && res.ok) {
+      if (res.ok) {
         const data = await res.json()
         if (typeof window !== 'undefined') {
           localStorage.setItem('cb_active_user', JSON.stringify(data.user || {}))
@@ -287,474 +218,344 @@ export default function LoginPage() {
         return
       }
 
-      throw new Error(errDetail || 'Registration service offline. Please ensure backend is running.')
+      const errData = await res.json().catch(() => ({}))
+      throw new Error(errData.detail || 'Registration service error')
     } catch (err: any) {
-      setErrorMsg(err.message || 'Registration failed. Please check institutional details.')
+      setErrorMsg(err.message || 'Registration failed.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F6] text-ink-primary flex flex-col font-sans selection:bg-[#F0B6D5] selection:text-[#6D3B56]">
-      {/* Minimal Header */}
-      <header className="h-18 px-6 sm:px-12 border-b border-[#E6E3DC] flex items-center justify-between bg-white/80 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs border-b-2 border-[#552940]">
-            <GraduationCap className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <span className="font-display text-base font-extrabold text-ink-primary tracking-tight block">
-              CampusBridge AI
+    <div className="bg-tactile-pattern text-on-surface min-h-screen flex flex-col justify-between antialiased relative overflow-x-hidden selection:bg-primary-container selection:text-on-primary-fixed font-body-md">
+      {/* Ambient Atmospheric Pastel Halos */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden flex items-center justify-center">
+        <div className="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-primary-container/30 blur-3xl"></div>
+        <div className="absolute top-1/3 -right-24 w-80 h-80 rounded-full bg-secondary-container/40 blur-3xl"></div>
+        <div className="absolute -bottom-24 left-1/3 w-96 h-96 rounded-full bg-tertiary-container/30 blur-3xl"></div>
+
+        {/* Floating Tactile Badges */}
+        <div className="absolute top-28 left-12 lg:left-36 w-16 h-16 rounded-full bg-primary-container border-2 border-outline-variant/60 shadow-[0_6px_0_#DE95BE] flex items-center justify-center animate-bounce duration-[4000ms]">
+          <span className="material-symbols-outlined text-primary text-2xl">school</span>
+        </div>
+        <div className="absolute top-1/2 -left-6 lg:left-24 w-12 h-12 rounded-full bg-secondary-container border-2 border-secondary-fixed-dim shadow-[0_4px_0_#85B5CE] flex items-center justify-center">
+          <span className="material-symbols-outlined text-secondary text-xl">hub</span>
+        </div>
+        <div className="absolute top-40 right-10 lg:right-40 w-14 h-14 rounded-full bg-tertiary-container border-2 border-tertiary-fixed-dim shadow-[0_5px_0_#8DBAA1] flex items-center justify-center">
+          <span className="material-symbols-outlined text-tertiary text-2xl">verified_user</span>
+        </div>
+        <div className="absolute bottom-28 right-16 lg:right-32 w-16 h-16 rounded-full bg-primary-fixed border-2 border-outline-variant shadow-[0_5px_0_#DE95BE] flex items-center justify-center">
+          <span className="material-symbols-outlined text-primary text-2xl">analytics</span>
+        </div>
+      </div>
+
+      {/* Top Header Floating Dock */}
+      <header className="relative z-10 w-full px-4 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 bg-surface-container-lowest/90 backdrop-blur-md rounded-full px-6 py-2.5 border border-outline-variant/60 shadow-[0_4px_0_#EAD7E2]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-[0_2px_0_#320e26]">
+              <span className="material-symbols-outlined text-lg">school</span>
+            </div>
+            <span className="font-extrabold text-base text-on-surface tracking-tight">CampusBridge AI</span>
+            <span className="hidden md:inline-flex items-center bg-surface-container-low text-on-surface-variant text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-outline-variant/60">
+              Pastel Tactile Studio • JKLU
             </span>
-            <p className="text-3xs text-ink-muted font-medium">AI Placement OS</p>
+          </div>
+
+          <div className="flex items-center gap-2.5 flex-wrap justify-center">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-fixed/50 border border-secondary-fixed-dim text-on-secondary-container text-xs font-bold shadow-[0_2px_0_#85B5CE]">
+              <span className="material-symbols-outlined text-sm">shield</span>
+              <span>Zero-Trust FERPA &amp; DPDP</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-fixed/60 border border-tertiary-fixed-dim text-on-tertiary-container text-xs font-bold shadow-[0_2px_0_#a8cfbb]">
+              <span className="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+              <span>campusbridge_db.xlsx Synced</span>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Split-Screen Main Container */}
-      <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-center max-w-[1360px] w-full mx-auto p-4 sm:p-8 lg:p-12 gap-8 lg:gap-12">
-        {/* Left Column: Pro-Grade Institutional Value Proposition */}
-        <div className="flex-1 flex flex-col justify-center space-y-6 lg:pr-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#F0B6D5]/40 text-[#6D3B56] border border-[#F0B6D5] w-fit">
-            <ShieldCheck className="h-4 w-4" />
-            Institutional Career Intelligence Platform
+      {/* Main Login / Register Bento Box */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-[540px] bg-surface-container-lowest rounded-3xl border border-outline-variant shadow-[0_12px_32px_rgba(109,59,86,0.08),0_4px_0_#EAD7E2] p-8 sm:p-10 transition-all">
+          {/* RBAC Notice */}
+          {rbacNotice && (
+            <div className="mb-6 p-4 rounded-2xl bg-primary-container/30 border border-primary text-xs font-bold text-on-primary-container shadow-[0_2px_0_#DE95BE]">
+              {rbacNotice}
+            </div>
+          )}
+
+          {/* Sub-header Badge & Title */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-primary-container/40 border border-primary-container text-on-primary-container text-xs font-bold mb-3 shadow-[0_2px_0_#DE95BE]">
+              <span className="material-symbols-outlined text-sm">lock</span>
+              <span>Single Sign-On &amp; Role Gateway</span>
+            </div>
+            <h1 className="text-headline-md font-headline-md font-extrabold text-on-surface tracking-tight">
+              {authMode === 'SIGN_IN' ? 'Sign In to CampusBridge' : 'Register Student Candidate'}
+            </h1>
+            <p className="text-xs text-on-surface-variant mt-1.5 max-w-sm mx-auto">
+              Select your institutional role to access verified career proofs, cohort liquidity, or the AI command deck.
+            </p>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-display font-black text-ink-primary tracking-tight leading-tight">
-            Placement readiness with zero hallucinations.
-          </h1>
-
-          <p className="text-sm sm:text-base text-ink-muted leading-relaxed max-w-xl">
-            CampusBridge AI combines a <strong className="text-ink-primary">100% Deterministic Policy Shell</strong> (pure code and mathematical rules for cutoffs and privacy) with a <strong className="text-ink-primary">Probabilistic Core</strong> (Qwen 2.5 + Hybrid RAG) to verify real skill evidence.
-          </p>
-
-          {/* 3 Architecture Value Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div className="rounded-2xl bg-white border border-[#E6E3DC] p-4 shadow-2xs">
-              <div className="h-8 w-8 rounded-xl bg-[#B6DEC9]/40 flex items-center justify-center text-[#255C45] mb-2 font-bold">
-                ✓
-              </div>
-              <h3 className="font-display font-bold text-xs text-ink-primary">DPDP $k \ge 5$ Vault</h3>
-              <p className="text-3xs text-ink-muted mt-1 leading-normal">
-                Small-cell cohort suppression prevents recruiter deanonymization.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-[#E6E3DC] p-4 shadow-2xs">
-              <div className="h-8 w-8 rounded-xl bg-[#B6D9EC]/40 flex items-center justify-center text-[#2B5B75] mb-2 font-bold">
-                ⚡
-              </div>
-              <h3 className="font-display font-bold text-xs text-ink-primary">&lt;50ms What-If Fit</h3>
-              <p className="text-3xs text-ink-muted mt-1 leading-normal">
-                Instant counterfactual delta scoring with verified resume citations.
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-[#E6E3DC] p-4 shadow-2xs">
-              <div className="h-8 w-8 rounded-xl bg-[#F0B6D5]/40 flex items-center justify-center text-[#6D3B56] mb-2 font-bold">
-                🛡️
-              </div>
-              <h3 className="font-display font-bold text-xs text-ink-primary">120s Micro-Defense</h3>
-              <p className="text-3xs text-ink-muted mt-1 leading-normal">
-                Interactive DSA &amp; SQLite sandbox proctors eliminate resume fluff.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Clean Authentication Portal */}
-        <div className="w-full lg:w-[480px] flex items-center">
-          <div className="w-full rounded-3xl bg-white border-2 border-[#E6E3DC] shadow-xl p-6 sm:p-8 space-y-5">
-            {/* Auth Mode Toggle */}
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#F1EFEA] border border-[#E6E3DC]">
+          {/* Role Segmented Pill Tab Switcher */}
+          {authMode === 'SIGN_IN' && (
+            <div className="bg-surface-container-low p-1.5 rounded-full flex items-center justify-between gap-1 mb-6 border border-outline-variant/60">
               <button
                 type="button"
-                onClick={() => { setAuthMode('SIGN_IN'); setErrorMsg(null); setSuccessMsg(null); }}
-                className={`py-2 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
-                  authMode === 'SIGN_IN'
-                    ? 'bg-[#6D3B56] text-white shadow-xs'
-                    : 'text-ink-muted hover:text-ink-primary'
+                onClick={() => handleRoleChange('STUDENT')}
+                className={`flex-1 py-2 px-3 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  role === 'STUDENT'
+                    ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                    : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                Sign In
+                <span className="material-symbols-outlined text-sm">school</span>
+                <span>Student</span>
               </button>
               <button
                 type="button"
-                onClick={() => { setAuthMode('REGISTER'); setErrorMsg(null); setSuccessMsg(null); }}
-                className={`py-2 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  authMode === 'REGISTER'
-                    ? 'bg-[#6D3B56] text-white shadow-xs'
-                    : 'text-ink-muted hover:text-ink-primary'
+                onClick={() => handleRoleChange('FACULTY')}
+                className={`flex-1 py-2 px-3 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  role === 'FACULTY'
+                    ? 'bg-secondary text-on-secondary shadow-[0_3px_0_#284b5b]'
+                    : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                <UserPlus className="h-3.5 w-3.5" />
-                <span>Register Student</span>
+                <span className="material-symbols-outlined text-sm">person_celebrate</span>
+                <span>Mentor</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleChange('OFFICER')}
+                className={`flex-1 py-2 px-3 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  role === 'OFFICER'
+                    ? 'bg-tertiary text-on-tertiary shadow-[0_3px_0_#2a4e3e]'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">briefcase</span>
+                <span>TPO Officer</span>
               </button>
             </div>
+          )}
 
-            {authMode === 'SIGN_IN' ? (
-              <>
-                <div className="space-y-1 text-center">
-                  <h2 className="font-display font-extrabold text-2xl text-ink-primary tracking-tight">
-                    Institutional Sign In
-                  </h2>
-                  <p className="text-xs text-ink-muted">
-                    Access your personalized workspace securely
-                  </p>
-                </div>
+          {/* Error & Success Messages */}
+          {errorMsg && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-error-container/40 border border-error/30 text-xs font-bold text-error">
+              {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="mb-4 p-3.5 rounded-2xl bg-tertiary-container/40 border border-tertiary text-xs font-bold text-on-tertiary-container">
+              {successMsg}
+            </div>
+          )}
 
-                {/* Role Switcher Tabs */}
-                <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-[#F1EFEA] border border-[#E6E3DC]">
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('STUDENT')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl font-bold text-xs transition-all ${
-                      role === 'STUDENT'
-                        ? 'bg-[#6D3B56] text-white shadow-xs'
-                        : 'text-ink-muted hover:text-ink-primary'
-                    }`}
-                  >
-                    <GraduationCap className="h-4 w-4" />
-                    <span>Student</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('FACULTY')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl font-bold text-xs transition-all ${
-                      role === 'FACULTY'
-                        ? 'bg-[#6D3B56] text-white shadow-xs'
-                        : 'text-ink-muted hover:text-ink-primary'
-                    }`}
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Faculty</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('OFFICER')}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl font-bold text-xs transition-all ${
-                      role === 'OFFICER'
-                        ? 'bg-[#6D3B56] text-white shadow-xs'
-                        : 'text-ink-muted hover:text-ink-primary'
-                    }`}
-                  >
-                    <Building2 className="h-4 w-4" />
-                    <span>TPO Cell</span>
-                  </button>
-                </div>
-
-                {rbacNotice && (
-                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-[#92400E] font-semibold flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#B45309]" />
-                    <span>{rbacNotice}</span>
-                  </div>
-                )}
-
-                {errorMsg && (
-                  <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-[#BE123C] font-semibold flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                {successMsg && (
-                  <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-[#065F46] font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-                    <span>{successMsg}</span>
-                  </div>
-                )}
-
-                {/* Credentials Form */}
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-ink-primary mb-1.5">
-                      {role === 'STUDENT'
-                        ? 'College Email or Roll Number'
-                        : role === 'FACULTY'
-                        ? 'Faculty Department Email'
-                        : 'Placement Officer Email'}
-                    </label>
-                    <input
-                      type="text"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. roll_no or email@nitk.edu"
-                      required
-                      className="w-full rounded-2xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-4 py-2.5 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-ink-primary">
-                        Password
-                      </label>
-                      <span className="text-3xs text-[#6D3B56] font-semibold hover:underline cursor-pointer">
-                        Forgot Password?
-                      </span>
-                    </div>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      required
-                      className="w-full rounded-2xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-4 py-2.5 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-[#6D3B56] hover:bg-[#582e44] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md border-b-4 border-[#AD1457] active:translate-y-0.5 cursor-pointer disabled:opacity-60"
-                  >
-                    {isLoading ? (
-                      <span>Authenticating...</span>
-                    ) : (
-                      <>
-                        <span>Enter {role === 'STUDENT' ? 'Student Workspace' : role === 'FACULTY' ? 'Mentor Portal' : 'TPO Console'}</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                {/* Quick-Fill Demo Badges */}
-                <div className="pt-3 border-t border-[#E6E3DC] space-y-2">
-                  <span className="text-3xs font-mono font-bold text-ink-muted uppercase tracking-wider block text-center">
-                    Instant 1-Click Demo Accounts
+          {/* Sign In Form */}
+          {authMode === 'SIGN_IN' ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1.5">
+                  Institutional Email or Student ID
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-base">
+                    mail
                   </span>
-                  <div className="grid grid-cols-2 gap-2 text-2xs">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemoLogin('STUDENT', 'arijeet.basak2005@gmail.com', 'student123')}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer border border-[#6D3B56]/30"
-                    >
-                      <span className="font-bold">Arijeet Basak</span>
-                      <span className="text-3xs px-1.5 py-0.5 rounded bg-[#F0B6D5]/40 text-[#6D3B56] font-bold">AI/ML</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemoLogin('STUDENT', 'aarav.sharma@nitk.edu', 'student@nitk2026')}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer"
-                    >
-                      <span className="font-bold">Aarav Sharma</span>
-                      <span className="text-3xs px-1.5 py-0.5 rounded bg-[#F0B6D5]/40 text-[#6D3B56] font-bold">Student</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemoLogin('STUDENT', 'priya.nair@nitk.edu', 'student@nitk2026')}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer"
-                    >
-                      <span className="font-bold">Priya Nair</span>
-                      <span className="text-3xs px-1.5 py-0.5 rounded bg-[#B6D9EC]/50 text-[#2B5B75] font-bold">AI/DS</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemoLogin('FACULTY', 'kavita.iyer@nitk.edu', 'faculty@nitk2026')}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer"
-                    >
-                      <span className="font-bold">Dr. Kavita Iyer</span>
-                      <span className="text-3xs px-1.5 py-0.5 rounded bg-[#B6DEC9]/60 text-[#255C45] font-bold">Faculty</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickDemoLogin('OFFICER', 'rajesh.menon@nitk.edu', 'tpo@nitk2026')}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#F1EFEA] hover:bg-[#E6E3DC] text-ink-primary font-medium transition-all shadow-2xs hover:scale-[1.02] cursor-pointer col-span-2"
-                    >
-                      <span className="font-bold">Prof. Rajesh Menon</span>
-                      <span className="text-3xs px-1.5 py-0.5 rounded bg-[#F0B6D5]/40 text-[#6D3B56] font-bold">TPO</span>
-                    </button>
-                  </div>
+                  <input
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-full pl-10 pr-4 py-2.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-primary shadow-[0_2px_0_#EADECE] transition-all font-medium"
+                  />
                 </div>
-              </>
-            ) : (
-              /* DYNAMIC CANDIDATE REGISTRATION */
-              <div className="space-y-4">
-                <div className="space-y-1 text-center">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-3xs font-mono font-bold bg-[#F0B6D5]/40 text-[#6D3B56] border border-[#F0B6D5]">
-                    Dynamic DB Registration
-                  </div>
-                  <h2 className="font-display font-extrabold text-xl text-ink-primary tracking-tight">
-                    Register New Candidate
-                  </h2>
-                  <p className="text-xs text-ink-muted">
-                    Direct atomic ledger write to Accounts_Students
-                  </p>
-                </div>
-
-                {rbacNotice && (
-                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-3.5 text-xs text-[#92400E] font-semibold flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[#B45309]" />
-                    <span>{rbacNotice}</span>
-                  </div>
-                )}
-
-                {errorMsg && (
-                  <div className="rounded-2xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-[#BE123C] font-semibold flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                {successMsg && (
-                  <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-[#065F46] font-semibold flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-                    <span>{successMsg}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleRegister} className="space-y-3">
-                  <div>
-                    <label className="block text-2xs font-bold text-ink-primary mb-1">
-                      Full Candidate Name
-                    </label>
-                    <input
-                      type="text"
-                      value={regFullName}
-                      onChange={(e) => setRegFullName(e.target.value)}
-                      placeholder="e.g. Devansh Gupta"
-                      required
-                      className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-2xs font-bold text-ink-primary mb-1">
-                        Institutional Email
-                      </label>
-                      <input
-                        type="email"
-                        value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                        placeholder="devansh@nitk.edu"
-                        required
-                        className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-2xs font-bold text-ink-primary mb-1">
-                        Roll Number
-                      </label>
-                      <input
-                        type="text"
-                        value={regRollNo}
-                        onChange={(e) => setRegRollNo(e.target.value)}
-                        placeholder="221CS150"
-                        required
-                        className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-2xs font-bold text-ink-primary mb-1">
-                        Program
-                      </label>
-                      <select
-                        value={regProgram}
-                        onChange={(e) => setRegProgram(e.target.value)}
-                        className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                      >
-                        <option value="B.Tech CSE">B.Tech CSE</option>
-                        <option value="B.Tech AI & Data Science">B.Tech AI &amp; DS</option>
-                        <option value="B.Tech Information Technology">B.Tech IT</option>
-                        <option value="B.Tech ECE">B.Tech ECE</option>
-                        <option value="M.Tech Software Engineering">M.Tech SE</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-2xs font-bold text-ink-primary mb-1">
-                        Cohort Year
-                      </label>
-                      <input
-                        type="number"
-                        value={regCohortYear}
-                        onChange={(e) => setRegCohortYear(e.target.value)}
-                        required
-                        className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-2xs font-bold text-ink-primary mb-1">
-                        Current CGPA (0.00 - 10.00)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="10"
-                        value={regCgpa}
-                        onChange={(e) => setRegCgpa(e.target.value)}
-                        required
-                        className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-2xs font-bold text-ink-primary mb-1">
-                        Active Backlogs
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={regBacklogs}
-                        onChange={(e) => setRegBacklogs(e.target.value)}
-                        required
-                        className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-2xs font-bold text-ink-primary mb-1">
-                      Account Password
-                    </label>
-                    <input
-                      type="password"
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="••••••••••••"
-                      required
-                      className="w-full rounded-xl border-2 border-[#E6E3DC] bg-[#FAF8F6] px-3 py-2 text-xs text-ink-primary font-medium focus:border-[#6D3B56] focus:bg-white focus:outline-none transition-all"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 mt-2 rounded-2xl bg-[#6D3B56] hover:bg-[#582e44] text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md border-b-4 border-[#AD1457] active:translate-y-0.5 cursor-pointer disabled:opacity-60"
-                  >
-                    {isLoading ? (
-                      <span>Writing to Ledger...</span>
-                    ) : (
-                      <>
-                        <span>Create Account &amp; Ingest Resume</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-
-                  <p className="text-3xs text-ink-muted text-center pt-1">
-                    🛡️ Automatically triggers T.E.R.R.A. layout extractor &amp; 1536-dim Nomic embedding guard.
-                  </p>
-                </form>
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1.5">Security Passcode</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-base">
+                    key
+                  </span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-full pl-10 pr-4 py-2.5 text-xs text-on-surface focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-primary shadow-[0_2px_0_#EADECE] transition-all font-medium"
+                  />
+                </div>
+              </div>
+
+              {/* Quick Persona Fill Buttons */}
+              <div className="pt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block mb-1.5">
+                  1-Click Demo Profiles:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('STUDENT')
+                      setIdentifier('aarav.sharma@nitk.edu')
+                      setPassword('student@nitk2026')
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary-container/30 border border-outline-variant hover:bg-primary-container text-on-surface transition-all"
+                  >
+                    Aarav (Student)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('STUDENT')
+                      setIdentifier('priya.nair@nitk.edu')
+                      setPassword('student@nitk2026')
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-secondary-container/40 border border-secondary-fixed-dim hover:bg-secondary-container text-on-surface transition-all"
+                  >
+                    Priya (Student)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('FACULTY')
+                      setIdentifier('kavita.iyer@nitk.edu')
+                      setPassword('faculty@nitk2026')
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant hover:bg-surface-container-high text-on-surface transition-all"
+                  >
+                    Dr. Kavita (Faculty)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRole('OFFICER')
+                      setIdentifier('rajesh.menon@nitk.edu')
+                      setPassword('tpo@nitk2026')
+                    }}
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-tertiary-container/40 border border-tertiary-fixed-dim hover:bg-tertiary-container text-on-surface transition-all"
+                  >
+                    Prof. Menon (TPO)
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit CTA */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-4 bg-primary text-on-primary font-bold text-xs py-3.5 rounded-full border border-on-primary-fixed-variant shadow-[0_4px_0_#320e26] active:translate-y-[2px] active:shadow-[0_1px_0_#320e26] hover:brightness-105 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{isLoading ? 'Verifying Credentials...' : 'Sign In with Institutional SSO'}</span>
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-on-surface mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={regFullName}
+                  onChange={(e) => setRegFullName(e.target.value)}
+                  required
+                  className="w-full bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 text-xs font-medium focus:outline-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    required
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 text-xs font-medium focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Roll Number</label>
+                  <input
+                    type="text"
+                    value={regRollNo}
+                    onChange={(e) => setRegRollNo(e.target.value)}
+                    required
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 text-xs font-medium focus:outline-none"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Academic Program</label>
+                  <input
+                    type="text"
+                    value={regProgram}
+                    onChange={(e) => setRegProgram(e.target.value)}
+                    required
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 text-xs font-medium focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-on-surface mb-1">Current CGPA</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={regCgpa}
+                    onChange={(e) => setRegCgpa(e.target.value)}
+                    required
+                    className="w-full bg-surface-container-low border border-outline-variant rounded-full px-4 py-2 text-xs font-medium focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full mt-4 bg-tertiary text-on-tertiary font-bold text-xs py-3.5 rounded-full border border-tertiary-fixed-dim shadow-[0_4px_0_#2a4e3e] active:translate-y-[2px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>{isLoading ? 'Registering...' : 'Create Student Account in Excel Ledger'}</span>
+                <span className="material-symbols-outlined text-base">person_add</span>
+              </button>
+            </form>
+          )}
+
+          {/* Toggle between Sign In and Register */}
+          <div className="mt-6 pt-4 border-t border-outline-variant/60 text-center">
+            {authMode === 'SIGN_IN' ? (
+              <p className="text-xs text-on-surface-variant font-medium">
+                New to CampusBridge?{' '}
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('REGISTER')}
+                  className="text-primary font-bold hover:underline cursor-pointer"
+                >
+                  Create Student Account
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-on-surface-variant font-medium">
+                Already registered?{' '}
+                <button
+                  type="button"
+                  onClick={() => setAuthMode('SIGN_IN')}
+                  className="text-primary font-bold hover:underline cursor-pointer"
+                >
+                  Sign In with Existing Credentials
+                </button>
+              </p>
             )}
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="relative z-10 w-full px-4 py-4 text-center text-xs text-outline font-medium">
+        © 2025 CampusBridge AI • Pastel Tactile Studio v3.2 • JKLU Institutional Ethics &amp; DPDP Compliant
+      </footer>
     </div>
   )
 }
