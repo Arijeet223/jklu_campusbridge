@@ -216,7 +216,7 @@ export default function WhatIfSandboxPage() {
                 {/* Card 1: SQL Quest */}
                 <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant shadow-[0_3px_0_#EADECE] hover:border-secondary transition-all">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-bold text-xs text-on-surface">Pass SQL DENSE_RANK() Quest</h3>
                       <p className="text-[11px] text-on-surface-variant">Unlocks placement eligibility window filter</p>
                     </div>
@@ -224,7 +224,7 @@ export default function WhatIfSandboxPage() {
                       type="button"
                       onClick={() => setSqlQuestToggle(!sqlQuestToggle)}
                       aria-label="Toggle SQL Quest"
-                      className={`relative w-12 h-6 rounded-full transition-colors flex items-center p-0.5 shadow-inner cursor-pointer ${
+                      className={`relative w-12 h-6 rounded-full transition-colors flex items-center p-0.5 shadow-inner cursor-pointer shrink-0 ${
                         sqlQuestToggle ? 'bg-primary' : 'bg-surface-variant'
                       }`}
                     >
@@ -246,7 +246,7 @@ export default function WhatIfSandboxPage() {
                 {/* Card 2: FastAPI Defense */}
                 <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant shadow-[0_3px_0_#EADECE] hover:border-secondary transition-all">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-bold text-xs text-on-surface">Pass 120s FastAPI Defense</h3>
                       <p className="text-[11px] text-on-surface-variant">Solidify Redis idempotency artifact proof</p>
                     </div>
@@ -254,7 +254,7 @@ export default function WhatIfSandboxPage() {
                       type="button"
                       onClick={() => setFastApiToggle(!fastApiToggle)}
                       aria-label="Toggle FastAPI Defense"
-                      className={`relative w-12 h-6 rounded-full transition-colors flex items-center p-0.5 shadow-inner cursor-pointer ${
+                      className={`relative w-12 h-6 rounded-full transition-colors flex items-center p-0.5 shadow-inner cursor-pointer shrink-0 ${
                         fastApiToggle ? 'bg-primary' : 'bg-surface-variant'
                       }`}
                     >
@@ -276,7 +276,7 @@ export default function WhatIfSandboxPage() {
                 {/* Card 3: Graph Deadlock */}
                 <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant shadow-[0_3px_0_#EADECE] hover:border-secondary transition-all">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-bold text-xs text-on-surface">Solve Graph Deadlock DSA Quest</h3>
                       <p className="text-[11px] text-on-surface-variant">Distributed consensus lock simulation</p>
                     </div>
@@ -284,7 +284,7 @@ export default function WhatIfSandboxPage() {
                       type="button"
                       onClick={() => setDeadlockToggle(!deadlockToggle)}
                       aria-label="Toggle Graph Deadlock"
-                      className={`relative w-12 h-6 rounded-full transition-colors flex items-center p-0.5 shadow-inner cursor-pointer ${
+                      className={`relative w-12 h-6 rounded-full transition-colors flex items-center p-0.5 shadow-inner cursor-pointer shrink-0 ${
                         deadlockToggle ? 'bg-primary' : 'bg-surface-variant'
                       }`}
                     >

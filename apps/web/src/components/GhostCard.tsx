@@ -59,11 +59,11 @@ export default function GhostCard({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-extrabold text-sm text-on-surface">{skillName}</h4>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h4 className="font-extrabold text-sm text-on-surface truncate max-w-[200px] sm:max-w-xs">{skillName}</h4>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
                 isGhost
                   ? 'bg-primary-container text-on-primary-container border border-outline-variant'
                   : 'bg-tertiary-container text-on-tertiary-container border border-tertiary-fixed-dim'
@@ -72,7 +72,7 @@ export default function GhostCard({
               {isGhost ? '0.5x Ghost' : '1.0x Solid'}
             </span>
           </div>
-          <p className="text-xs text-on-surface-variant font-medium">
+          <p className="text-xs text-on-surface-variant font-medium truncate">
             Proficiency: <strong className="text-on-surface">{proficiency}</strong> • Match Confidence:{' '}
             {Math.round(confidence * 100)}%
           </p>
@@ -81,7 +81,7 @@ export default function GhostCard({
         <button
           type="button"
           onClick={onClickSource}
-          className="text-xs text-secondary font-bold hover:underline flex items-center gap-1 bg-secondary-container/40 px-2.5 py-1 rounded-full border border-secondary-fixed-dim shadow-[0_1px_0_#85B5CE]"
+          className="text-xs text-secondary font-bold hover:underline flex items-center gap-1 bg-secondary-container/40 px-2.5 py-1 rounded-full border border-secondary-fixed-dim shadow-[0_1px_0_#85B5CE] shrink-0"
         >
           <span className="material-symbols-outlined text-sm">find_in_page</span>
           <span>Provenance</span>
@@ -89,9 +89,9 @@ export default function GhostCard({
       </div>
 
       <div className="mt-4 pt-3 border-t border-dashed border-outline-variant/60 flex items-center justify-between flex-wrap gap-2 text-xs">
-        <span className="text-[11px] text-outline font-medium flex items-center gap-1">
-          <span className="material-symbols-outlined text-sm">description</span>
-          <span>
+        <span className="text-[11px] text-outline font-medium flex items-center gap-1 min-w-0 truncate">
+          <span className="material-symbols-outlined text-sm shrink-0">description</span>
+          <span className="truncate">
             {sourceSection} • {sourcePage}
           </span>
         </span>

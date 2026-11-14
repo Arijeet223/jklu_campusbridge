@@ -12,8 +12,8 @@ export default function LoginPage() {
   const router = useRouter()
   const [authMode, setAuthMode] = useState<AuthMode>('SIGN_IN')
   const [role, setRole] = useState<LoginRole>('STUDENT')
-  const [identifier, setIdentifier] = useState('aarav.sharma@nitk.edu')
-  const [password, setPassword] = useState('student@nitk2026')
+  const [identifier, setIdentifier] = useState('aarav.sharma@jklu.edu.in')
+  const [password, setPassword] = useState('student@jklu2026')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -34,26 +34,26 @@ export default function LoginPage() {
 
   // Registration Form State
   const [regFullName, setRegFullName] = useState('Devansh Gupta')
-  const [regEmail, setRegEmail] = useState('devansh.gupta@nitk.edu')
+  const [regEmail, setRegEmail] = useState('devansh.gupta@jklu.edu.in')
   const [regRollNo, setRegRollNo] = useState('221CS150')
   const [regProgram, setRegProgram] = useState('B.Tech CSE')
   const [regCohortYear, setRegCohortYear] = useState('2026')
   const [regCgpa, setRegCgpa] = useState('8.70')
   const [regBacklogs, setRegBacklogs] = useState('0')
-  const [regPassword, setRegPassword] = useState('student@nitk2026')
+  const [regPassword, setRegPassword] = useState('student@jklu2026')
 
   const handleRoleChange = (newRole: LoginRole) => {
     setRole(newRole)
     setErrorMsg(null)
     if (newRole === 'STUDENT') {
-      setIdentifier('aarav.sharma@nitk.edu')
-      setPassword('student@nitk2026')
+      setIdentifier('aarav.sharma@jklu.edu.in')
+      setPassword('student@jklu2026')
     } else if (newRole === 'FACULTY') {
-      setIdentifier('kavita.iyer@nitk.edu')
-      setPassword('faculty@nitk2026')
+      setIdentifier('kavita.iyer@jklu.edu.in')
+      setPassword('faculty@jklu2026')
     } else {
-      setIdentifier('rajesh.menon@nitk.edu')
-      setPassword('tpo@nitk2026')
+      setIdentifier('rajesh.menon@jklu.edu.in')
+      setPassword('tpo@jklu2026')
     }
   }
 
@@ -401,8 +401,8 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => {
                       setRole('STUDENT')
-                      setIdentifier('aarav.sharma@nitk.edu')
-                      setPassword('student@nitk2026')
+                      setIdentifier('aarav.sharma@jklu.edu.in')
+                      setPassword('student@jklu2026')
                     }}
                     className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-primary-container/30 border border-outline-variant hover:bg-primary-container text-on-surface transition-all"
                   >
@@ -412,8 +412,8 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => {
                       setRole('STUDENT')
-                      setIdentifier('priya.nair@nitk.edu')
-                      setPassword('student@nitk2026')
+                      setIdentifier('priya.nair@jklu.edu.in')
+                      setPassword('student@jklu2026')
                     }}
                     className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-secondary-container/40 border border-secondary-fixed-dim hover:bg-secondary-container text-on-surface transition-all"
                   >
@@ -423,8 +423,8 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => {
                       setRole('FACULTY')
-                      setIdentifier('kavita.iyer@nitk.edu')
-                      setPassword('faculty@nitk2026')
+                      setIdentifier('kavita.iyer@jklu.edu.in')
+                      setPassword('faculty@jklu2026')
                     }}
                     className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant hover:bg-surface-container-high text-on-surface transition-all"
                   >
@@ -434,8 +434,8 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => {
                       setRole('OFFICER')
-                      setIdentifier('rajesh.menon@nitk.edu')
-                      setPassword('tpo@nitk2026')
+                      setIdentifier('rajesh.menon@jklu.edu.in')
+                      setPassword('tpo@jklu2026')
                     }}
                     className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-tertiary-container/40 border border-tertiary-fixed-dim hover:bg-tertiary-container text-on-surface transition-all"
                   >

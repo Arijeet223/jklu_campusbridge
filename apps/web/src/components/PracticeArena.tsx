@@ -445,13 +445,13 @@ export default function PracticeArena({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h5 className="font-bold text-xs text-on-surface">{p.title}</h5>
-                      <p className="text-[11px] text-on-surface-variant mt-1">
+                    <div className="min-w-0 flex-1">
+                      <h5 className="font-bold text-xs text-on-surface truncate">{p.title}</h5>
+                      <p className="text-[11px] text-on-surface-variant mt-1 truncate">
                         Category: <strong className="text-primary">{p.category}</strong> • Difficulty: {p.difficulty}
                       </p>
                     </div>
-                    <span className="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-outline">
+                    <span className="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-outline shrink-0">
                       <span className="material-symbols-outlined text-base">play_arrow</span>
                     </span>
                   </div>
@@ -483,13 +483,13 @@ export default function PracticeArena({
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h5 className="font-bold text-xs text-on-surface">{c.title}</h5>
-                      <p className="text-[11px] text-on-surface-variant mt-1">
+                    <div className="min-w-0 flex-1">
+                      <h5 className="font-bold text-xs text-on-surface truncate">{c.title}</h5>
+                      <p className="text-[11px] text-on-surface-variant mt-1 truncate">
                         Table: <code className="bg-surface-container px-1 py-0.5 rounded text-[10px]">{c.table_name}</code>
                       </p>
                     </div>
-                    <span className="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-outline">
+                    <span className="w-7 h-7 rounded-full bg-surface-container-low flex items-center justify-center text-outline shrink-0">
                       <span className="material-symbols-outlined text-base">play_arrow</span>
                     </span>
                   </div>

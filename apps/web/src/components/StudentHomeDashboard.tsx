@@ -141,12 +141,12 @@ export default function StudentHomeDashboard({
       {/* ========================================================= */}
       <section className="bg-surface-container-lowest rounded-3xl border-[1.5px] border-outline-variant p-6 lg:p-8 shadow-[0_4px_0_#EAD7E2] relative overflow-hidden bg-gradient-to-r from-surface-container-lowest via-surface-container-lowest to-primary-container/20">
         <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 relative z-10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container border border-secondary-fixed-dim text-label-sm font-label-sm mb-3 shadow-[0_2px_0_#a8ccde]">
-              <span className="material-symbols-outlined text-sm">schedule</span>
-              <span>Placement Sprint Window • 48h Countdown Active • {institution}</span>
+          <div className="min-w-0 flex-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container border border-secondary-fixed-dim text-label-sm font-label-sm mb-3 shadow-[0_2px_0_#a8ccde] max-w-full">
+              <span className="material-symbols-outlined text-sm shrink-0">schedule</span>
+              <span className="truncate">Placement Sprint Window • 48h Countdown Active • {institution}</span>
             </div>
-            <h1 className="text-headline-xl font-headline-xl text-on-surface tracking-tight font-extrabold">
+            <h1 className="text-headline-lg lg:text-headline-xl font-headline-xl text-on-surface tracking-tight font-extrabold break-words">
               Welcome back, {studentName}! 🚀
             </h1>
             <p className="text-body-md font-body-md text-on-surface-variant mt-2 max-w-2xl">
@@ -304,31 +304,31 @@ export default function StudentHomeDashboard({
               </span>
 
               {/* Checklist Item 1: Complete */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border border-outline-variant shadow-[0_2px_0_#f0b6d5]">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-tertiary text-on-tertiary flex items-center justify-center font-bold">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border border-outline-variant shadow-[0_2px_0_#f0b6d5] gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 rounded-lg bg-tertiary text-on-tertiary flex items-center justify-center font-bold shrink-0">
                     <span className="material-symbols-outlined text-base">check</span>
                   </div>
-                  <span className="text-body-sm font-body-sm text-on-surface font-bold">
+                  <span className="text-body-sm font-body-sm text-on-surface font-bold truncate">
                     FastAPI Redis Idempotency 120s Defense
                   </span>
                 </div>
-                <span className="text-label-sm font-label-sm text-tertiary bg-tertiary-container/40 px-2.5 py-0.5 rounded-full border border-tertiary-fixed-dim font-bold">
+                <span className="text-label-sm font-label-sm text-tertiary bg-tertiary-container/40 px-2.5 py-0.5 rounded-full border border-tertiary-fixed-dim font-bold shrink-0 whitespace-nowrap">
                   1.0x Solid Locked
                 </span>
               </div>
 
               {/* Checklist Item 2: Pending Attention */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border border-primary-container shadow-[0_2px_0_#DE95BE]">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-bold">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border border-primary-container shadow-[0_2px_0_#DE95BE] gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-6 h-6 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-bold shrink-0">
                     <span className="material-symbols-outlined text-base">priority_high</span>
                   </div>
-                  <span className="text-body-sm font-body-sm text-on-surface font-bold">
+                  <span className="text-body-sm font-body-sm text-on-surface font-bold truncate">
                     SQL DENSE_RANK() Windowing Quest
                   </span>
                 </div>
-                <span className="text-label-sm font-label-sm text-primary bg-primary-fixed/50 px-2.5 py-0.5 rounded-full border border-outline-variant font-bold">
+                <span className="text-label-sm font-label-sm text-primary bg-primary-fixed/50 px-2.5 py-0.5 rounded-full border border-outline-variant font-bold shrink-0 whitespace-nowrap">
                   Estimated 15m
                 </span>
               </div>
@@ -391,15 +391,15 @@ export default function StudentHomeDashboard({
 
             {/* Checklist Item & Action Row */}
             <div className="flex flex-wrap items-center justify-between gap-3 mt-5 pt-4 border-t border-outline-variant/50">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary text-lg">add_task</span>
-                <span className="text-body-sm font-body-sm text-on-surface font-bold">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="material-symbols-outlined text-secondary text-lg shrink-0">add_task</span>
+                <span className="text-body-sm font-body-sm text-on-surface font-bold truncate">
                   Optional: Solve Concurrency Deadlock Proof (+6% boost)
                 </span>
               </div>
               <Link
                 href="/student/arena"
-                className="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-5 py-2.5 rounded-full border border-secondary-fixed-dim shadow-[0_3px_0_#85B5CE] active:translate-y-[2px] transition-all flex items-center gap-1.5 hover:brightness-95 font-bold"
+                className="bg-secondary-container text-on-secondary-container font-label-md text-label-md px-5 py-2.5 rounded-full border border-secondary-fixed-dim shadow-[0_3px_0_#85B5CE] active:translate-y-[2px] transition-all flex items-center gap-1.5 hover:brightness-95 font-bold shrink-0"
               >
                 <span>Start Proof Defense</span>
                 <span className="material-symbols-outlined text-base">play_arrow</span>

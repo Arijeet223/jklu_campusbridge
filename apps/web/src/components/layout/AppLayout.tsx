@@ -19,6 +19,8 @@ import {
   Shield,
   ArrowLeft,
   Sparkles,
+  Menu,
+  X,
 } from 'lucide-react'
 
 interface AppLayoutProps {
@@ -43,6 +45,7 @@ export default function AppLayout({
   const [currentStudentName, setCurrentStudentName] = useState(userName)
   const [currentSubtitle, setCurrentSubtitle] = useState(userSubtitle)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const notifications = [
     {
@@ -108,6 +111,7 @@ export default function AppLayout({
     } catch {
       // Ignore
     }
+    setMobileSidebarOpen(false)
   }, [pathname, router])
 
   const studentNavItems = [
@@ -169,10 +173,22 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen bg-surface text-on-surface flex font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+      {/* Mobile Backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-on-surface/40 backdrop-blur-xs z-40 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* ────────────────────────────────────────────────────────── */}
       {/*  FIXED LEFT SIDEBAR                                        */}
       {/* ────────────────────────────────────────────────────────── */}
-      <aside className="w-[260px] min-w-[260px] h-screen fixed left-0 top-0 bottom-0 bg-surface-container-low border-r-[1.5px] border-outline-variant flex flex-col justify-between z-30 select-none shadow-[2px_0_0_#EAD7E2]">
+      <aside
+        className={`w-[260px] min-w-[260px] h-screen fixed left-0 top-0 bottom-0 bg-surface-container-low border-r-[1.5px] border-outline-variant flex flex-col justify-between z-50 select-none shadow-[2px_0_0_#EAD7E2] transition-transform duration-200 ease-in-out ${
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
         <div>
           {/* Top Brand Mark */}
           <div className="h-16 px-5 border-b border-outline-variant/60 flex items-center justify-between">
@@ -187,6 +203,14 @@ export default function AppLayout({
                 <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Tactile Studio • JKLU</p>
               </div>
             </Link>
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="lg:hidden p-1.5 rounded-full text-outline hover:text-on-surface"
+              aria-label="Close Navigation"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Navigation Items */}
@@ -287,29 +311,39 @@ export default function AppLayout({
       {/* ────────────────────────────────────────────────────────── */}
       {/*  MAIN CONTENT AREA                                          */}
       {/* ────────────────────────────────────────────────────────── */}
-      <div className="ml-[260px] flex-1 flex flex-col min-h-screen bg-surface">
+      <div className="w-full lg:ml-[260px] flex-1 flex flex-col min-h-screen bg-surface min-w-0 overflow-x-hidden">
         {/* Top Tactile Header */}
-        <header className="sticky top-0 z-20 h-16 bg-surface/90 backdrop-blur-md border-b border-outline-variant/60 px-6 sm:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-20 h-16 bg-surface/90 backdrop-blur-md border-b border-outline-variant/60 px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            {/* Mobile Hamburger Menu Toggle */}
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface shadow-[0_2px_0_#d3c2c9] flex items-center justify-center shrink-0 cursor-pointer"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+
             {pathname !== '/student/dashboard' && pathname !== '/' && (
               <Link
                 href="/student/dashboard"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary-container text-xs font-bold transition-all shadow-[0_2px_0_#d3c2c9] group"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary-container text-xs font-bold transition-all shadow-[0_2px_0_#d3c2c9] group shrink-0"
               >
                 <ArrowLeft className="h-3.5 w-3.5 text-primary group-hover:-translate-x-0.5 transition-transform" />
                 <span className="hidden sm:inline">← Back</span>
               </Link>
             )}
 
-            <div>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-outline">
-                <Link href="/student/dashboard" className="hover:text-primary transition-colors">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-outline truncate">
+                <Link href="/student/dashboard" className="hover:text-primary transition-colors shrink-0">
                   {displayBreadcrumb}
                 </Link>
-                <ChevronRight className="h-3 w-3 text-outline/60" />
-                <span className="text-primary font-bold">{displayTitle}</span>
+                <ChevronRight className="h-3 w-3 text-outline/60 shrink-0" />
+                <span className="text-primary font-bold truncate">{displayTitle}</span>
               </div>
-              <h1 className="font-extrabold text-base sm:text-lg text-on-surface tracking-tight leading-tight">
+              <h1 className="font-extrabold text-base sm:text-lg text-on-surface tracking-tight leading-tight truncate">
                 {displayTitle}
               </h1>
             </div>
@@ -397,7 +431,7 @@ export default function AppLayout({
         </header>
 
         {/* Page Children Container */}
-        <main className="flex-1 p-6 sm:p-8 max-w-7xl w-full mx-auto">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">{children}</main>
       </div>
     </div>
   )
