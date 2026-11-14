@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useSession, signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   UserCheck,
@@ -27,7 +28,7 @@ interface AppLayoutProps {
   children: React.ReactNode
   pageTitle?: string
   breadcrumb?: string
-  activeRole?: 'STUDENT' | 'FACULTY' | 'OFFICER' | 'ADMIN'
+  activeRole?: 'STUDENT' | 'FACULTY' | 'OFFICER' | 'ADMIN' | 'TEACHER' | 'PLACEMENT_OFFICER'
   userName?: string
   userSubtitle?: string
 }
@@ -42,59 +43,21 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { data: session } = useSession()
+
+  const [localRole, setLocalRole] = useState<string | null>(null)
   const [currentStudentName, setCurrentStudentName] = useState(userName)
   const [currentSubtitle, setCurrentSubtitle] = useState(userSubtitle)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
-  const notifications = [
-    {
-      id: 'notif-1',
-      title: 'Razorpay FinTech Sprint JD Live',
-      description: '84% match alignment, 0 backlogs required. Fast-track application window closes in 18 hours.',
-      time: '10m ago',
-      unread: true,
-      tag: 'Job Drive',
-      tagColor: 'bg-primary-container text-on-primary-container',
-      href: '/student/matches',
-    },
-    {
-      id: 'notif-2',
-      title: 'Skill Assessment Verified',
-      description: 'Python & FastAPI Microservices upgraded to 4_ASSESSMENT_VERIFIED via 120s Micro-Defense (+8 pts).',
-      time: '1h ago',
-      unread: true,
-      tag: 'Skill Verified',
-      tagColor: 'bg-tertiary-container text-on-tertiary-container',
-      href: '/student/arena',
-    },
-    {
-      id: 'notif-3',
-      title: 'TPO Policy Gate Notice',
-      description: 'Atlassian Cohort Eligibility Gate updated: Min CGPA set to 7.5. Your 8.42 CGPA meets hard criteria.',
-      time: '3h ago',
-      unread: false,
-      tag: 'TPO Policy',
-      tagColor: 'bg-secondary-container text-on-secondary-container',
-      href: '/student/matches',
-    },
-    {
-      id: 'notif-4',
-      title: 'DPDP Privacy Shield Active',
-      description: 'Your profile is protected under DPDP Act 2023 small-cell suppression (k ≥ 5) until explicit application submission.',
-      time: '1d ago',
-      unread: false,
-      tag: 'Privacy Shield',
-      tagColor: 'bg-surface-container text-on-surface',
-      href: '/student/privacy-shield',
-    },
-  ]
-
+  // 1. Resolve Active Role from NextAuth Session with localStorage fallback
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cb_active_user')
       if (stored) {
         const parsed = JSON.parse(stored)
+        if (parsed.role) setLocalRole(parsed.role)
         if (parsed.name) setCurrentStudentName(parsed.name)
         if (parsed.program && parsed.cgpa) {
           setCurrentSubtitle(`${parsed.program} • ${parsed.cgpa} CGPA`)
@@ -108,12 +71,39 @@ export default function AppLayout({
           }
         }
       }
-    } catch {
-      // Ignore
-    }
+    } catch {}
     setMobileSidebarOpen(false)
   }, [pathname, router])
 
+  const resolvedRole = (
+    (session?.user?.role as string) ||
+    localRole ||
+    activeRole ||
+    'STUDENT'
+  ).toUpperCase()
+
+  const isTeacher =
+    resolvedRole === 'TEACHER' ||
+    resolvedRole === 'FACULTY' ||
+    resolvedRole === 'FACULTY_MENTOR'
+
+  const isOfficer =
+    resolvedRole === 'PLACEMENT_OFFICER' ||
+    resolvedRole === 'OFFICER' ||
+    resolvedRole === 'TPO' ||
+    resolvedRole === 'PTO' ||
+    resolvedRole === 'ADMIN'
+
+  // Default to STUDENT if neither Teacher nor Officer
+  const isStudent = !isTeacher && !isOfficer
+
+  const roleHome = isOfficer
+    ? '/officer/dashboard'
+    : isTeacher
+    ? '/teacher/panel'
+    : '/student/dashboard'
+
+  // 2. Strict 3-Way Isolated Navigation Definitions
   const studentNavItems = [
     { label: 'Dashboard Overview', href: '/student/dashboard', icon: LayoutDashboard },
     { label: 'Profile & Provenance', href: '/student/profile-evidence', icon: UserCheck },
@@ -123,18 +113,88 @@ export default function AppLayout({
     { label: 'Applications & Kanban', href: '/student/applications', icon: ClipboardList },
   ]
 
-  const institutionalNavItems = [
+  const teacherNavItems = [
     { label: 'Faculty Mentor Hub', href: '/teacher/panel', icon: GraduationCap },
-    { label: 'Placement Cell (TPO)', href: '/officer/dashboard', icon: Briefcase },
-    { label: 'Orbital Diagnostics', href: '/admin/diagnostics', icon: Activity },
+    { label: 'AI Orbital Check', href: '/admin/diagnostics', icon: Activity },
   ]
 
-  const handleLogout = () => {
+  const officerNavItems = [
+    { label: 'Placement Cell (TPO)', href: '/officer/dashboard', icon: Briefcase },
+    { label: 'AI Orbital Check', href: '/admin/diagnostics', icon: Activity },
+  ]
+
+  const notifications = [
+    {
+      id: 'notif-1',
+      title: 'Razorpay FinTech Sprint JD Live',
+      description: '84% match alignment, 0 backlogs required. Fast-track application window closes in 18 hours.',
+      time: '10m ago',
+      unread: true,
+      tag: 'Job Drive',
+      tagColor: 'bg-primary-container text-on-primary-container',
+      href: isStudent ? '/student/matches' : roleHome,
+    },
+    {
+      id: 'notif-2',
+      title: 'Skill Assessment Verified',
+      description: 'Python & FastAPI Microservices upgraded to 4_ASSESSMENT_VERIFIED via 120s Micro-Defense (+8 pts).',
+      time: '1h ago',
+      unread: true,
+      tag: 'Skill Verified',
+      tagColor: 'bg-tertiary-container text-on-tertiary-container',
+      href: isStudent ? '/student/arena' : roleHome,
+    },
+    {
+      id: 'notif-3',
+      title: 'TPO Policy Gate Notice',
+      description: 'Atlassian Cohort Eligibility Gate updated: Min CGPA set to 7.5. Your 8.42 CGPA meets hard criteria.',
+      time: '3h ago',
+      unread: false,
+      tag: 'TPO Policy',
+      tagColor: 'bg-secondary-container text-on-secondary-container',
+      href: isOfficer ? '/officer/dashboard' : roleHome,
+    },
+    {
+      id: 'notif-4',
+      title: 'DPDP Privacy Shield Active',
+      description: 'Your profile is protected under DPDP Act 2023 small-cell suppression (k ≥ 5) until explicit application submission.',
+      time: '1d ago',
+      unread: false,
+      tag: 'Privacy Shield',
+      tagColor: 'bg-surface-container text-on-surface',
+      href: isStudent ? '/student/privacy-shield' : roleHome,
+    },
+  ]
+
+  // Safe Logout & Client-Side Cache Eviction
+  const handleLogout = async () => {
     try {
       localStorage.removeItem('cb_active_user')
       localStorage.removeItem('cb_auth_token')
+      localStorage.removeItem('cb_user_skills')
+      localStorage.removeItem('cb_uploaded_documents')
+      localStorage.removeItem('cb_resume_versions')
+      sessionStorage.clear()
+      // Expire edge middleware role cookie
+      document.cookie = 'cb_role=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;'
+      await signOut({ redirect: false })
     } catch {}
     router.push('/login')
+    router.refresh()
+  }
+
+  // Safe Back Button Handler respecting RBAC boundaries
+  const handleSafeBack = () => {
+    if (
+      typeof window !== 'undefined' &&
+      window.history.length > 2 &&
+      document.referrer &&
+      !document.referrer.includes('/login')
+    ) {
+      router.back()
+    } else {
+      router.push(roleHome)
+    }
   }
 
   const displayTitle =
@@ -159,6 +219,10 @@ export default function AppLayout({
       ? 'Placement Cell & TPO Console'
       : pathname === '/admin/diagnostics'
       ? 'AI Pantheon Orbital Diagnostics'
+      : isTeacher
+      ? 'Faculty Advisory'
+      : isOfficer
+      ? 'Placement Cell'
       : 'Career Readiness')
 
   const displayBreadcrumb =
@@ -167,9 +231,15 @@ export default function AppLayout({
       ? 'Student Workspace'
       : pathname.startsWith('/teacher')
       ? 'Faculty Portal'
-      : pathname.startsWith('/officer')
+      : pathname.startsWith('/officer') || pathname.startsWith('/pto') || pathname.startsWith('/tpo')
       ? 'Placement Cell'
-      : 'Institutional Studio')
+      : pathname.startsWith('/admin')
+      ? 'Orbital Check'
+      : isTeacher
+      ? 'Faculty Advisory'
+      : isOfficer
+      ? 'Placement Cell'
+      : 'Student Workspace')
 
   return (
     <div className="min-h-screen bg-surface text-on-surface flex font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
@@ -192,7 +262,7 @@ export default function AppLayout({
         <div>
           {/* Top Brand Mark */}
           <div className="h-16 px-5 border-b border-outline-variant/60 flex items-center justify-between">
-            <Link href="/student/dashboard" className="flex items-center gap-2.5 group">
+            <Link href={roleHome} className="flex items-center gap-2.5 group">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-on-primary-container border border-outline-variant shadow-[0_2px_0_#DE95BE] group-hover:scale-105 transition-transform">
                 <span className="material-symbols-outlined text-lg text-primary font-bold">school</span>
               </div>
@@ -200,7 +270,9 @@ export default function AppLayout({
                 <span className="font-extrabold text-sm text-on-surface tracking-tight block leading-tight">
                   CampusBridge AI
                 </span>
-                <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Tactile Studio • JKLU</p>
+                <p className="text-[10px] text-primary font-bold uppercase tracking-wider">
+                  {isTeacher ? 'Faculty Portal' : isOfficer ? 'TPO Placement Desk' : 'Tactile Studio • JKLU'}
+                </p>
               </div>
             </Link>
             <button
@@ -213,61 +285,96 @@ export default function AppLayout({
             </button>
           </div>
 
-          {/* Navigation Items */}
+          {/* Navigation Items: STRICT ROLE CONDITIONAL RENDERING */}
           <div className="p-3.5 space-y-5 overflow-y-auto max-h-[calc(100vh-160px)]">
-            {/* Student Readiness Links */}
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
-                Career Readiness
-              </span>
-              <nav className="space-y-1">
-                {studentNavItems.map((item) => {
-                  const isActive = pathname === item.href || (item.href === '/student/dashboard' && pathname === '/')
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
-                        isActive
-                          ? 'bg-primary text-on-primary shadow-[0_3px_0_#643953]'
-                          : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-on-primary' : 'text-outline'}`} />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
+            {/* 1. STUDENT ONLY NAVIGATION */}
+            {isStudent && (
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
+                  Career Readiness
+                </span>
+                <nav className="space-y-1">
+                  {studentNavItems.map((item) => {
+                    const isActive = pathname === item.href || (item.href === '/student/dashboard' && pathname === '/')
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                          isActive
+                            ? 'bg-primary text-on-primary shadow-[0_3px_0_#643953]'
+                            : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 ${isActive ? 'text-on-primary' : 'text-outline'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            )}
 
-            {/* Institutional Portals Links */}
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
-                Institutional Portals
-              </span>
-              <nav className="space-y-1">
-                {institutionalNavItems.map((item) => {
-                  const isActive = pathname === item.href
-                  const Icon = item.icon
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
-                        isActive
-                          ? 'bg-secondary text-on-secondary shadow-[0_3px_0_#284b5b]'
-                          : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 ${isActive ? 'text-on-secondary' : 'text-outline'}`} />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
+            {/* 2. TEACHER ONLY NAVIGATION */}
+            {isTeacher && (
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
+                  Faculty Advisory Console
+                </span>
+                <nav className="space-y-1">
+                  {teacherNavItems.map((item) => {
+                    const isActive = pathname === item.href
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                          isActive
+                            ? 'bg-secondary text-on-secondary shadow-[0_3px_0_#284b5b]'
+                            : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 ${isActive ? 'text-on-secondary' : 'text-outline'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            )}
+
+            {/* 3. PLACEMENT OFFICER ONLY NAVIGATION */}
+            {isOfficer && (
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
+                  Training &amp; Placement Office
+                </span>
+                <nav className="space-y-1">
+                  {officerNavItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href === '/officer/dashboard' && (pathname === '/officer/panel' || pathname === '/pto-dashboard'))
+                    const Icon = item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-2.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
+                          isActive
+                            ? 'bg-secondary text-on-secondary shadow-[0_3px_0_#284b5b]'
+                            : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 ${isActive ? 'text-on-secondary' : 'text-outline'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    )
+                  })}
+                </nav>
+              </div>
+            )}
           </div>
         </div>
 
@@ -289,17 +396,25 @@ export default function AppLayout({
           </div>
 
           <div className="flex items-center gap-2 mt-3">
-            <Link
-              href="/student/privacy-shield"
-              className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-full border border-tertiary-fixed-dim bg-tertiary-container/40 text-[11px] font-bold text-on-tertiary-container hover:brightness-95 transition-all shadow-[0_2px_0_#a8cfbb]"
-            >
-              <Shield className="h-3 w-3 text-tertiary" />
-              <span>Privacy</span>
-            </Link>
+            {isStudent ? (
+              <Link
+                href="/student/privacy-shield"
+                className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-full border border-tertiary-fixed-dim bg-tertiary-container/40 text-[11px] font-bold text-on-tertiary-container hover:brightness-95 transition-all shadow-[0_2px_0_#a8cfbb]"
+              >
+                <Shield className="h-3 w-3 text-tertiary" />
+                <span>Privacy</span>
+              </Link>
+            ) : (
+              <div className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-full border border-secondary-fixed-dim bg-secondary-container/40 text-[11px] font-bold text-on-secondary-container shadow-[0_2px_0_#85B5CE]">
+                <Shield className="h-3 w-3 text-secondary" />
+                <span>FERPA Verified</span>
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-full border border-outline-variant bg-surface-container-lowest text-[11px] font-bold text-outline hover:text-error hover:border-error/40 transition-all shadow-[0_2px_0_#d3c2c9]"
+              className="inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-full border border-outline-variant bg-surface-container-lowest text-[11px] font-bold text-outline hover:text-error hover:border-error/40 transition-all shadow-[0_2px_0_#d3c2c9] cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="h-3 w-3" />
@@ -325,19 +440,21 @@ export default function AppLayout({
               <Menu className="h-4 w-4" />
             </button>
 
-            {pathname !== '/student/dashboard' && pathname !== '/' && (
-              <Link
-                href="/student/dashboard"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary-container text-xs font-bold transition-all shadow-[0_2px_0_#d3c2c9] group shrink-0"
+            {/* Bounded Safe Back Button */}
+            {pathname !== roleHome && pathname !== '/' && (
+              <button
+                type="button"
+                onClick={handleSafeBack}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-primary hover:border-primary-container text-xs font-bold transition-all shadow-[0_2px_0_#d3c2c9] group shrink-0 cursor-pointer"
               >
                 <ArrowLeft className="h-3.5 w-3.5 text-primary group-hover:-translate-x-0.5 transition-transform" />
                 <span className="hidden sm:inline">← Back</span>
-              </Link>
+              </button>
             )}
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 text-[11px] font-bold text-outline truncate">
-                <Link href="/student/dashboard" className="hover:text-primary transition-colors shrink-0">
+                <Link href={roleHome} className="hover:text-primary transition-colors shrink-0">
                   {displayBreadcrumb}
                 </Link>
                 <ChevronRight className="h-3 w-3 text-outline/60 shrink-0" />
@@ -351,13 +468,20 @@ export default function AppLayout({
 
           <div className="flex items-center gap-3 relative">
             {/* DPDP FERPA Shield indicator */}
-            <Link
-              href="/student/privacy-shield"
-              className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-container/30 border border-tertiary-fixed-dim text-on-tertiary-container text-xs font-bold shadow-[0_2px_0_#a8cfbb] hover:brightness-95 transition-all"
-            >
-              <span className="material-symbols-outlined text-sm text-tertiary">shield</span>
-              <span>Zero-Leak Active</span>
-            </Link>
+            {isStudent ? (
+              <Link
+                href="/student/privacy-shield"
+                className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-tertiary-container/30 border border-tertiary-fixed-dim text-on-tertiary-container text-xs font-bold shadow-[0_2px_0_#a8cfbb] hover:brightness-95 transition-all"
+              >
+                <span className="material-symbols-outlined text-sm text-tertiary">shield</span>
+                <span>Zero-Leak Active</span>
+              </Link>
+            ) : (
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container/30 border border-secondary-fixed-dim text-on-secondary-container text-xs font-bold shadow-[0_2px_0_#85B5CE]">
+                <span className="material-symbols-outlined text-sm text-secondary">verified_user</span>
+                <span>Role Gateway Guarded</span>
+              </div>
+            )}
 
             {/* Notification Bell */}
             <div className="relative">
@@ -375,63 +499,56 @@ export default function AppLayout({
                 <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-error ring-2 ring-white animate-pulse" />
               </button>
 
+              {/* Tactical Dropdown Drawer */}
               {notificationsOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-3xl bg-surface-container-lowest border-2 border-outline-variant shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-150 space-y-3">
-                    <div className="flex items-center justify-between pb-2 border-b border-outline-variant/60">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-xs text-on-surface">Placement &amp; System Alerts</span>
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-container text-on-primary-container">
-                          2 new
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setNotificationsOpen(false)}
-                        className="text-[11px] text-primary font-bold hover:underline"
-                      >
-                        Dismiss
-                      </button>
+                <div className="absolute right-0 top-12 w-80 sm:w-96 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-[0_12px_32px_rgba(109,59,86,0.12),0_4px_0_#EAD7E2] p-4 z-50">
+                  <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-on-surface">Campus Activity Feed</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container">
+                        2 unread
+                      </span>
                     </div>
-
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1 divide-y divide-outline-variant/40">
-                      {notifications.map((n) => (
-                        <Link
-                          key={n.id}
-                          href={n.href}
-                          onClick={() => setNotificationsOpen(false)}
-                          className="block pt-2 hover:bg-surface-container-low p-2 rounded-2xl transition-colors"
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${n.tagColor}`}>
-                              {n.tag}
-                            </span>
-                            <span className="text-[10px] text-outline">{n.time}</span>
-                          </div>
-                          <p className="text-xs font-bold text-on-surface">{n.title}</p>
-                          <p className="text-[11px] text-on-surface-variant line-clamp-2 mt-0.5">{n.description}</p>
-                        </Link>
-                      ))}
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotificationsOpen(false)}
+                      className="text-outline hover:text-on-surface text-xs font-bold"
+                    >
+                      Close
+                    </button>
                   </div>
-                </>
+
+                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    {notifications.map((n) => (
+                      <Link
+                        key={n.id}
+                        href={n.href}
+                        onClick={() => setNotificationsOpen(false)}
+                        className={`block p-3 rounded-xl border transition-all hover:translate-x-1 ${
+                          n.unread
+                            ? 'bg-surface-container-low border-outline-variant shadow-[0_2px_0_#EAD7E2]'
+                            : 'bg-surface border-transparent opacity-75 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${n.tagColor}`}>
+                            {n.tag}
+                          </span>
+                          <span className="text-[10px] font-bold text-outline">{n.time}</span>
+                        </div>
+                        <h4 className="font-extrabold text-xs text-on-surface">{n.title}</h4>
+                        <p className="text-[11px] text-on-surface-variant leading-tight mt-0.5">{n.description}</p>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-
-            {/* Quick Quest CTA */}
-            <Link
-              href="/student/arena"
-              className="bg-primary text-on-primary font-bold text-xs px-3.5 py-2 rounded-full border border-on-primary-fixed-variant shadow-[0_3px_0_#320e26] active:translate-y-[2px] transition-all flex items-center gap-1 hover:brightness-105"
-            >
-              <span>Arena</span>
-              <span className="material-symbols-outlined text-sm">bolt</span>
-            </Link>
           </div>
         </header>
 
-        {/* Page Children Container */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">{children}</main>
+        {/* Page Content Injection */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1400px] w-full mx-auto">{children}</main>
       </div>
     </div>
   )

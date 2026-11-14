@@ -40,8 +40,8 @@ export default function RegisterAccountModal({
     try {
       const endpoint =
         accountType === 'student'
-          ? '/api/backend/v1/auth/register-student'
-          : '/api/backend/v1/auth/register-teacher'
+          ? '/api/v1/auth/register-student'
+          : '/api/v1/auth/register-student'
 
       const payload =
         accountType === 'student'
@@ -71,7 +71,7 @@ export default function RegisterAccountModal({
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: json_payload_string(payload),
+        body: JSON.stringify(payload),
       })
 
       if (!res.ok) {

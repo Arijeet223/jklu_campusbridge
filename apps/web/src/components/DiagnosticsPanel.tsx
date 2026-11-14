@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Activity,
@@ -147,6 +148,12 @@ const MCP_TOOLS_CATALOG: MCPTool[] = [
 ]
 
 export default function DiagnosticsPanel() {
+  const { data: session } = useSession()
+  const userRole = (session?.user?.role as string)?.toUpperCase() || ''
+  const isTeacher = userRole === 'TEACHER' || userRole === 'FACULTY'
+  const backHref = isTeacher ? '/teacher/panel' : '/officer/dashboard'
+  const backLabel = isTeacher ? '← Back to Mentor Hub' : '← Back to TPO Console'
+
   const [cores, setCores] = useState<AICore[]>(DEFAULT_CORES)
   const [healthData, setHealthData] = useState<any>(null)
   const [loadingHealth, setLoadingHealth] = useState(false)
@@ -356,12 +363,12 @@ export default function DiagnosticsPanel() {
         {/* Left: Visible Back Button & Title */}
         <div className="flex items-center gap-4">
           <Link
-            href="/student/dashboard"
+            href={backHref}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-2xl border border-[#E2DFD9] bg-white text-ink-secondary hover:text-[#6D3B56] hover:border-[#6D3B56]/50 hover:bg-[#F1EFEA] text-xs font-bold transition-all shadow-2xs group cursor-pointer"
-            title="Return to Student Dashboard Overview"
+            title={`Return to ${isTeacher ? 'Faculty Mentor Hub' : 'Placement Office Console'}`}
           >
             <ArrowLeft className="h-4 w-4 text-[#6D3B56] group-hover:-translate-x-1 transition-transform" />
-            <span className="hidden sm:inline">← Back to Dashboard</span>
+            <span className="hidden sm:inline">{backLabel}</span>
             <span className="sm:hidden">← Back</span>
           </Link>
 

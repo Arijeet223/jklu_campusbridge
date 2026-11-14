@@ -62,6 +62,16 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrorMsg(null)
 
+    const roleForCookie =
+      authRole === 'FACULTY'
+        ? 'TEACHER'
+        : authRole === 'OFFICER'
+        ? 'PLACEMENT_OFFICER'
+        : 'STUDENT'
+    if (typeof window !== 'undefined') {
+      document.cookie = `cb_role=${roleForCookie}; Path=/; Max-Age=2592000; SameSite=Lax`
+    }
+
     try {
       await signIn('credentials', {
         email: authIdentifier.trim(),
@@ -224,6 +234,17 @@ export default function LoginPage() {
         body: JSON.stringify(payload),
       }).catch(() => null)
 
+      if (typeof window !== 'undefined') {
+        document.cookie = 'cb_role=STUDENT; Path=/; Max-Age=2592000; SameSite=Lax'
+      }
+      try {
+        await signIn('credentials', {
+          email: regEmail.trim().toLowerCase(),
+          password: regPassword || 'student@jklu2026',
+          redirect: false,
+        })
+      } catch {}
+
       if (res && res.ok) {
         const data = await res.json()
         if (typeof window !== 'undefined') {
@@ -265,6 +286,7 @@ export default function LoginPage() {
         readiness_index: 0,
       }
       if (typeof window !== 'undefined') {
+        document.cookie = 'cb_role=STUDENT; Path=/; Max-Age=2592000; SameSite=Lax'
         localStorage.setItem('cb_active_user', JSON.stringify(fallbackUser))
         localStorage.setItem('cb_auth_token', `cb-jwt-${studentId}`)
       }

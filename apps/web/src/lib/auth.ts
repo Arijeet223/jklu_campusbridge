@@ -58,7 +58,7 @@ export const authOptions: NextAuthOptions = {
                   id: staff.staff_id,
                   name: staff.full_name,
                   email: staff.email,
-                  role: isOfficer ? 'OFFICER' : staff.role || 'STAFF',
+                  role: isOfficer ? 'PLACEMENT_OFFICER' : (staff.role === 'FACULTY' || staff.role === 'TEACHER' ? 'TEACHER' : staff.role || 'TEACHER'),
                   department: staff.department || 'Training & Placement Office',
                   institution_id: staff.institution_id || 'JKLU',
                   isVerifiedOfficer: isOfficer && isJKLU,
@@ -108,7 +108,7 @@ export const authOptions: NextAuthOptions = {
             id: 'TPO-JKLU-001',
             name: 'Prof. Rajesh Menon',
             email: email.includes('@') ? email : 'tpo@jklu.edu.in',
-            role: 'OFFICER',
+            role: 'PLACEMENT_OFFICER',
             department: 'Training & Placement Office',
             institution_id: 'JKLU',
             isVerifiedOfficer: true,
@@ -116,12 +116,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         // B. Faculty Mentors
-        if (email.includes('faculty') || email.includes('mentor') || email === 'kavita@jklu.edu.in') {
+        if (email.includes('faculty') || email.includes('mentor') || email === 'kavita@jklu.edu.in' || email.includes('teacher')) {
           return {
             id: 'FAC-JKLU-014',
             name: 'Dr. Kavita Iyer',
             email: email.includes('@') ? email : 'kavita@jklu.edu.in',
-            role: 'FACULTY',
+            role: 'TEACHER',
             department: 'Computer Science & Engineering',
             institution_id: 'JKLU',
             isVerifiedOfficer: false,

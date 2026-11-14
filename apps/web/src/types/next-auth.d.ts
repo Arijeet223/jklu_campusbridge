@@ -5,7 +5,7 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string
-      role: 'STUDENT' | 'OFFICER' | 'TPO' | 'FACULTY' | 'ADMIN'
+      role: 'STUDENT' | 'TEACHER' | 'FACULTY' | 'PLACEMENT_OFFICER' | 'OFFICER' | 'TPO' | 'ADMIN'
       department?: string
       institution_id?: string
       isVerifiedOfficer?: boolean
@@ -30,4 +30,3 @@ declare module 'next-auth/jwt' {
     isVerifiedOfficer?: boolean
   }
 }
-
