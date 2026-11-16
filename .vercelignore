@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+node_modules
+apps/web/node_modules
+apps/web/.next
+data/*.xlsx
+*.log
+cache/
+.agents
