@@ -503,10 +503,10 @@ export default function StudentOnboardingPage() {
         {/* STEP 3: STAGE 3 GHOST CARDS CONFIRMATION & ACTIVATION */}
         {activeStep === 3 && (
           <div className="rounded-3xl border-2 border-[#E6E3DC] bg-white p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F1EFEA] pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F1EFEA] pb-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1 shrink-0">
                     <Ghost className="h-3 w-3" />
                     STAGE 3 • UNCONFIRMED GHOST CARDS
                   </span>
@@ -521,7 +521,7 @@ export default function StudentOnboardingPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={handleClaimAll}
@@ -596,32 +596,32 @@ export default function StudentOnboardingPage() {
 
             {/* Stage 3 Ghost Cards Grid */}
             {filteredSkills.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-[480px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[520px] overflow-y-auto pr-1.5 pb-2">
                 {filteredSkills.map((sk) => {
                   const isClaimed = !!sk.confirmed
                   return (
                     <div
                       key={sk.id}
-                      className={`p-4 rounded-2xl border-2 transition-all relative flex flex-col justify-between gap-3 ${
+                      className={`p-4 rounded-2xl border-2 transition-all relative flex flex-col justify-between gap-3 w-full min-w-0 overflow-hidden ${
                         isClaimed
-                          ? 'border-[#6D3B56] bg-white shadow-sm ring-1 ring-[#6D3B56]/20'
-                          : 'border-dashed border-[#DE95BE]/70 bg-[#FAF8F6]/80 opacity-70 hover:opacity-100 hover:border-[#6D3B56]'
+                          ? 'border-[#6D3B56] bg-white shadow-xs ring-1 ring-[#6D3B56]/20'
+                          : 'border-dashed border-[#DE95BE] bg-[#FAF8F6]/90 hover:bg-white hover:border-[#6D3B56] shadow-2xs'
                       }`}
                     >
                       {/* Top Header of Card */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-display font-extrabold text-sm text-ink-primary truncate">
+                            <h4 className="font-display font-extrabold text-sm text-ink-primary truncate" title={sk.name}>
                               {sk.name}
                             </h4>
-                            <span className="text-3xs font-mono font-bold px-1.5 py-0.5 rounded bg-[#F1EFEA] text-ink-secondary border border-[#E2DFD9]">
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#F1EFEA] text-ink-secondary border border-[#E2DFD9] shrink-0">
                               {sk.category}
                             </span>
                           </div>
 
                           {/* Provenance Badge */}
-                          <p className="text-3xs text-ink-muted font-mono truncate">
+                          <p className="text-[10px] text-ink-muted font-mono truncate" title={sk.sourceSpan}>
                             Provenance: {sk.sourceSpan}
                           </p>
                         </div>
@@ -630,21 +630,22 @@ export default function StudentOnboardingPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleClaimSkill(sk.id)}
-                          className={`px-2.5 py-1 rounded-xl text-3xs font-extrabold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                          className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95 ${
                             isClaimed
-                              ? 'bg-emerald-600 text-white shadow-xs'
+                              ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
                               : 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
                           }`}
+                          title={isClaimed ? 'Click to unclaim' : 'Click to claim skill'}
                         >
                           {isClaimed ? (
                             <>
-                              <Check className="h-3 w-3" />
+                              <Check className="h-3 w-3 stroke-[3]" />
                               <span>1.0x Claimed</span>
                             </>
                           ) : (
                             <>
-                              <Ghost className="h-3 w-3" />
-                              <span>0.5x Ghost (Click to Claim)</span>
+                              <Ghost className="h-3 w-3 text-amber-700" />
+                              <span>0.5x Ghost (Claim)</span>
                             </>
                           )}
                         </button>
@@ -652,35 +653,48 @@ export default function StudentOnboardingPage() {
 
                       {/* Snippet / Context */}
                       {sk.snippet && (
-                        <p className="text-3xs text-ink-secondary italic bg-[#FAF8F6] p-2 rounded-xl border border-[#F1EFEA] line-clamp-2">
+                        <p className="text-[11px] text-ink-secondary italic bg-[#FAF8F6] p-2 rounded-xl border border-[#F1EFEA] line-clamp-2 leading-snug">
                           &ldquo;{sk.snippet}&rdquo;
                         </p>
                       )}
 
                       {/* Bottom Controls: Proficiency Selector */}
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#F1EFEA]">
-                        <span className="text-3xs text-ink-muted font-bold uppercase tracking-wider">
-                          Proficiency:
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {(['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const).map((level) => (
-                            <button
-                              key={level}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleChangeProficiency(sk.id, level)
-                                if (!isClaimed) handleToggleClaimSkill(sk.id)
-                              }}
-                              className={`px-2 py-0.5 rounded-lg text-3xs font-bold transition-all cursor-pointer ${
-                                sk.proficiency === level
-                                  ? 'bg-[#6D3B56] text-white shadow-2xs'
-                                  : 'bg-[#F1EFEA] text-ink-muted hover:text-ink-primary'
-                              }`}
-                            >
-                              {level}
-                            </button>
-                          ))}
+                      <div className="pt-2.5 border-t border-[#F1EFEA] flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider">
+                            Proficiency
+                          </span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            isClaimed ? 'text-[#6D3B56] bg-[#6D3B56]/10' : 'text-amber-900 bg-amber-100'
+                          }`}>
+                            {sk.proficiency}
+                          </span>
+                        </div>
+
+                        {/* 4-Segmented Button Bar that perfectly spans 100% of the card width */}
+                        <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-[#F1EFEA] border border-[#E2DFD9]">
+                          {(['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const).map((level) => {
+                            const isSelected = sk.proficiency === level
+                            return (
+                              <button
+                                key={level}
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleChangeProficiency(sk.id, level)
+                                  if (!isClaimed) handleToggleClaimSkill(sk.id)
+                                }}
+                                className={`py-1 px-1 rounded-lg text-[10px] font-bold text-center transition-all cursor-pointer truncate ${
+                                  isSelected
+                                    ? 'bg-[#6D3B56] text-white shadow-2xs font-black'
+                                    : 'text-ink-secondary hover:text-ink-primary hover:bg-white/70'
+                                }`}
+                                title={`Set proficiency to ${level}`}
+                              >
+                                {level}
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     </div>
