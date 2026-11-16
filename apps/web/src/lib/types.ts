@@ -157,7 +157,9 @@ export interface AITrace {
     total_tokens?: number
     latency_ms: number
     degraded_mode?: boolean
+    fallback_reason?: string
   }
+  intent?: string
   mcp_tools: Array<{
     server: string
     tool: string

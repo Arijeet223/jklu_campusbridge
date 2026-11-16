@@ -1647,6 +1647,9 @@ async def chat_completions(req: ChatCompletionRequest):
                             "finish_reason": None,
                         }
                     ],
+                    "agent_name": pipeline_res.get("agent_name", "🤖 J.A.R.V.I.S."),
+                    "delegated_agent": pipeline_res.get("delegated_agent"),
+                    "widget_type": pipeline_res.get("widget_type", "none"),
                 }
                 yield f"data: {json.dumps(chunk_data)}\n\n"
                 await asyncio.sleep(0.015)

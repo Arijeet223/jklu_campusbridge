@@ -32,6 +32,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => ({}))
+    const studentId = req.nextUrl.searchParams.get('student_id') || body.student_id || 'STU-101'
+    if (!body.student_id) {
+      body.student_id = studentId
+    }
     const backendBase = process.env.CAMPUSBRIDGE_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
     const cleanBase = backendBase.replace(/\/+$/, '')
 

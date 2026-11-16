@@ -20,6 +20,24 @@ export default function StudentChatPage() {
   const [studentName, setStudentName] = useState('Aarav Sharma')
   const [cgpa, setCgpa] = useState(8.42)
   const [skills, setSkills] = useState<Skill[]>(mockSkills)
+  const [chatKey, setChatKey] = useState(0)
+
+  const handleNewChat = async () => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`cb_chat_history_${studentId}`)
+        localStorage.removeItem('cb_chat_messages')
+      } catch {}
+    }
+    try {
+      await fetch('/api/v1/chat/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId, messages: [] }),
+      })
+    } catch {}
+    setChatKey((k) => k + 1)
+  }
 
   useEffect(() => {
     try {
@@ -77,8 +95,8 @@ export default function StudentChatPage() {
               </div>
               <button
                 type="button"
-                onClick={() => window.location.reload()}
-                className="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[10px] font-bold shadow-[0_2px_0_#643953] active:translate-y-[1px] transition-all flex items-center gap-1 cursor-pointer"
+                onClick={handleNewChat}
+                className="px-2.5 py-1 rounded-full bg-primary text-on-primary text-[10px] font-bold shadow-[0_2px_0_#643953] active:translate-y-[1px] transition-all flex items-center gap-1 cursor-pointer hover:bg-primary/90"
               >
                 <span className="material-symbols-outlined text-xs">add</span>
                 <span>New</span>
@@ -178,6 +196,7 @@ export default function StudentChatPage() {
         {/* ========================================================= */}
         <section className="col-span-1 lg:col-span-9 bg-surface-container-lowest rounded-3xl border border-outline-variant flex flex-col justify-between shadow-[0_4px_0_#EAD7E2] overflow-hidden h-full">
           <ChatWorkspace
+            key={chatKey}
             activeView="all"
             onViewChange={() => {}}
             onOpenSourceDrawer={handleOpenSource}
@@ -191,6 +210,7 @@ export default function StudentChatPage() {
             skills={skills}
             onSetSkills={setSkills}
             onUploadResume={handleUploadResume}
+            onNewChat={handleNewChat}
           />
         </section>
       </div>

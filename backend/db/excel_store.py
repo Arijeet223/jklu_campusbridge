@@ -1086,7 +1086,9 @@ class ExcelStore:
             new_df = pd.DataFrame([sanitized])
             self._cache[sheet_name] = pd.concat([self._cache[sheet_name], new_df], ignore_index=True)
 
-            if sync:
+            # High-throughput audit logs should never synchronously block the request thread
+            should_sync = sync and (sheet_name != SHEET_AUDIT)
+            if should_sync:
                 self._save_to_excel()
             return sanitized
 

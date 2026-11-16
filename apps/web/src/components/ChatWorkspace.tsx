@@ -30,6 +30,8 @@ import {
   PhoneCall,
   ExternalLink,
   Code,
+  Plus,
+  RotateCcw,
 } from 'lucide-react'
 import type { ChatMessage, Skill, JobMatch, EligibilityRule, UserRole, AITrace, EvidenceStatus } from '@/lib/types'
 import {
@@ -76,6 +78,13 @@ export function getAgentBadge(agentName?: string) {
       badgeClass: 'bg-[#DDD6FE]/40 text-[#5B21B6] border-[#DDD6FE]',
     }
   }
+  if (name.includes('WORKSPACE') || name.includes('COPILOT') || name.includes('GMAIL') || name.includes('CALENDAR') || name.includes('NOTE')) {
+    return {
+      label: '📑 Workspace Copilot',
+      role: 'Productivity & Automation',
+      badgeClass: 'bg-[#E2E8F0] text-[#334155] border-[#CBD5E1]',
+    }
+  }
   return {
     label: '🤖 J.A.R.V.I.S.',
     role: 'Lead Cognitive Orchestrator',
@@ -113,9 +122,16 @@ export function getThinkingMessage(agentKey?: string) {
       color: 'bg-[#DDD6FE]/40 text-[#5B21B6] border-[#DDD6FE]',
     }
   }
+  if (norm.includes('workspace') || norm.includes('copilot') || norm.includes('mail') || norm.includes('calendar') || norm.includes('note')) {
+    return {
+      icon: '📑',
+      text: 'Workspace Copilot is preparing your productivity action...',
+      color: 'bg-[#E2E8F0] text-[#334155] border-[#CBD5E1]',
+    }
+  }
   return {
     icon: '🤔',
-    text: 'J.A.R.V.I.S. is analyzing your query & routing to specialist...',
+    text: 'J.A.R.V.I.S. is analyzing your query & coordinating specialists...',
     color: 'bg-[#F0B6D5]/40 text-[#6D3B56] border-[#F0B6D5]',
   }
 }
@@ -134,6 +150,7 @@ interface ChatWorkspaceProps {
   skills: Skill[]
   onSetSkills?: React.Dispatch<React.SetStateAction<Skill[]>>
   onUploadResume?: (fileName: string, newSkills: Skill[]) => void
+  onNewChat?: () => void
 }
 
 export default function ChatWorkspace({
@@ -150,6 +167,7 @@ export default function ChatWorkspace({
   skills,
   onSetSkills,
   onUploadResume,
+  onNewChat,
 }: ChatWorkspaceProps) {
   const [inputValue, setInputValue] = useState('')
   const [activeJobMatch, setActiveJobMatch] = useState<JobMatch>(mockJobMatches[0])
@@ -363,65 +381,11 @@ export default function ChatWorkspace({
     setExpandedTraces((prev) => ({ ...prev, [msgId]: !prev[msgId] }))
   }
 
-  const defaultTrace1: AITrace = {
-    engine: {
-      name: 'Qwen 2.5 (Local Ollama)',
-      model: 'qwen2.5:7b',
-      prompt_tokens: 342,
-      completion_tokens: 78,
-      total_tokens: 420,
-      latency_ms: 1240.5,
-      degraded_mode: false,
-    },
-    mcp_tools: [
-      { server: 'student-profile', tool: 'get_my_profile', status: 'ALLOWED', execution_time_ms: 1.2, summary: 'Profile loaded: CGPA 8.2' },
-      { server: 'student-profile', tool: 'list_my_evidence', status: 'ALLOWED', execution_time_ms: 1.5, summary: '3 verified evidence items' },
-      { server: 'matching', tool: 'run_match_preview', status: 'ALLOWED', execution_time_ms: 2.1, summary: 'Match status: MEETS (74/100)' },
-      { server: 'career-knowledge', tool: 'search_role_guides', status: 'ALLOWED', execution_time_ms: 1.8, summary: '2 Backend guides matched' },
-    ],
-    rag_chunks: [
-      { chunk_id: 'chunk-priya-001', document_id: 'doc-001', document_name: 'Priya_Sharma_Resume_v3.pdf', section: 'Education & Technical Skills', char_span: [45, 180], similarity_score: 0.94, content_preview: 'B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: 8.2/10.0)...' },
-      { chunk_id: 'chunk-priya-002', document_id: 'doc-001', document_name: 'Priya_Sharma_Resume_v3.pdf', section: 'Projects / Distributed Order Service', char_span: [181, 410], similarity_score: 0.89, content_preview: 'Built asynchronous order matching engine in Python and FastAPI...' },
-    ],
-    guardrail: {
-      status: 'Verified Grounded (0 hallucinations)',
-      valid_citations: ['[chunk-priya-001]', '[chunk-priya-002]'],
-      hallucinations_detected: 0,
-    },
-    total_latency_ms: 1243.2,
-  }
-
-  const defaultTrace3: AITrace = {
-    engine: {
-      name: 'Qwen 2.5 (Local Ollama)',
-      model: 'qwen2.5:7b',
-      prompt_tokens: 410,
-      completion_tokens: 95,
-      total_tokens: 505,
-      latency_ms: 1410.8,
-      degraded_mode: false,
-    },
-    mcp_tools: [
-      { server: 'student-profile', tool: 'get_my_profile', status: 'ALLOWED', execution_time_ms: 1.1, summary: 'Profile loaded: CGPA 8.2' },
-      { server: 'matching', tool: 'run_match_preview', status: 'ALLOWED', execution_time_ms: 2.4, summary: 'Match status: MEETS (74/100)' },
-      { server: 'career-knowledge', tool: 'search_role_guides', status: 'ALLOWED', execution_time_ms: 1.7, summary: '2 Backend guides matched' },
-    ],
-    rag_chunks: [
-      { chunk_id: 'chunk-priya-002', document_id: 'doc-001', document_name: 'Priya_Sharma_Resume_v3.pdf', section: 'Projects / Distributed Order Service', char_span: [181, 410], similarity_score: 0.91, content_preview: 'Built asynchronous order matching engine in Python and FastAPI with Redis caching...' },
-    ],
-    guardrail: {
-      status: 'Verified Grounded (0 hallucinations)',
-      valid_citations: ['[chunk-priya-002]'],
-      hallucinations_detected: 0,
-    },
-    total_latency_ms: 1416.0,
-  }
-
   // Agentic thinking state & indicator
   const [isThinking, setIsThinking] = useState(false)
-  const [thinkingAgent, setThinkingAgent] = useState<'jarvis' | 'terra' | 'ronen' | 'athena' | 'kronos'>('jarvis')
+  const [thinkingAgent, setThinkingAgent] = useState<'jarvis' | 'terra' | 'ronen' | 'athena' | 'kronos' | 'workspace'>('jarvis')
 
-  // Initial guided onboarding greeting from J.A.R.V.I.S.
+  // Clean initial guided onboarding greeting from J.A.R.V.I.S.
   const getWelcomeMessage = (name: string): ChatMessage => ({
     id: 'msg-welcome',
     sender: 'assistant',
@@ -429,10 +393,60 @@ export default function ChatWorkspace({
     text: `Hey ${name || 'there'}! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?`,
     timestamp: formatAppTime(new Date()),
     widgetType: 'none',
-    trace: defaultTrace1,
+    trace: {
+      engine: {
+        name: 'J.A.R.V.I.S. Cognitive Router',
+        model: 'qwen2.5:7b',
+        latency_ms: 8.5,
+        degraded_mode: false,
+      },
+      intent: 'INTENT_1: CONVERSATIONAL_OR_REASONING',
+      mcp_tools: [],
+      rag_chunks: [],
+      guardrail: {
+        status: 'Contextual Session Initialized',
+        valid_citations: [],
+        hallucinations_detected: 0,
+      },
+      total_latency_ms: 8.5,
+    },
   })
 
   const [messages, setMessages] = useState<ChatMessage[]>([getWelcomeMessage(studentName)])
+
+  // Dedicated New Chat Handler: clears active conversation, localStorage, and disk cache cleanly
+  const handleNewChat = async () => {
+    stopSpeaking()
+    stopListening(false)
+    setIsThinking(false)
+    setExpandedTraces({})
+    setInputValue('')
+    setInterimTranscript('')
+
+    const welcome = getWelcomeMessage(activeStudentName)
+    setMessages([welcome])
+
+    const currentId = activeStudentId || studentId || 'STU-101'
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(`cb_chat_history_${currentId}`)
+        localStorage.removeItem('cb_chat_messages')
+      } catch {}
+    }
+
+    try {
+      await fetch('/api/v1/chat/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: currentId,
+          messages: [],
+        }),
+      })
+    } catch {}
+
+    onNewChat?.()
+  }
 
   // 1. Restore chat history from localStorage and backend on mount or account switch
   useEffect(() => {
@@ -803,223 +817,26 @@ export default function ChatWorkspace({
     }
 
     const lower = text.toLowerCase()
-
-    // Intent 1: Update CGPA in profile memory
+    const startTime = Date.now()
     const cgpaMatch = text.match(/(?:cgpa|gpa)\s*(?:to|is|=|of)?\s*([0-9]+(?:\.[0-9]+)?)/i)
-    if (cgpaMatch && (lower.includes('update') || lower.includes('change') || lower.includes('set') || lower.includes('cgpa') || lower.includes('gpa'))) {
-      const newCgpaVal = parseFloat(cgpaMatch[1])
-      onUpdateCgpa?.(newCgpaVal)
-
-      const cgpaReply = `✅ **Academic Standing Updated!**\n\nYour CGPA is now recorded as **${newCgpaVal.toFixed(2)}** in your student profile. All deterministic academic hard gates (e.g. CGPA ≥ 7.5 and CGPA ≥ 8.0) have been re-evaluated and confirmed as **MEETS**.`
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-cgpa-${Date.now()}`,
-          sender: 'assistant',
-          agentName: 'Career Companion',
-          text: cgpaReply,
-          timestamp: formatAppTime(new Date()),
-          widgetType: 'none',
-          trace: {
-            engine: { name: 'Qwen 2.5 (Local Ollama)', model: 'qwen2.5:7b', latency_ms: 95.4, prompt_tokens: 42, completion_tokens: 35, total_tokens: 77 },
-            mcp_tools: [{ server: 'student-profile', tool: 'propose_profile_update', status: 'ALLOWED', execution_time_ms: 1.2, summary: `Updated CGPA to ${newCgpaVal}` }],
-            rag_chunks: [],
-            guardrail: { status: 'Verified Grounded (0 hallucinations)', valid_citations: [], hallucinations_detected: 0 },
-            total_latency_ms: 98.0,
-          },
-        },
-      ])
-      if (isVoiceQuery || autoVoiceEnabled) speakText(cgpaReply, 'JARVIS')
-      return
-    }
-
-    // Intent 2: Add Skill directly via chat
-    if (
-      (lower.includes('add') || lower.includes('include') || lower.includes('learned')) &&
-      (lower.includes('skill') || lower.includes('docker') || lower.includes('python') || lower.includes('fastapi') || lower.includes('react') || lower.includes('sql') || lower.includes('kubernetes') || lower.includes('go') || lower.includes('typescript') || lower.includes('redis'))
-    ) {
-      let detectedSkill = 'Docker Containerization'
-      if (lower.includes('docker')) detectedSkill = 'Docker'
-      else if (lower.includes('kubernetes') || lower.includes('k8s')) detectedSkill = 'Kubernetes'
-      else if (lower.includes('python')) detectedSkill = 'Python'
-      else if (lower.includes('redis')) detectedSkill = 'Redis'
-      else if (lower.includes('typescript')) detectedSkill = 'TypeScript'
-      else if (lower.includes('fastapi')) detectedSkill = 'FastAPI Microservices'
-
-      const newSkillItem: Skill = {
-        id: `sk_chat_${Date.now()}`,
-        name: detectedSkill,
-        proficiency: 'Intermediate',
-        evidenceStatus: 'STUDENT_CONFIRMED',
-        sourceDocumentId: 'doc_resume_v3',
-        sourceSpan: 'Conversational Profile Update • Confirmed by Student',
-        confidence: 1.0,
-        confirmedAt: new Date().toISOString(),
-      }
-
-      onSetSkills?.((prev) => [...prev, newSkillItem])
-
-      const skillReply = `✅ **Profile Updated Successfully!**\n\nAdded **${detectedSkill}** to your confirmed skills portfolio. Your alignment score with TechCorp India and NovaPay Solutions has been recalculated (+6% increase).`
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-skill-${Date.now()}`,
-          sender: 'assistant',
-          agentName: 'Career Companion',
-          text: skillReply,
-          timestamp: formatAppTime(new Date()),
-          widgetType: 'none',
-          trace: {
-            engine: { name: 'Qwen 2.5 (Local Ollama)', model: 'qwen2.5:7b', latency_ms: 120.2, prompt_tokens: 55, completion_tokens: 40, total_tokens: 95 },
-            mcp_tools: [{ server: 'student-profile', tool: 'propose_profile_update', status: 'ALLOWED', execution_time_ms: 1.6, summary: `Added skill ${detectedSkill}` }],
-            rag_chunks: [],
-            guardrail: { status: 'Verified Grounded (0 hallucinations)', valid_citations: [], hallucinations_detected: 0 },
-            total_latency_ms: 123.5,
-          },
-        },
-      ])
-      if (isVoiceQuery || autoVoiceEnabled) speakText(skillReply, 'TERRA')
-      return
-    }
-
-    // Intent 3: Add new Project to profile memory
-    if (
-      (lower.includes('add') || lower.includes('new')) &&
-      (lower.includes('project') || lower.includes('truthlens') || lower.includes('microservice') || lower.includes('app'))
-    ) {
-      const newProjectName = lower.includes('truthlens') ? 'Truthlens' : 'Order Processing Microservice'
-      const newProjSkill: Skill = {
-        id: `sk_proj_${Date.now()}`,
-        name: `${newProjectName} Architecture`,
-        proficiency: 'Advanced',
-        evidenceStatus: 'STUDENT_CONFIRMED',
-        sourceDocumentId: 'doc_resume_v3',
-        sourceSpan: `Project: ${newProjectName} • Confirmed by Student`,
-        confidence: 1.0,
-        confirmedAt: new Date().toISOString(),
-      }
-
-      onSetSkills?.((prev) => [...prev, newProjSkill])
-
-      const projReply = `✅ **Project Recorded in Profile Memory!**\n\nAdded project **${newProjectName}** with associated architectural evidence. You can now launch a **2-Minute Proof-of-Work Defense** on this project to earn an official verified recruiter badge!`
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-proj-${Date.now()}`,
-          sender: 'assistant',
-          agentName: 'Career Companion',
-          text: projReply,
-          timestamp: formatAppTime(new Date()),
-          widgetType: 'none',
-          trace: defaultTrace1,
-        },
-      ])
-      if (isVoiceQuery || autoVoiceEnabled) speakText(projReply, 'TERRA')
-      return
-    }
-
-    // Intent 4: Change preferred role
-    if (lower.includes('role') || lower.includes('career preference') || lower.includes('prefer')) {
-      const roleReply = `✅ **Career Preference Updated!**\n\nYour primary target role is now set to **Backend Engineer / Distributed Systems**. Job recommendation ranking and 72-Hour Sprint priorities have been refreshed.`
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-role-${Date.now()}`,
-          sender: 'assistant',
-          agentName: 'Career Companion',
-          text: roleReply,
-          timestamp: formatAppTime(new Date()),
-          widgetType: 'none',
-          trace: defaultTrace3,
-        },
-      ])
-      if (isVoiceQuery || autoVoiceEnabled) speakText(roleReply, 'JARVIS')
-      return
-    }
-
-    // Intent 5: Update GitHub URL directly in profile memory
     const githubMatch = text.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([a-zA-Z0-9_\-\.\/]+)/i)
-    if (githubMatch && (lower.includes('github') || lower.includes('repo') || lower.includes('portfolio') || lower.includes('profile') || lower.includes('my github') || lower.includes('update') || lower.includes('link'))) {
-      const fullUrl = normalizeExternalUrl(githubMatch[0])
-      setActiveGithubUrl(fullUrl)
-      try {
-        const stored = localStorage.getItem('cb_active_user')
-        if (stored) {
-          const u = JSON.parse(stored)
-          u.github_url = fullUrl
-          localStorage.setItem('cb_active_user', JSON.stringify(u))
-        }
-      } catch {}
-
-      // Background persist to backend
-      fetch('/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: `Update my github to ${fullUrl}` }],
-          student_id: currentStudentId,
-        }),
-      }).catch(() => {})
-
-      const ghReply = `✅ **GitHub Profile Linked!**\n\nSaved **${fullUrl}** to your verified student records in \`campusbridge_db.xlsx\`. Faculty mentors and recruiters can now inspect your live repository commits directly.`
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-gh-${Date.now()}`,
-          sender: 'assistant',
-          agentName: 'Career Companion',
-          text: ghReply,
-          timestamp: formatAppTime(new Date()),
-          widgetType: 'none',
-        },
-      ])
-      if (isVoiceQuery || autoVoiceEnabled) speakText(ghReply, 'JARVIS')
-      return
-    }
-
-    // Intent 6: Show / View Resume Document Sheet
-    if (
-      lower.match(/(?:show|view|see|read|open|what is|get|preview)?\s*(?:my\s*)?(?:resume|cv|curriculum vitae)\b/i) ||
-      lower.includes('show resume') ||
-      lower.includes('view resume') ||
-      lower.includes('my resume') ||
-      lower.includes('read resume') ||
-      lower.includes('preview resume')
-    ) {
-      const resumeReply = `🌿 **T.E.R.R.A. Institutional Resume Preview:** I've rendered your verified Word-style document sheet below. You can inspect all verified competencies, click through to your GitHub repositories, or expand the full preview sheet.`
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-resume-${Date.now()}`,
-          sender: 'assistant',
-          agentName: '🌿 T.E.R.R.A.',
-          text: resumeReply,
-          timestamp: formatAppTime(new Date()),
-          widgetType: 'resume_preview',
-          citations: [
-            { label: '📄 Resume p.1', doc_id: 'doc-resume' },
-            { label: '⚡ GitHub: verified-repo', doc_id: 'doc-github' },
-          ],
-        },
-      ])
-      if (isVoiceQuery || autoVoiceEnabled) speakText(resumeReply, 'TERRA')
-      return
-    }
 
     // Live AI Chat Pipeline: J.A.R.V.I.S. & Multi-Agent Pantheon via Qwen 2.5 streaming
     const botMsgId = `bot-live-${Date.now()}`
     let accumulatedText = ''
 
     // Detect target specialized agent for the thinking indicator
-    let initialDetectedAgent: 'jarvis' | 'terra' | 'ronen' | 'athena' | 'kronos' = 'jarvis'
-    if (lower.includes('sprint') || lower.includes('72h') || lower.includes('72 hrs') || lower.includes('72-hr') || lower.includes('72hr') || lower.includes('plan') || lower.includes('roadmap') || lower.includes('trajectory')) {
+    let initialDetectedAgent: 'jarvis' | 'terra' | 'ronen' | 'athena' | 'kronos' | 'workspace' = 'jarvis'
+    if (lower.includes('sprint') || lower.includes('72h') || lower.includes('72 hrs') || lower.includes('72-hr') || lower.includes('72hr') || lower.includes('plan') || lower.includes('roadmap') || lower.includes('trajectory') || lower.includes('kronos')) {
       initialDetectedAgent = 'kronos'
-    } else if (lower.includes('skill') || lower.includes('resume') || lower.includes('ghost') || lower.includes('evidence')) {
+    } else if (lower.includes('skill') || lower.includes('resume') || lower.includes('ghost') || lower.includes('evidence') || lower.includes('terra')) {
       initialDetectedAgent = 'terra'
-    } else if (lower.includes('eligible') || lower.includes('cutoff') || lower.includes('policy') || lower.includes('techcorp') || lower.includes('razorpay')) {
+    } else if (lower.includes('eligible') || lower.includes('cutoff') || lower.includes('policy') || lower.includes('techcorp') || lower.includes('razorpay') || lower.includes('ronen') || lower.includes('qualify')) {
       initialDetectedAgent = 'ronen'
-    } else if (lower.includes('code') || lower.includes('practice') || lower.includes('dsa') || lower.includes('sql') || lower.includes('test') || lower.includes('challenge')) {
+    } else if (lower.includes('code') || lower.includes('practice') || lower.includes('dsa') || lower.includes('sql') || lower.includes('test') || lower.includes('challenge') || lower.includes('defense') || lower.includes('athena')) {
       initialDetectedAgent = 'athena'
+    } else if (lower.includes('email') || lower.includes('mail') || lower.includes('calendar') || lower.includes('schedule') || lower.includes('workspace') || lower.includes('copilot') || lower.includes('note')) {
+      initialDetectedAgent = 'workspace'
     }
     setThinkingAgent(initialDetectedAgent)
     setIsThinking(true)
@@ -1029,6 +846,7 @@ export default function ChatWorkspace({
       ronen: '🛡️ R.O.N.E.N.',
       athena: '⚡ A.T.H.E.N.A.',
       kronos: '⏱️ K.R.O.N.O.S.',
+      workspace: '📑 Workspace Copilot',
       jarvis: '🤖 J.A.R.V.I.S.',
     }[initialDetectedAgent]
     let detectedWidgetType: any = null
@@ -1156,6 +974,25 @@ export default function ChatWorkspace({
     // If stream completed with text, render it
     if (accumulatedText.trim().length > 0) {
       setIsThinking(false)
+      const elapsedMs = Date.now() - startTime
+      const resolvedTrace = finalTrace || {
+        intent: 'INTENT_1: CONVERSATIONAL_OR_REASONING',
+        engine: {
+          name: 'Qwen 2.5 (Local Model Gateway)',
+          model: 'qwen2.5:7b',
+          latency_ms: elapsedMs,
+          degraded_mode: false,
+        },
+        mcp_tools: [],
+        rag_chunks: [],
+        guardrail: {
+          status: 'Direct Neural Reasoning',
+          valid_citations: [],
+          hallucinations_detected: 0,
+        },
+        total_latency_ms: elapsedMs,
+      }
+
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === botMsgId
@@ -1165,12 +1002,26 @@ export default function ChatWorkspace({
               agentName: detectedAgentName || msg.agentName,
               widgetType: widget,
               isStreaming: false,
-              trace: finalTrace || defaultTrace1,
+              trace: resolvedTrace,
               citations,
             }
             : msg
         )
       )
+
+      // Sync state mutations dynamically
+      if (cgpaMatch && (lower.includes('update') || lower.includes('my cgpa') || lower.includes('gpa is') || lower.includes('cgpa is'))) {
+        const newCgpaVal = parseFloat(cgpaMatch[1])
+        if (!isNaN(newCgpaVal) && newCgpaVal > 0 && newCgpaVal <= 10.0) {
+          onUpdateCgpa?.(newCgpaVal)
+          setActiveStudentCgpa(newCgpaVal)
+        }
+      }
+      if (githubMatch && (lower.includes('github') || lower.includes('repo'))) {
+        const fullUrl = normalizeExternalUrl(githubMatch[0])
+        setActiveGithubUrl(fullUrl)
+      }
+
       if (isVoiceQuery || autoVoiceEnabled) {
         speakText(accumulatedText, detectedAgentName)
       }
@@ -1213,49 +1064,24 @@ export default function ChatWorkspace({
       fallbackReply = `Regarding ${text.trim()}: The key for technical rounds is articulating trade-offs clearly, verifying edge cases, and connecting theoretical concepts to real implementations.`
     }
 
+    const elapsedMs = Date.now() - startTime
     const fallbackTrace: AITrace = {
       engine: {
-        name: 'Qwen 2.5 (Local Ollama / Deterministic Fallback)',
-        model: 'qwen2.5:7b',
-        prompt_tokens: 380,
-        completion_tokens: 88,
-        total_tokens: 468,
-        latency_ms: 48.2,
-        degraded_mode: false,
+        name: 'CampusBridge Local Deterministic Policy',
+        model: 'deterministic-policy-v1',
+        latency_ms: elapsedMs,
+        degraded_mode: true,
+        fallback_reason: 'FastAPI orchestrator and local inference gateway were offline or timed out.',
       },
-      mcp_tools: [
-        {
-          server: 'student-profile',
-          tool: 'get_my_profile',
-          status: 'ALLOWED',
-          execution_time_ms: 1.2,
-          summary: `Profile verified for ${currentStudentName}: CGPA ${currentStudentCgpa}`,
-        },
-        {
-          server: 'matching',
-          tool: 'run_match_preview',
-          status: 'ALLOWED',
-          execution_time_ms: 2.1,
-          summary: 'Deterministic Hard Gates: MEETS (74/100)',
-        },
-      ],
-      rag_chunks: [
-        {
-          chunk_id: 'chunk-aarav-001',
-          document_id: 'doc-resume-001',
-          document_name: 'Aarav_Sharma_Resume.pdf',
-          section: 'Education & Technical Experience',
-          char_span: [45, 180],
-          similarity_score: 0.94,
-          content_preview: `B.Tech Computer Science & Engineering, NIT Surathkal (CGPA: ${currentStudentCgpa}/10.0)...`,
-        },
-      ],
+      intent: 'DETERMINISTIC_POLICY_FALLBACK',
+      mcp_tools: [],
+      rag_chunks: [],
       guardrail: {
-        status: 'Verified Grounded (0 hallucinations)',
-        valid_citations: ['[chunk-aarav-001]'],
+        status: 'Deterministic Verified Fallback (Safe Mode)',
+        valid_citations: [],
         hallucinations_detected: 0,
       },
-      total_latency_ms: 51.5,
+      total_latency_ms: elapsedMs,
     }
 
     setMessages((prev) =>
@@ -1264,13 +1090,11 @@ export default function ChatWorkspace({
           ? {
             ...msg,
             text: fallbackReply,
+            agentName: widget === 'match_card' ? '🛡️ R.O.N.E.N.' : widget === 'ghost_cards' || widget === 'resume_preview' ? '🌿 T.E.R.R.A.' : widget === 'micro_defense' ? '⚡ A.T.H.E.N.A.' : widget === 'sprint_plan' ? '⏱️ K.R.O.N.O.S.' : '🤖 J.A.R.V.I.S.',
             widgetType: widget,
             isStreaming: false,
             trace: fallbackTrace,
-            citations: [
-              { label: '📄 Resume p.1', doc_id: 'doc-resume' },
-              { label: '⚡ GitHub: ecommerce-db', doc_id: 'doc-github' },
-            ],
+            citations: [],
           }
           : msg
       )
@@ -1307,7 +1131,7 @@ export default function ChatWorkspace({
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 font-mono text-[9px] font-semibold text-emerald-700">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                J.A.R.V.I.S. • T.E.R.R.A. • R.O.N.E.N.
+                J.A.R.V.I.S. • Autonomous Pantheon Active
               </span>
             </div>
             <p className="text-[10px] text-ink-muted">
@@ -1318,6 +1142,17 @@ export default function ChatWorkspace({
 
         {/* In-Chat Voice Status & Auto-Voice Toggle */}
         <div className="flex items-center gap-2">
+          {/* New Chat Button */}
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-canvas border border-border-hairline hover:bg-subtle text-[11px] font-semibold text-ink-primary transition-all shadow-2xs cursor-pointer active:translate-y-0.5"
+            title="Start a fresh conversation and reset cognitive context"
+          >
+            <Plus className="h-3.5 w-3.5 text-iris" />
+            <span>New Chat</span>
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -1713,11 +1548,16 @@ export default function ChatWorkspace({
                                 </span>
                               </div>
                               <div className="space-y-1 text-[11px] text-ink-muted">
-                                <div><span className="text-ink-secondary font-medium">Model:</span> {msg.trace?.engine.model || 'qwen2.5:7b'}</div>
-                                <div><span className="text-ink-secondary font-medium">Latency:</span> {msg.trace?.engine.latency_ms?.toFixed(1) || '1240.5'} ms</div>
+                                <div><span className="text-ink-secondary font-medium">Model:</span> {msg.trace?.engine?.model || 'qwen2.5:7b'}</div>
+                                <div><span className="text-ink-secondary font-medium">Latency:</span> {msg.trace?.engine?.latency_ms !== undefined ? msg.trace.engine.latency_ms.toFixed(1) : '—'} ms</div>
                                 <div>
-                                  <span className="text-ink-secondary font-medium">Tokens:</span> {msg.trace?.engine.prompt_tokens || 342} prompt • {msg.trace?.engine.completion_tokens || 78} completion ({msg.trace?.engine.total_tokens || 420} total)
+                                  <span className="text-ink-secondary font-medium">Tokens:</span> {msg.trace?.engine?.prompt_tokens ?? 0} prompt • {msg.trace?.engine?.completion_tokens ?? 0} completion ({((msg.trace?.engine?.prompt_tokens ?? 0) + (msg.trace?.engine?.completion_tokens ?? 0))} total)
                                 </div>
+                                {msg.trace?.engine?.degraded_mode && (
+                                  <div className="text-amber-700 font-medium">
+                                    ⚠️ Degraded Mode: Deterministic Policy Fallback ({msg.trace?.engine?.fallback_reason || 'Local Engine'})
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -1729,14 +1569,14 @@ export default function ChatWorkspace({
                                   Citation Guardrail
                                 </span>
                                 <span className="rounded px-1.5 py-0.5 text-[10px] font-medium bg-emerald/10 text-emerald">
-                                  {msg.trace?.guardrail.status || 'Verified Grounded (0 hallucinations)'}
+                                  {msg.trace?.guardrail?.status || 'Verified Grounded (0 hallucinations)'}
                                 </span>
                               </div>
                               <div className="space-y-1 text-[11px] text-ink-muted">
-                                <div><span className="text-ink-secondary font-medium">Hallucinations:</span> {msg.trace?.guardrail.hallucinations_detected ?? 0} (Blocked)</div>
+                                <div><span className="text-ink-secondary font-medium">Hallucinations:</span> {msg.trace?.guardrail?.hallucinations_detected ?? 0} (Blocked)</div>
                                 <div className="truncate">
                                   <span className="text-ink-secondary font-medium">Valid Citations:</span>{' '}
-                                  {msg.trace?.guardrail.valid_citations?.length ? (
+                                  {msg.trace?.guardrail?.valid_citations?.length ? (
                                     <span className="font-mono text-emerald">{msg.trace.guardrail.valid_citations.join(', ')}</span>
                                   ) : (
                                     <span className="italic text-ink-muted">Self-contained response</span>
@@ -1752,26 +1592,34 @@ export default function ChatWorkspace({
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-semibold text-ink-primary flex items-center gap-1.5">
                                 <Database className="h-3.5 w-3.5 text-oxford" />
-                                Scoped MCP Tools Executed ({msg.trace?.mcp_tools.length || 4} calls)
+                                Scoped MCP Tools Executed ({msg.trace?.mcp_tools?.length || 0} calls)
                               </span>
                               <span className="text-[10px] text-ink-muted">Least-Privilege Scoping</span>
                             </div>
-                            <div className="space-y-1.5">
-                              {(msg.trace?.mcp_tools || defaultTrace1.mcp_tools).map((t, i) => (
-                                <div key={i} className="flex items-center justify-between rounded border border-border-hairline/60 bg-canvas px-2 py-1 text-[11px]">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono font-medium text-ink-primary">{t.server}.{t.tool}</span>
-                                    {t.summary && <span className="text-ink-muted text-[10px]">({t.summary})</span>}
+                            {msg.trace?.mcp_tools && msg.trace.mcp_tools.length > 0 ? (
+                              <div className="space-y-1.5">
+                                {msg.trace.mcp_tools.map((t, i) => (
+                                  <div key={i} className="flex items-center justify-between rounded border border-border-hairline/60 bg-canvas px-2 py-1 text-[11px]">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono font-medium text-ink-primary">{t.server}.{t.tool}</span>
+                                      {t.summary && <span className="text-ink-muted text-[10px]">({t.summary})</span>}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`rounded px-1.5 py-0.2 text-[9px] font-bold ${
+                                        t.status === 'SUCCESS' ? 'bg-emerald/10 text-emerald' : 'bg-amber-100 text-amber-800'
+                                      }`}>
+                                        {t.status}
+                                      </span>
+                                      <span className="text-[10px] text-ink-muted font-mono">{t.execution_time_ms} ms</span>
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="rounded bg-emerald/10 px-1.5 py-0.2 text-[9px] font-bold text-emerald">
-                                      {t.status}
-                                    </span>
-                                    <span className="text-[10px] text-ink-muted font-mono">{t.execution_time_ms} ms</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-ink-muted italic py-1">
+                                No external MCP tools required for this turn (direct neural reasoning or conversational query).
+                              </div>
+                            )}
                           </div>
 
                           {/* Section 4: Pre-Filtered Hybrid RAG Chunks */}
@@ -1779,31 +1627,37 @@ export default function ChatWorkspace({
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-semibold text-ink-primary flex items-center gap-1.5">
                                 <FileText className="h-3.5 w-3.5 text-amber" />
-                                Pre-Filtered Hybrid RAG Retrieval (Top-k Chunks)
+                                Pre-Filtered Hybrid RAG Retrieval ({msg.trace?.rag_chunks?.length || 0} chunks)
                               </span>
                               <span className="text-[10px] text-ink-muted">BM25 + nomic-embed-text + RRF</span>
                             </div>
-                            <div className="space-y-2">
-                              {(msg.trace?.rag_chunks || defaultTrace1.rag_chunks).map((c, i) => (
-                                <div key={i} className="rounded border border-border-hairline/60 bg-canvas p-2 text-[11px]">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-semibold text-oxford">{c.document_name || 'Resume'}</span>
-                                      <span className="text-ink-muted">• {c.section}</span>
-                                      {c.char_span && (
-                                        <span className="font-mono text-[10px] text-ink-muted">[{c.char_span[0]}:{c.char_span[1]}]</span>
-                                      )}
+                            {msg.trace?.rag_chunks && msg.trace.rag_chunks.length > 0 ? (
+                              <div className="space-y-2">
+                                {msg.trace.rag_chunks.map((c, i) => (
+                                  <div key={i} className="rounded border border-border-hairline/60 bg-canvas p-2 text-[11px]">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="font-semibold text-oxford">{c.document_name || 'Document'}</span>
+                                        {c.section && <span className="text-ink-muted">• {c.section}</span>}
+                                        {c.char_span && (
+                                          <span className="font-mono text-[10px] text-ink-muted">[{c.char_span[0]}:{c.char_span[1]}]</span>
+                                        )}
+                                      </div>
+                                      <span className="rounded bg-oxford/10 px-1.5 py-0.5 text-[9px] font-mono font-bold text-oxford">
+                                        sim: {c.similarity_score}
+                                      </span>
                                     </div>
-                                    <span className="rounded bg-oxford/10 px-1.5 py-0.5 text-[9px] font-mono font-bold text-oxford">
-                                      sim: {c.similarity_score}
-                                    </span>
+                                    <p className="italic text-ink-secondary text-[10px] line-clamp-2">
+                                      "{c.content_preview}"
+                                    </p>
                                   </div>
-                                  <p className="italic text-ink-secondary text-[10px] line-clamp-2">
-                                    "{c.content_preview}"
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-[11px] text-ink-muted italic py-1">
+                                0 RAG document chunks required (turn handled via live session state, profile schema, or conversational reasoning).
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
