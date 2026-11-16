@@ -188,7 +188,12 @@ class AgentOrchestrator:
         }
 
     def classify_intent_dynamic(self, prompt: str, context: Optional[SecurityContext] = None) -> CognitiveIntent:
-        """Uses the Model Gateway for dynamic semantic routing instead of rigid keyword lists."""
+        """Fast-path semantic routing with Model Gateway fallback for complex queries."""
+        # Fast-path: Unambiguous rule-based classification (0ms latency)
+        fast_intent = classify_intent(prompt, context)
+        if fast_intent != CognitiveIntent.CONVERSATIONAL_OR_REASONING or len(prompt.strip()) < 45:
+            return fast_intent
+
         routing_prompt = f"""
         Analyze the user prompt and classify it into EXACTLY ONE of the following intents. 
         Respond ONLY with the intent number (1, 2, 3, 4, or 5).
@@ -223,8 +228,7 @@ class AgentOrchestrator:
         except Exception:
             pass
 
-        # Fallback to deterministic classifier when gateway degraded or offline
-        return classify_intent(prompt, context)
+        return fast_intent
 
     def dispatch(
         self,

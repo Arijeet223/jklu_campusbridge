@@ -1049,7 +1049,7 @@ export default function ChatWorkspace({
     const controller = new AbortController()
     const timeoutTimer = setTimeout(() => {
       controller.abort()
-    }, 6000) // 6-second timeout prevents indefinite hanging
+    }, 45000) // 45-second timeout for local open-weight LLM inference (Qwen 2.5)
 
     let finalTrace: any = null
     let citations: any[] = []
@@ -1057,8 +1057,7 @@ export default function ChatWorkspace({
     try {
       const endpoints = [
         '/api/v1/chat/completions',
-        '/api/backend/v1/chat/completions',
-        'http://localhost:8000/api/v1/chat/completions',
+        'http://127.0.0.1:8000/v1/chat/completions',
         'http://localhost:8000/v1/chat/completions',
       ]
 
