@@ -16,7 +16,7 @@ import time
 import uuid
 from copy import deepcopy
 from datetime import datetime, timezone, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse

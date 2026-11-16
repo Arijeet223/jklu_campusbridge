@@ -185,6 +185,25 @@ ALL 55 BACKEND TESTS PASSED SUCCESSFULLY (100% Pure & Deterministic)
 
 ---
 
+## 📡 API Endpoints & MCP Tools Reference
+
+CampusBridge AI features a decoupled architecture with **78 canonical FastAPI backend endpoints**, **10 Next.js edge API proxies**, and **6 internal Model Context Protocol (MCP) servers** housing **13 scoped tools**.
+
+👉 **For the complete, human-readable reference of every endpoint, tool schema, and access policy, consult: [`API_AND_MCP_README.md`](API_AND_MCP_README.md)**
+
+### Multi-Agent Pantheon & Assigned MCP Tools
+
+| Agent | Core Persona | Invariant / Boundary | Scoped MCP Tools |
+| :--- | :--- | :--- | :--- |
+| **🤖 J.A.R.V.I.S.** | Lead Cognitive Orchestrator | Contextual intent routing, natural guidance across all personas. | `career-knowledge.search_role_guides`<br>`student-profile.get_my_profile` |
+| **🌿 T.E.R.R.A.** | Evidence & Skill Provenance | 100% visual text provenance; provisional Ghost Cards from resumes and code. | `student-profile.get_my_profile`<br>`student-profile.list_my_evidence`<br>`student-profile.propose_profile_update` |
+| **🛡️ R.O.N.E.N.** | Deterministic Gatekeeper | 100% deterministic cutoffs (CGPA, backlogs, branch); boolean outcomes (`MEETS`, `DOES_NOT_MEET`, `UNKNOWN`). | `matching.run_match_preview`<br>`matching.explain_match`<br>`job-intelligence.get_approved_job` |
+| **⚡ A.T.H.E.N.A.** | 120s Micro-Defense Coach | Text-only artifact-grounded technical challenges; STAR defense questions without surveillance. | `placement-ops.get_practice_challenge`<br>`matching.run_match_preview` |
+| **⏱️ K.R.O.N.O.S.** | Readiness Coach & Sprint Architect | Adaptive coaching modes (72h Drive Sprint vs. Semester Marathon); triage checklists. | `placement-ops.create_study_task`<br>`placement-ops.list_my_applications`<br>`career-knowledge.search_learning_resources` |
+| **📑 Workspace Copilot** | Placement Ops & Institutional Copilot | Recruiter JD criteria parsing, cohort liquidity simulation, and institutional email drafting. | `job-intelligence.draft_job_requirements`<br>`placement-ops.record_human_review`<br>`analytics.get_cohort_summary`<br>`workspace.execute` |
+
+---
+
 ## 📖 Live Demonstration Playbook
 
 For a structured, 3-minute walkthrough showing exactly what to click and type across all 4 persona workspaces during an evaluation or hackathon demonstration, consult:

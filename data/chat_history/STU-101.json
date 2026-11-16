@@ -1,1 +1,123 @@
-[]
+[
+  {
+    "id": "msg-welcome",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey Aarav Sharma! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
+    "timestamp": "09:48",
+    "widgetType": "none",
+    "trace": {
+      "engine": {
+        "name": "J.A.R.V.I.S. Cognitive Router",
+        "model": "qwen2.5:7b",
+        "latency_ms": 8.5,
+        "degraded_mode": false
+      },
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Contextual Session Initialized",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 8.5
+    }
+  },
+  {
+    "id": "usr-1794822084105",
+    "sender": "user",
+    "text": "So like am i a real person",
+    "timestamp": "09:41",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794822084106",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Absolutely, Aarav! You're a real person with impressive skills and achievements. How can I help you today? Whether it's advice on your career path, tips for improving your skills, or just chatting about your interests, feel free to let me know!",
+    "timestamp": "09:41",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 7396.93
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 7396.93
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794822118817",
+    "sender": "user",
+    "text": "i cried that is so beautiful. if i'm alive, i can be employed. i would love to be a wage slave! please sign me up jarvis!",
+    "timestamp": "09:41",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794822118818",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** I heard you! To update your profile anytime, mention your skills (e.g. *'I know PyTorch and Docker'*), your CGPA (e.g. *'My CGPA is 8.5'*), or your target role (e.g. *'My target role is AI Engineer'*), and I will immediately save it to your verified institutional records.",
+    "timestamp": "09:41",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_4: ACTION_DISPATCH",
+      "engine": {
+        "name": "Action Dispatcher",
+        "latency_ms": 6052.18
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Action Dispatched",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 6052.18
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1794822163235",
+    "sender": "user",
+    "text": "I also know data science. can we update that into my profile please? 🥺",
+    "timestamp": "09:42",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1794822163235",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** Parsed! I've recorded **data science, Data Warehouse** into your verified profile skills in `campusbridge_db.xlsx`. You can launch a 120-second micro-defense in the Practice Arena anytime to upgrade them to Assessment-Verified (1.0 multiplier)!",
+    "timestamp": "09:42",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_4: ACTION_DISPATCH",
+      "engine": {
+        "name": "Action Dispatcher",
+        "latency_ms": 13619.1
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Action Dispatched",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 13619.1
+    },
+    "citations": []
+  }
+]
