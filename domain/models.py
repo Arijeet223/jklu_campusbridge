@@ -27,6 +27,7 @@ class EvidenceStatus(str, Enum):
     ASSESSMENT_VERIFIED = "ASSESSMENT_VERIFIED"
     INSTITUTION_VERIFIED = "INSTITUTION_VERIFIED"
     EXPIRED = "EXPIRED"
+    DOUBT_GHOST = "DOUBT_GHOST"
 
 
 class EligibilityStatus(str, Enum):

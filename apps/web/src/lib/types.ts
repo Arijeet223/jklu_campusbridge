@@ -11,6 +11,7 @@ export type EvidenceStatus =
   | 'ASSESSMENT_VERIFIED'
   | 'INSTITUTION_VERIFIED'
   | 'EXPIRED'
+  | 'DOUBT_GHOST'
 
 /** Hard-gate eligibility outcomes — deterministic, no ML. */
 export type EligibilityStatus =
@@ -69,6 +70,8 @@ export interface SandboxToggle {
 }
 
 /** Full job-match card model. */
+export type JobEligibilityStatus = 'ELIGIBLE' | 'ACTION_REQUIRED' | 'FILTERED_OUT'
+
 export interface JobMatch {
   id: string
   jobTitle: string
@@ -80,6 +83,9 @@ export interface JobMatch {
   sandboxToggles: SandboxToggle[]
   compensationTarget?: string
   category?: string
+  eligibilityStatus?: JobEligibilityStatus
+  failedPreference?: string | null
+  missingSkills?: string[]
 }
 
 /** Cohort funnel step for the Placement Officer view. */
@@ -235,8 +241,8 @@ export interface ApplicationItem {
   dispute?: EligibilityDispute
 }
 
-/** PRD §2.2: Multi-persona roles */
-export type UserRole = 'STUDENT' | 'OFFICER' | 'RECRUITER' | 'FACULTY'
+/** Strict 2-way RBAC: Student and Faculty */
+export type UserRole = 'STUDENT' | 'FACULTY'
 
 /** 6-Dimension Student Readiness Radar */
 export interface ReadinessDimension {

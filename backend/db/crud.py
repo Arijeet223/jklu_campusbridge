@@ -140,10 +140,10 @@ async def create_staff(session: AsyncSession, data: dict[str, Any]) -> StaffUser
         full_name=data.get("full_name") or data.get("name") or "Staff Member",
         email=data["email"],
         password_hash=data["password_hash"],
-        role=data.get("role", "PLACEMENT_OFFICER"),
-        department=data.get("department", "Central Placement Cell"),
+        role=data.get("role", "FACULTY"),
+        department=data.get("department", "Department of Computer Science & Placements"),
         assigned_cohort=data.get("assigned_cohort"),
-        permissions_scope=data.get("permissions_scope", "OFFICER_FULL"),
+        permissions_scope=data.get("permissions_scope", "FACULTY_PLACEMENT_AUTHORITY"),
     )
     session.add(staff)
     await session.flush()

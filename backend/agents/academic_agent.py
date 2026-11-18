@@ -23,50 +23,65 @@ DEFAULT_MODEL = "qwen2.5:7b"
 
 
 def fallback_regex_grade_parser(text: str) -> list[dict[str, Any]]:
-    """Deterministic regex fallback parser when LLM is unavailable."""
+    """Deterministic regex fallback parser when LLM is unavailable.
+    
+    Parses common Indian university transcript & TCS iON portal tables:
+    - Pipe/tab delimited rows: e.g. "KCS501 | Machine Learning Foundations | 4.0 | A+ | 10.0"
+    - Colon/dash formats: e.g. "Compiler Design: A+ (Credits: 4.0)"
+    Returns empty list if no genuine courses are detected (no mock fallback).
+    """
     records = []
     lines = text.split("\n")
 
-    # Common Grade Patterns:
-    # 1. Subject code + Name + Grade: e.g. "CS301 Data Structures A+" or "CS301 | Data Structures | A+ | 4"
-    # 2. Key-value: "Operating Systems: A"
-    # 3. Marks: "Mathematics - 88/100" or "Database Systems: 9.0"
-
-    grade_token_regex = r"\b(O|A\+|A|A-|B\+|B|B-|C\+|C|C-|P|D|F|FAIL|PASS|\d{1,2}(?:\.\d+)?(?:\s*/\s*\d{2,3})?)\b"
-
+    grade_token_regex = r"^(O|A\+|A|A-|B\+|B|B-|C\+|C|C-|P|D|F|PASS|FAIL|\d{1,3}(?:\.\d+)?%?)$"
     seen_subjects = set()
+
+    # Ignore table header rows and portal metadata
+    skip_header_regex = re.compile(
+        r"\b(subject\s*code|course\s*code|subject\s*name|course\s*title|earned\s*credit|credit\s*point|grade\s*point|semester|university|institute|transcript|cgpa|sgpa|sl\s*no|serial\s*no)\b",
+        re.I,
+    )
 
     for line in lines:
         line_clean = line.strip()
         if not line_clean or len(line_clean) < 4:
             continue
 
-        # Skip headers
-        if re.search(r"\b(semester|university|institute|report|grade sheet|transcript|cgpa|sgpa|total credits)\b", line_clean, re.I):
+        if skip_header_regex.search(line_clean) and ("grade" in line_clean.lower() or "credit" in line_clean.lower()):
             continue
 
-        # Check for pipe separated table row
+        # Check for pipe-separated table rows (common in TCS iON OCR output)
         if "|" in line_clean:
             parts = [p.strip() for p in line_clean.split("|") if p.strip()]
             if len(parts) >= 2:
-                # Find which part looks like a grade
-                found_grade = None
-                found_subject = None
-                found_credits = None
+                found_grade: Optional[str] = None
+                found_subject: Optional[str] = None
+                found_credits: Optional[float] = None
 
                 for p in parts:
-                    if re.match(r"^(O|A\+|A|B\+|B|C\+|C|P|D|F)$", p, re.I):
-                        found_grade = p.upper()
-                    elif re.match(r"^\d(\.0)?$", p):
-                        found_credits = float(p)
-                    elif len(p) > 3 and not re.match(r"^\d+$", p):
-                        found_subject = p
+                    clean_p = p.strip()
+                    # Grade match (letter grade or numerical)
+                    if re.match(r"^(O|A\+|A|A-|B\+|B|B-|C\+|C|P|D|F)$", clean_p, re.I):
+                        found_grade = clean_p.upper()
+                    elif re.match(r"^\d{1,2}(?:\.0|\.5)?$", clean_p) and not found_credits:
+                        # Earned credit point (typically 1.0 to 6.0)
+                        val = float(clean_p)
+                        if 0.5 <= val <= 10.0:
+                            found_credits = val
+                    elif len(clean_p) > 3 and not re.match(r"^\d+(\.\d+)?$", clean_p) and not re.match(r"^(Pass|Fail|Audit|Regular)$", clean_p, re.I):
+                        # Potential subject name or course code
+                        # If it has alphabetic course title (e.g. "Machine Learning Foundations")
+                        if re.search(r"[A-Za-z]{3,}", clean_p) and not re.match(r"^[A-Z0-9]{3,8}$", clean_p):
+                            found_subject = clean_p
+                        elif not found_subject and re.search(r"[A-Za-z]{2,}", clean_p):
+                            found_subject = clean_p
 
                 if found_grade and found_subject:
                     key = found_subject.lower()
                     if key not in seen_subjects:
                         seen_subjects.add(key)
                         records.append({
+                            "id": f"grade_{len(records) + 1}",
                             "subject_name": found_subject,
                             "grade_or_marks": found_grade,
                             "credits": found_credits or 3.0,
@@ -74,30 +89,32 @@ def fallback_regex_grade_parser(text: str) -> list[dict[str, Any]]:
                         })
             continue
 
-        # Check for colon format e.g. "Data Structures: A+" or "Operating Systems - A"
-        kv_match = re.search(r"^([A-Za-z0-9\s,&-]+?)[\s:=-]+([A-Za-z0-9+/%.-]+)(?:\s*\(Credits?:\s*(\d+)\))?", line_clean)
+        # Check for colon / dash format e.g. "Applied Linear Algebra: A+" or "Web Tech - A"
+        kv_match = re.search(r"^([A-Za-z0-9\s,&.-]+?)[\s:=-]+([A-Za-z0-9+/%.-]+)(?:\s*\(?Credits?:\s*(\d+(?:\.\d+)?)\)?)?", line_clean)
         if kv_match:
             sub = kv_match.group(1).strip()
             grd = kv_match.group(2).strip()
             crd = kv_match.group(3)
 
-            # Validate grd looks like a grade
+            # Validate grd looks like a letter grade or marks
             if re.match(r"^(O|A\+|A|A-|B\+|B|B-|C\+|C|P|D|F|\d{1,3}(?:/\d{2,3})?%?)$", grd, re.I) and len(sub) > 2:
-                key = sub.lower()
-                if key not in seen_subjects:
-                    seen_subjects.add(key)
-                    records.append({
-                        "subject_name": sub,
-                        "grade_or_marks": grd.upper(),
-                        "credits": float(crd) if crd else 3.0,
-                        "extraction_confidence": 0.85,
-                    })
+                if not skip_header_regex.search(sub):
+                    key = sub.lower()
+                    if key not in seen_subjects:
+                        seen_subjects.add(key)
+                        records.append({
+                            "id": f"grade_{len(records) + 1}",
+                            "subject_name": sub,
+                            "grade_or_marks": grd.upper(),
+                            "credits": float(crd) if crd else 3.0,
+                            "extraction_confidence": 0.85,
+                        })
 
     return records
 
 
 def extract_grades_with_qwen(raw_text: str, timeout_seconds: float = 25.0) -> tuple[list[dict[str, Any]], str, float]:
-    """Extract academic subjects, grades, and credits using Qwen 2.5.
+    """Extract academic subjects, grades, and credits using Qwen 2.5 with strict anti-hallucination prompting.
 
     Returns:
         (extracted_records, model_name, latency_ms)
@@ -107,20 +124,21 @@ def extract_grades_with_qwen(raw_text: str, timeout_seconds: float = 25.0) -> tu
 
     prompt = (
         "You are an academic grade extraction engine for CampusBridge AI.\n"
-        "Extract ALL subjects, courses, and their corresponding letter grade or marks from this grade sheet text.\n\n"
+        "Your task is to extract academic subjects, grades, and credits STRICTLY from the provided OCR text of a student grade sheet or portal screenshot (e.g., TCS iON, college transcripts).\n\n"
+        "CRITICAL DIRECTIVES:\n"
+        "1. Extract ONLY subjects and courses that are EXPLICITLY present in the OCR text below.\n"
+        "2. Extract the exact 'Subject Name', 'Grade' (letter grade or marks), and 'Subject Earned Credit Point' (credits).\n"
+        "3. Do NOT invent, extrapolate, or hallucinate standard computer science subjects (e.g., Database Management Systems, Computer Networks, Operating Systems, Data Structures) if they are not explicitly written in the OCR text.\n"
+        "4. If no genuine academic subjects or grades are found in the text, you MUST return an empty array: {\"grades\": []}.\n"
+        "5. Do NOT calculate any GPA, SGPA, CGPA, or final percentage. The LLM's only job is deterministic data extraction.\n"
+        "6. Output valid JSON only.\n\n"
         "STRICT JSON OUTPUT FORMAT:\n"
-        "Return a JSON object with a single key 'grades' containing the array of ALL courses found in the text:\n"
         "{\n"
         '  "grades": [\n'
-        '    {"subject_name": "Course Name", "grade_or_marks": "A+", "credits": 4.0},\n'
-        '    {"subject_name": "Course Name", "grade_or_marks": "A", "credits": 3.0}\n'
+        '    {"subject_name": "Exact Subject Name", "grade_or_marks": "A+", "credits": 4.0}\n'
         "  ]\n"
         "}\n\n"
-        "STRICT RULES:\n"
-        "1. Extract EVERY SINGLE academic subject found in the text. Do not omit any course.\n"
-        "2. Do NOT calculate any GPA, SGPA, CGPA, or final percentage. Only extract raw course data.\n"
-        "3. Output valid JSON only.\n\n"
-        f"GRADE SHEET RAW TEXT:\n{raw_text[:4000]}"
+        f"GRADE SHEET OCR RAW TEXT:\n{raw_text[:4000]}"
     )
 
     t0 = time.time()
@@ -184,6 +202,10 @@ def extract_grades_with_qwen(raw_text: str, timeout_seconds: float = 25.0) -> tu
                 if valid_records:
                     logger.info(f"Qwen 2.5 successfully extracted {len(valid_records)} grade records in {latency_ms}ms")
                     return valid_records, DEFAULT_MODEL, latency_ms
+                elif isinstance(parsed, dict) and "grades" in parsed:
+                    # Model explicitly and legitimately found no academic courses in text
+                    logger.info(f"Qwen 2.5 confirmed zero subjects present in OCR text in {latency_ms}ms")
+                    return [], DEFAULT_MODEL, latency_ms
 
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to decode Qwen JSON response: {e}")

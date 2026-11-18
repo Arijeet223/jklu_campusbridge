@@ -10,6 +10,7 @@ from backend.routers.auth import router as auth_router
 from backend.routers.voice import router as voice_router
 from backend.routers.jd_upload import router as jd_router
 from backend.routers.academic import router as academic_router
+from backend.routers.setup import router as setup_router
 
 app = FastAPI(
     title="CampusBridge AI API",
@@ -90,6 +91,12 @@ app.include_router(academic_router, prefix="/api/academic")
 app.include_router(academic_router, prefix="/api/v1/academic")
 app.include_router(academic_router, prefix="/v1/academic")
 app.include_router(academic_router, prefix="/academic")
+
+# Student Profile Setup & Completeness Engine routers
+app.include_router(setup_router, prefix="/api/student")
+app.include_router(setup_router, prefix="/api/v1/student")
+app.include_router(setup_router, prefix="/v1/student")
+app.include_router(setup_router, prefix="/student")
 
 # Core domain & diagnostic routers
 app.include_router(router)

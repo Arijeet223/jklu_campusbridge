@@ -404,33 +404,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fallback if resume had virtually zero recognizable text
-    if (extractedSkills.length === 0) {
-      extractedSkills.push(
-        {
-          id: `sk_upload_${Date.now()}_0`,
-          name: 'SQL',
-          category: 'Databases',
-          proficiency: 'Advanced',
-          evidenceStatus: 'EXTRACTED',
-          sourceDocumentId: docId,
-          sourceSpan: `${file.name} • Technical Foundation`,
-          sourcePage: 1,
-          confidence: 0.94,
-        },
-        {
-          id: `sk_upload_${Date.now()}_1`,
-          name: 'Python',
-          category: 'Languages',
-          proficiency: 'Advanced',
-          evidenceStatus: 'EXTRACTED',
-          sourceDocumentId: docId,
-          sourceSpan: `${file.name} • Programming Curriculum`,
-          sourcePage: 1,
-          confidence: 0.96,
-        }
-      )
-    }
+    // Zero Mock Data Policy: If no recognizable skills were detected, return empty array without injecting dummy fallbacks
 
     return NextResponse.json({
       status: 'OK',

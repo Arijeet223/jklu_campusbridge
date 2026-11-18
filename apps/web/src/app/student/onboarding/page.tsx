@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import {
   UploadCloud,
   FileText,
@@ -38,6 +39,7 @@ interface ExtractedSkill {
 
 export default function StudentOnboardingPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(2) // Step 2 is resume upload
@@ -67,8 +69,42 @@ export default function StudentOnboardingPage() {
   const [academicPerformance, setAcademicPerformance] = useState<any>(null)
   const [showGradeSheetInStep3, setShowGradeSheetInStep3] = useState(false)
 
+  // Immutability Notice State
+  const [setupImmutabilityNotice, setSetupImmutabilityNotice] = useState<string | null>(null)
+  const noticeTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const triggerImmutabilityNotice = () => {
+    if (noticeTimeoutRef.current) clearTimeout(noticeTimeoutRef.current)
+    setSetupImmutabilityNotice(
+      'After setting up, you can change your level with evidence in the profile section.'
+    )
+    noticeTimeoutRef.current = setTimeout(() => {
+      setSetupImmutabilityNotice(null)
+    }, 4500)
+  }
+
+  // Dynamic user name from NextAuth session with fallback
+  const studentDisplayName =
+    session?.user?.name || studentProfile.name || 'Student'
+  const studentInitials =
+    studentDisplayName
+      .split(' ')
+      .filter(Boolean)
+      .map((n: string) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'ST'
+
   // Sync session user
   useEffect(() => {
+    if (session?.user?.name) {
+      setStudentProfile((prev: any) => ({
+        ...prev,
+        name: session.user.name,
+        email: session.user.email || prev.email,
+        id: (session.user as any)?.id || prev.id,
+      }))
+    }
     try {
       const stored = localStorage.getItem('cb_active_user')
       if (stored) {
@@ -76,14 +112,14 @@ export default function StudentOnboardingPage() {
         setStudentProfile((prev: any) => ({
           ...prev,
           ...parsed,
-          name: parsed.name || prev.name,
+          name: session?.user?.name || parsed.name || prev.name,
           program: parsed.program || prev.program,
           cgpa: parsed.cgpa || prev.cgpa,
-          id: parsed.id || prev.id,
+          id: (session?.user as any)?.id || parsed.id || prev.id,
         }))
       }
     } catch {}
-  }, [])
+  }, [session])
 
   const handleProcessFile = async (file: File) => {
     const isPdf = file.name.toLowerCase().endsWith('.pdf')
@@ -244,15 +280,24 @@ export default function StudentOnboardingPage() {
   }
 
   const handleCompleteOnboarding = async () => {
-    setIsSubmittingCompletion(true)
     const claimedSkills = extractedSkills.filter((s) => s.confirmed)
 
-    // Fallback: If student did not claim any skills, claim all extracted so they have an active profile
-    const finalSkills = claimedSkills.length > 0 ? claimedSkills : extractedSkills.map((s) => ({ ...s, confirmed: true }))
+    if (claimedSkills.length === 0) {
+      setUploadError('Please review and claim at least one verified skill card before activating your profile.')
+      return
+    }
+
+    if (academicRecords.length === 0) {
+      setUploadError('Please upload and confirm your academic grade sheet before completing onboarding.')
+      return
+    }
+
+    setIsSubmittingCompletion(true)
+    setUploadError(null)
 
     const completionPayload = {
       student_id: studentProfile.id || 'STU-101',
-      confirmed_skills: finalSkills.map((s, idx) => ({
+      confirmed_skills: claimedSkills.map((s, idx) => ({
         id: s.id || `sk_${Date.now()}_${idx}`,
         name: s.name,
         category: s.category,
@@ -367,34 +412,59 @@ export default function StudentOnboardingPage() {
 
   return (
     <div className="min-h-screen bg-[#FAF8F6] text-ink-primary font-sans flex flex-col selection:bg-[#F0B6D5] selection:text-[#6D3B56]">
-      {/* Top Brand Nav */}
-      <header className="h-18 px-6 sm:px-12 border-b border-[#E6E3DC] bg-white/80 backdrop-blur-md flex items-center justify-between sticky top-0 z-20">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#6D3B56] text-white shadow-xs font-display font-extrabold text-sm tracking-tight border-b-2 border-[#552940]">
-            <GraduationCap className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-display text-sm font-extrabold text-ink-primary tracking-tight">
-                CampusBridge AI
-              </span>
-              <span className="font-mono text-3xs px-1.5 py-0.5 rounded-full bg-[#E2DFD9] text-[#6D3B56] font-bold">
-                Onboarding Guard
-              </span>
+      {/* Sleek, Minimalist Integrated Header */}
+      <header className="h-14 px-4 sm:px-8 border-b border-[#E6E3DC] bg-white/95 backdrop-blur-xs flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <Link href="/student/dashboard" className="flex items-center gap-2 group">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#6D3B56] text-white shadow-2xs">
+              <GraduationCap className="h-4 w-4 text-white" />
             </div>
-            <p className="text-3xs text-ink-muted">Profile Setup &amp; Real-Time Hybrid Ingestion</p>
-          </div>
+            <span className="font-display text-sm font-extrabold text-ink-primary tracking-tight group-hover:text-[#6D3B56] transition-colors">
+              CampusBridge
+            </span>
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <span className="text-xs font-semibold text-gray-500">Student Onboarding</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-2xs font-mono font-bold text-ink-muted hidden sm:inline">
-            Active Student: <strong className="text-ink-primary">{studentProfile.name}</strong>
-          </span>
-          <span className="text-3xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold uppercase">
-            Phase 1 Setup
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 pl-3 border-l border-[#E6E3DC]">
+            <div className="h-7 w-7 rounded-full bg-[#6D3B56]/10 text-[#6D3B56] font-bold text-xs flex items-center justify-center border border-[#6D3B56]/20">
+              {studentInitials}
+            </div>
+            <div className="hidden sm:flex flex-col text-left">
+              <span className="text-xs font-bold text-ink-primary leading-tight">
+                {studentDisplayName}
+              </span>
+              <span className="text-[10px] text-ink-muted leading-tight">
+                {studentProfile.program || 'Student'}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              Setup Phase
+            </span>
+          </div>
         </div>
       </header>
+
+      {/* Floating Immutability Notice Toast */}
+      {setupImmutabilityNotice && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-w-md w-full px-4">
+          <div className="p-3 rounded-xl bg-slate-900 text-white shadow-lg border border-slate-700 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+              <span className="font-medium">{setupImmutabilityNotice}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSetupImmutabilityNotice(null)}
+              className="text-slate-400 hover:text-white text-xs font-bold px-1 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="flex-1 max-w-[960px] w-full mx-auto p-4 sm:p-8 space-y-8">
@@ -405,7 +475,7 @@ export default function StudentOnboardingPage() {
             Mandatory Profile Ingestion Guard
           </div>
           <h1 className="text-2xl sm:text-4xl font-display font-black text-ink-primary tracking-tight">
-            Welcome to CampusBridge, {studentProfile.name}!
+            Welcome to CampusBridge, {studentDisplayName}!
           </h1>
           <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
             To unlock your Placement Dashboard, What-If Fit Sandbox, and AI Career Companion, please upload your real PDF or DOCX resume. Our hybrid pipeline combines <strong className="text-ink-primary">PyMuPDF / python-docx</strong> in-memory parsing, <strong className="text-ink-primary">Qwen 2.5 LLM extraction</strong>, and a <strong className="text-ink-primary">comprehensive hardcoded skill taxonomy</strong> to extract both technical and soft competencies.
@@ -583,6 +653,7 @@ export default function StudentOnboardingPage() {
               <GradeSheetUploader
                 studentId={studentProfile.id}
                 onComplete={handleGradeSheetComplete}
+                isSetupStage={true}
               />
             )}
 
@@ -662,6 +733,7 @@ export default function StudentOnboardingPage() {
                     handleGradeSheetComplete(res)
                     setShowGradeSheetInStep3(false)
                   }}
+                  isSetupStage={true}
                 />
               </div>
             )}
@@ -759,32 +831,36 @@ export default function StudentOnboardingPage() {
 
             {/* Stage 3 Ghost Cards Grid */}
             {filteredSkills.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[520px] overflow-y-auto pr-1.5 pb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-1 pb-2">
                 {filteredSkills.map((sk) => {
                   const isClaimed = !!sk.confirmed
                   return (
                     <div
                       key={sk.id}
-                      className={`p-4 rounded-2xl border-2 transition-all relative flex flex-col justify-between gap-3 w-full min-w-0 overflow-hidden ${
+                      className={`p-3 rounded-xl border border-solid transition-all relative flex flex-col justify-between gap-2.5 w-full min-w-0 ${
                         isClaimed
-                          ? 'border-[#6D3B56] bg-white shadow-xs ring-1 ring-[#6D3B56]/20'
-                          : 'border-dashed border-[#DE95BE] bg-[#FAF8F6]/90 hover:bg-white hover:border-[#6D3B56] shadow-2xs'
+                          ? 'border-[#6D3B56] bg-white shadow-xs ring-1 ring-[#6D3B56]/15'
+                          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-2xs'
                       }`}
                     >
                       {/* Top Header of Card */}
-                      <div className="flex items-start justify-between gap-2.5">
+                      <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-display font-extrabold text-sm text-ink-primary truncate" title={sk.name}>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4
+                              onClick={triggerImmutabilityNotice}
+                              className="font-display font-bold text-xs text-gray-900 truncate cursor-default hover:text-[#6D3B56]"
+                              title={sk.name}
+                            >
                               {sk.name}
                             </h4>
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#F1EFEA] text-ink-secondary border border-[#E2DFD9] shrink-0">
+                            <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 shrink-0">
                               {sk.category}
                             </span>
                           </div>
 
                           {/* Provenance Badge */}
-                          <p className="text-[10px] text-ink-muted font-mono truncate" title={sk.sourceSpan}>
+                          <p className="text-[10px] text-gray-400 font-mono truncate" title={sk.sourceSpan}>
                             Provenance: {sk.sourceSpan}
                           </p>
                         </div>
@@ -793,21 +869,21 @@ export default function StudentOnboardingPage() {
                         <button
                           type="button"
                           onClick={() => handleToggleClaimSkill(sk.id)}
-                          className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95 ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer flex items-center gap-1 shrink-0 active:scale-95 border ${
                             isClaimed
-                              ? 'bg-emerald-600 text-white shadow-xs hover:bg-emerald-700'
-                              : 'bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
                           }`}
                           title={isClaimed ? 'Click to unclaim' : 'Click to claim skill'}
                         >
                           {isClaimed ? (
                             <>
-                              <Check className="h-3 w-3 stroke-[3]" />
+                              <Check className="h-3 w-3 stroke-[2.5] text-emerald-600" />
                               <span>1.0x Claimed</span>
                             </>
                           ) : (
                             <>
-                              <Ghost className="h-3 w-3 text-amber-700" />
+                              <Ghost className="h-3 w-3 text-slate-400" />
                               <span>0.5x Ghost (Claim)</span>
                             </>
                           )}
@@ -816,26 +892,28 @@ export default function StudentOnboardingPage() {
 
                       {/* Snippet / Context */}
                       {sk.snippet && (
-                        <p className="text-[11px] text-ink-secondary italic bg-[#FAF8F6] p-2 rounded-xl border border-[#F1EFEA] line-clamp-2 leading-snug">
+                        <p className="text-[10px] text-gray-500 italic bg-gray-50/80 p-1.5 rounded-lg border border-gray-100 line-clamp-2 leading-relaxed">
                           &ldquo;{sk.snippet}&rdquo;
                         </p>
                       )}
 
                       {/* Bottom Controls: Proficiency Selector */}
-                      <div className="pt-2.5 border-t border-[#F1EFEA] flex flex-col gap-1.5">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-[10px] text-ink-muted font-bold uppercase tracking-wider">
+                      <div className="pt-2 border-t border-gray-100 flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-gray-400 font-medium uppercase tracking-wider text-[9px]">
                             Proficiency
                           </span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                            isClaimed ? 'text-[#6D3B56] bg-[#6D3B56]/10' : 'text-amber-900 bg-amber-100'
-                          }`}>
+                          <span
+                            className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
+                              isClaimed ? 'text-[#6D3B56] bg-[#6D3B56]/10' : 'text-slate-600 bg-slate-100'
+                            }`}
+                          >
                             {sk.proficiency}
                           </span>
                         </div>
 
-                        {/* 4-Segmented Button Bar that perfectly spans 100% of the card width */}
-                        <div className="grid grid-cols-4 gap-1 p-1 rounded-xl bg-[#F1EFEA] border border-[#E2DFD9]">
+                        {/* 4-Segmented Button Bar that never wraps or collides */}
+                        <div className="grid grid-cols-4 gap-1 p-0.5 rounded-lg bg-gray-100/80 border border-gray-200/70">
                           {(['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const).map((level) => {
                             const isSelected = sk.proficiency === level
                             return (
@@ -847,10 +925,10 @@ export default function StudentOnboardingPage() {
                                   handleChangeProficiency(sk.id, level)
                                   if (!isClaimed) handleToggleClaimSkill(sk.id)
                                 }}
-                                className={`py-1 px-1 rounded-lg text-[10px] font-bold text-center transition-all cursor-pointer truncate ${
+                                className={`py-0.5 px-1 rounded text-[10px] font-semibold text-center transition-all cursor-pointer truncate ${
                                   isSelected
-                                    ? 'bg-[#6D3B56] text-white shadow-2xs font-black'
-                                    : 'text-ink-secondary hover:text-ink-primary hover:bg-white/70'
+                                    ? 'bg-[#6D3B56] text-white shadow-2xs font-bold'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/80'
                                 }`}
                                 title={`Set proficiency to ${level}`}
                               >
@@ -865,35 +943,68 @@ export default function StudentOnboardingPage() {
                 })}
               </div>
             ) : (
-              <div className="p-8 text-center rounded-2xl bg-[#FAF8F6] border border-[#E2DFD9] text-xs text-ink-muted">
-                No skills match the current filter.
+              <div className="p-8 text-center rounded-2xl bg-[#FAF8F6] border border-[#E2DFD9] text-xs text-gray-500">
+                {categoryFilter === 'SOFT'
+                  ? 'No soft skills detected in this document. Please complete or provide info.'
+                  : categoryFilter === 'TECHNICAL'
+                  ? 'No technical skills detected in this document. Please complete or provide info.'
+                  : categoryFilter === 'CLAIMED'
+                  ? 'No skills claimed yet. Click Ghost Cards above to claim them.'
+                  : 'No skills found. Please complete or provide info.'}
               </div>
             )}
 
             {/* Complete & Activate Button */}
             <div className="pt-4 border-t border-[#F1EFEA] flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-2xs text-ink-secondary font-medium">
-                <strong>{claimedCount} of {extractedSkills.length} skills claimed</strong> • Score, radar polygon, and profile status will be mathematically evaluated on submit.
+                <strong>{claimedCount} of {extractedSkills.length} skills claimed</strong>
+                {academicRecords.length > 0 ? (
+                  <span className="text-emerald-700 font-semibold ml-1">
+                    • Grade sheet verified (GPA: {studentProfile.cgpa})
+                  </span>
+                ) : (
+                  <span className="text-amber-700 font-semibold ml-1">
+                    • Grade sheet pending upload
+                  </span>
+                )}
+                <div className="text-[10px] text-gray-400 mt-0.5">
+                  Campus Readiness Score &amp; Radar Graph calculate strictly after both submissions are confirmed.
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={handleCompleteOnboarding}
-                disabled={isSubmittingCompletion}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-2xl bg-[#6D3B56] text-white hover:bg-[#582e44] font-display font-bold text-xs uppercase tracking-wider transition-all shadow-md border-b-4 border-[#AD1457] active:translate-y-0.5 cursor-pointer disabled:opacity-50"
-              >
-                {isSubmittingCompletion ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    <span>Calculating Radar Scores &amp; Activating...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Confirm Claimed Skills &amp; Activate Profile</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </>
+              <div className="flex flex-col items-stretch sm:items-end gap-1.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleCompleteOnboarding}
+                  disabled={isSubmittingCompletion || claimedCount === 0 || academicRecords.length === 0}
+                  className={`w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 rounded-2xl font-display font-bold text-xs uppercase tracking-wider transition-all shadow-md active:translate-y-0.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                    claimedCount > 0 && academicRecords.length > 0
+                      ? 'bg-[#6D3B56] text-white hover:bg-[#582e44] border-b-4 border-[#AD1457]'
+                      : 'bg-gray-300 text-gray-500 border-b-4 border-gray-400'
+                  }`}
+                >
+                  {isSubmittingCompletion ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <span>Calculating Radar Scores &amp; Activating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Confirm Claimed Skills &amp; Activate Profile</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+                {!(claimedCount > 0 && academicRecords.length > 0) && (
+                  <span className="text-[10px] text-amber-700 font-medium text-center sm:text-right">
+                    {claimedCount === 0 && academicRecords.length === 0
+                      ? 'Claim at least 1 skill and confirm your grade sheet to activate.'
+                      : claimedCount === 0
+                      ? 'Please claim at least 1 verified skill card above.'
+                      : 'Please upload and confirm your academic grade sheet above.'}
+                  </span>
                 )}
-              </button>
+              </div>
             </div>
           </div>
         )}

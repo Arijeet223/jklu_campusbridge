@@ -275,46 +275,29 @@ export default function CollapsibleNavDrawer({
             </span>
           </button>
 
-          {/* Persona Switcher Section */}
+          {/* Persona Switcher Section: Strict 2-Way RBAC */}
           <div className="pt-3 pb-1 px-2 text-[10px] font-semibold tracking-wider text-ink-muted uppercase">
-            Campus Ecosystem Roles (PRD §2.2)
+            Institutional Role Switcher
           </div>
 
-          {/* Role A: Placement Officer */}
+          {/* Role A: Student Workspace */}
           <button
             type="button"
-            onClick={() => handleRoleSelect('OFFICER')}
+            onClick={() => handleRoleSelect('STUDENT')}
             className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-medium transition-colors ${
-              currentRole === 'OFFICER'
+              currentRole === 'STUDENT'
                 ? 'bg-oxford text-white font-semibold'
                 : 'text-ink-secondary hover:bg-subtle hover:text-ink-primary'
             }`}
           >
             <span className="flex items-center gap-2.5">
-              <Briefcase className="h-4 w-4" />
-              Placement Officer Console
+              <Users className="h-4 w-4" />
+              Student Workspace
             </span>
             <span className="text-[10px] opacity-75">Switch →</span>
           </button>
 
-          {/* Role B: Recruiter Partner */}
-          <button
-            type="button"
-            onClick={() => handleRoleSelect('RECRUITER')}
-            className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-medium transition-colors ${
-              currentRole === 'RECRUITER'
-                ? 'bg-emerald text-white font-semibold'
-                : 'text-ink-secondary hover:bg-subtle hover:text-ink-primary'
-            }`}
-          >
-            <span className="flex items-center gap-2.5">
-              <Building2 className="h-4 w-4" />
-              Recruiter Partner Portal
-            </span>
-            <span className="text-[10px] opacity-75">Switch →</span>
-          </button>
-
-          {/* Role C: Faculty Mentor */}
+          {/* Role B: Faculty Advisory & Placements */}
           <button
             type="button"
             onClick={() => handleRoleSelect('FACULTY')}
@@ -326,7 +309,7 @@ export default function CollapsibleNavDrawer({
           >
             <span className="flex items-center gap-2.5">
               <Award className="h-4 w-4" />
-              Faculty Mentor Advisory
+              Faculty Advisory &amp; Placements
             </span>
             <span className="text-[10px] opacity-75">Switch →</span>
           </button>

@@ -82,28 +82,22 @@ export default function AppLayout({
     'STUDENT'
   ).toUpperCase()
 
-  const isTeacher =
-    resolvedRole === 'TEACHER' ||
+  const isFaculty =
     resolvedRole === 'FACULTY' ||
-    resolvedRole === 'FACULTY_MENTOR'
-
-  const isOfficer =
+    resolvedRole === 'TEACHER' ||
+    resolvedRole === 'FACULTY_MENTOR' ||
     resolvedRole === 'PLACEMENT_OFFICER' ||
     resolvedRole === 'OFFICER' ||
     resolvedRole === 'TPO' ||
     resolvedRole === 'PTO' ||
     resolvedRole === 'ADMIN'
 
-  // Default to STUDENT if neither Teacher nor Officer
-  const isStudent = !isTeacher && !isOfficer
+  // Strict 2-way system: Student vs Faculty
+  const isStudent = !isFaculty
 
-  const roleHome = isOfficer
-    ? '/officer/dashboard'
-    : isTeacher
-    ? '/teacher/panel'
-    : '/student/dashboard'
+  const roleHome = isFaculty ? '/teacher/panel' : '/student/dashboard'
 
-  // 2. Strict 3-Way Isolated Navigation Definitions
+  // 2. Strict 2-Way Navigation Definitions
   const studentNavItems = [
     { label: 'Dashboard Overview', href: '/student/dashboard', icon: LayoutDashboard },
     { label: 'Profile & Provenance', href: '/student/profile-evidence', icon: UserCheck },
@@ -113,13 +107,8 @@ export default function AppLayout({
     { label: 'Applications & Kanban', href: '/student/applications', icon: ClipboardList },
   ]
 
-  const teacherNavItems = [
-    { label: 'Advisee Roster & Capstones', href: '/teacher/panel', icon: GraduationCap },
-    { label: 'AI Orbital Check', href: '/admin/diagnostics', icon: Activity },
-  ]
-
-  const officerNavItems = [
-    { label: 'Placement Cell (TPO)', href: '/officer/dashboard', icon: Briefcase },
+  const facultyNavItems = [
+    { label: 'Advisees & Placements', href: '/teacher/panel', icon: GraduationCap },
     { label: 'AI Orbital Check', href: '/admin/diagnostics', icon: Activity },
   ]
 
@@ -146,13 +135,13 @@ export default function AppLayout({
     },
     {
       id: 'notif-3',
-      title: 'TPO Policy Gate Notice',
+      title: 'Faculty Policy Gate Notice',
       description: 'Atlassian Cohort Eligibility Gate updated: Min CGPA set to 7.5. Your 8.42 CGPA meets hard criteria.',
       time: '3h ago',
       unread: false,
-      tag: 'TPO Policy',
+      tag: 'Faculty Gate',
       tagColor: 'bg-secondary-container text-on-secondary-container',
-      href: isOfficer ? '/officer/dashboard' : roleHome,
+      href: roleHome,
     },
     {
       id: 'notif-4',
@@ -213,32 +202,24 @@ export default function AppLayout({
       ? 'Applications & Pipeline Tracker'
       : pathname === '/student/privacy-shield'
       ? 'Privacy Shield & Resume Vault'
-      : pathname === '/teacher/panel'
-      ? 'Faculty Mentor Advisory'
-      : pathname === '/officer/dashboard' || pathname === '/officer/panel'
-      ? 'Placement Cell & TPO Console'
+      : pathname === '/teacher/panel' || pathname.startsWith('/faculty')
+      ? 'Faculty Advisory & Placement Operations'
       : pathname === '/admin/diagnostics'
       ? 'AI Pantheon Orbital Diagnostics'
-      : isTeacher
-      ? 'Faculty Advisory'
-      : isOfficer
-      ? 'Placement Cell'
+      : isFaculty
+      ? 'Faculty Advisory & Placements'
       : 'Career Readiness')
 
   const displayBreadcrumb =
     breadcrumb ||
     (pathname.startsWith('/student')
       ? 'Student Workspace'
-      : pathname.startsWith('/teacher')
-      ? 'Faculty Portal'
-      : pathname.startsWith('/officer') || pathname.startsWith('/pto') || pathname.startsWith('/tpo')
-      ? 'Placement Cell'
+      : pathname.startsWith('/teacher') || pathname.startsWith('/faculty') || pathname.startsWith('/officer') || pathname.startsWith('/pto') || pathname.startsWith('/tpo')
+      ? 'Faculty Console'
       : pathname.startsWith('/admin')
       ? 'Orbital Check'
-      : isTeacher
-      ? 'Faculty Advisory'
-      : isOfficer
-      ? 'Placement Cell'
+      : isFaculty
+      ? 'Faculty Advisory & Placements'
       : 'Student Workspace')
 
   return (
@@ -271,7 +252,7 @@ export default function AppLayout({
                   CampusBridge AI
                 </span>
                 <p className="text-[10px] text-primary font-bold uppercase tracking-wider">
-                  {isTeacher ? 'Faculty Portal' : isOfficer ? 'TPO Placement Desk' : 'Tactile Studio • JKLU'}
+                  {isFaculty ? 'Faculty Portal • Placements & Advisory' : 'Tactile Studio • JKLU'}
                 </p>
               </div>
             </Link>
@@ -285,7 +266,7 @@ export default function AppLayout({
             </button>
           </div>
 
-          {/* Navigation Items: STRICT ROLE CONDITIONAL RENDERING */}
+          {/* Navigation Items: STRICT 2-WAY CONDITIONAL RENDERING */}
           <div className="p-3.5 space-y-5 overflow-y-auto max-h-[calc(100vh-160px)]">
             {/* 1. STUDENT ONLY NAVIGATION */}
             {isStudent && (
@@ -316,46 +297,22 @@ export default function AppLayout({
               </div>
             )}
 
-            {/* 2. TEACHER ONLY NAVIGATION */}
-            {isTeacher && (
+            {/* 2. FACULTY ONLY NAVIGATION */}
+            {isFaculty && (
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
-                  Faculty Advisory Console
+                  Faculty Advisory &amp; Placements
                 </span>
                 <nav className="space-y-1">
-                  {teacherNavItems.map((item) => {
-                    const isActive = pathname === item.href
-                    const Icon = item.icon
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`flex items-center gap-2.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
-                          isActive
-                            ? 'bg-secondary text-on-secondary shadow-[0_3px_0_#284b5b]'
-                            : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                        }`}
-                      >
-                        <Icon className={`h-4 w-4 ${isActive ? 'text-on-secondary' : 'text-outline'}`} />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    )
-                  })}
-                </nav>
-              </div>
-            )}
-
-            {/* 3. PLACEMENT OFFICER ONLY NAVIGATION */}
-            {isOfficer && (
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-outline px-3 block mb-2">
-                  Training &amp; Placement Office
-                </span>
-                <nav className="space-y-1">
-                  {officerNavItems.map((item) => {
+                  {facultyNavItems.map((item) => {
                     const isActive =
                       pathname === item.href ||
-                      (item.href === '/officer/dashboard' && (pathname === '/officer/panel' || pathname === '/pto-dashboard'))
+                      (item.href === '/teacher/panel' &&
+                        (pathname.startsWith('/teacher') ||
+                          pathname.startsWith('/faculty') ||
+                          pathname.startsWith('/officer') ||
+                          pathname.startsWith('/pto') ||
+                          pathname.startsWith('/tpo')))
                     const Icon = item.icon
                     return (
                       <Link

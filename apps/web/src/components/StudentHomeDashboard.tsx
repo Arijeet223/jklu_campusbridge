@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import type { Skill, ReadinessDimension, ResumeVersion } from '@/lib/types'
-import { mockReadinessDimensions, mockResumeVersions, mockSkills } from '@/lib/mock-data'
+import { mockReadinessDimensions, mockResumeVersions } from '@/lib/mock-data'
 import { computeReadinessProfile } from '@/lib/readiness-calculator'
 import GradeSheetUploader from './GradeSheetUploader'
 
@@ -49,7 +49,7 @@ export default function StudentHomeDashboard({
         }
       } catch {}
     }
-    return skills.length > 0 ? skills : mockSkills
+    return skills.length > 0 ? skills : []
   })
 
   // Synchronize when external skills prop changes
@@ -1038,7 +1038,7 @@ export default function StudentHomeDashboard({
       {/* Modal Dialog for Grade Sheet Upload */}
       {showGradeSheetModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-[#E6E3DC]">
+          <div className="relative bg-[#6D3B56] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-0 ring-0 flex flex-col">
             <GradeSheetUploader
               studentId={studentId}
               isModal

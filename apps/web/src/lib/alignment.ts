@@ -17,6 +17,7 @@ export const EVIDENCE_TIER_MULTIPLIER: Record<EvidenceStatus, number> = {
   ASSESSMENT_VERIFIED: 1.0,
   INSTITUTION_VERIFIED: 1.0,
   EXPIRED: 0.25,
+  DOUBT_GHOST: 0.0,
 }
 
 /**

@@ -14,7 +14,7 @@ export default function RegisterAccountModal({
   onClose,
   onAccountCreated,
 }: RegisterAccountModalProps) {
-  const [accountType, setAccountType] = useState<'student' | 'teacher'>('student')
+  const [accountType, setAccountType] = useState<'student' | 'faculty'>('student')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [rollNo, setRollNo] = useState('')
@@ -22,7 +22,6 @@ export default function RegisterAccountModal({
   const [cgpa, setCgpa] = useState('8.2')
   const [targetRole, setTargetRole] = useState('Backend Engineer')
   const [department, setDepartment] = useState('Computer Science & Engineering')
-  const [teacherRole, setTeacherRole] = useState<'FACULTY_MENTOR' | 'PLACEMENT_OFFICER'>('FACULTY_MENTOR')
   const [assignedCohort, setAssignedCohort] = useState('B.Tech CSE 2026 - Section A')
 
   const [loading, setLoading] = useState(false)
@@ -38,10 +37,7 @@ export default function RegisterAccountModal({
     setSuccessMsg(null)
 
     try {
-      const endpoint =
-        accountType === 'student'
-          ? '/api/v1/auth/register-student'
-          : '/api/v1/auth/register-student'
+      const endpoint = '/api/v1/auth/register-student'
 
       const payload =
         accountType === 'student'
@@ -59,13 +55,10 @@ export default function RegisterAccountModal({
           : {
               full_name: fullName,
               email,
-              role: teacherRole,
+              role: 'FACULTY',
               department,
               assigned_cohort: assignedCohort,
-              permissions_scope:
-                teacherRole === 'PLACEMENT_OFFICER'
-                  ? 'INSTITUTION_WIDE_TPO'
-                  : 'DEPARTMENT_ADVISEES_ONLY',
+              permissions_scope: 'FACULTY_PLACEMENT_AUTHORITY',
             }
 
       const res = await fetch(endpoint, {
@@ -145,15 +138,15 @@ export default function RegisterAccountModal({
           </button>
           <button
             type="button"
-            onClick={() => setAccountType('teacher')}
+            onClick={() => setAccountType('faculty')}
             className={`flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition-all ${
-              accountType === 'teacher'
+              accountType === 'faculty'
                 ? 'bg-surface text-oxford shadow-xs border border-border-hairline'
                 : 'text-ink-muted hover:text-ink-primary'
             }`}
           >
             <Briefcase className="h-4 w-4" />
-            Teacher / Officer
+            Faculty Account
           </button>
         </div>
 
@@ -259,14 +252,12 @@ export default function RegisterAccountModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="font-semibold text-ink-secondary block mb-1">Institutional Role</label>
-                  <select
-                    value={teacherRole}
-                    onChange={(e) => setTeacherRole(e.target.value as any)}
-                    className="w-full rounded-lg border border-border-hairline bg-canvas px-3 py-2 text-ink-primary focus:border-oxford focus:outline-hidden"
-                  >
-                    <option value="FACULTY_MENTOR">Faculty Mentor (Advisee Endorsement)</option>
-                    <option value="PLACEMENT_OFFICER">Placement Officer (TPO)</option>
-                  </select>
+                  <input
+                    type="text"
+                    disabled
+                    value="Faculty (Department Advisory & Placements)"
+                    className="w-full rounded-lg border border-border-hairline bg-canvas-subtle px-3 py-2 text-ink-primary opacity-80 cursor-not-allowed"
+                  />
                 </div>
                 <div>
                   <label className="font-semibold text-ink-secondary block mb-1">Department</label>

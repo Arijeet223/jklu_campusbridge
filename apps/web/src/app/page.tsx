@@ -7,7 +7,7 @@ import AppLayout from '@/components/layout/AppLayout'
 import StudentHomeDashboard from '@/components/StudentHomeDashboard'
 import FacultyMentorView from '@/components/FacultyMentorView'
 import SourceDrawer from '@/components/SourceDrawer'
-import { mockSourceDocuments, mockSkills } from '@/lib/mock-data'
+import { mockSourceDocuments } from '@/lib/mock-data'
 import { getActiveUser } from '@/lib/api-client'
 import type { SourceDocument, Skill } from '@/lib/types'
 
@@ -20,7 +20,18 @@ export default function RootHomePage() {
   const [userDepartment, setUserDepartment] = useState<string>('B.Tech Computer Science')
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<SourceDocument | null>(mockSourceDocuments['doc_resume_v3'] ?? null)
-  const [skills, setSkills] = useState<Skill[]>(mockSkills)
+  const [skills, setSkills] = useState<Skill[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cb_user_skills')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          if (Array.isArray(parsed)) return parsed
+        }
+      } catch {}
+    }
+    return []
+  })
 
   useEffect(() => {
     try {
@@ -40,24 +51,18 @@ export default function RootHomePage() {
     } catch {}
   }, [session])
 
-  const isTeacher =
-    activeRole === 'TEACHER' ||
+  const isFaculty =
     activeRole === 'FACULTY' ||
-    activeRole === 'FACULTY_MENTOR'
-
-  const isOfficer =
+    activeRole === 'TEACHER' ||
+    activeRole === 'FACULTY_MENTOR' ||
     activeRole === 'PLACEMENT_OFFICER' ||
     activeRole === 'OFFICER' ||
     activeRole === 'TPO' ||
     activeRole === 'PTO' ||
     activeRole === 'ADMIN'
 
-  // If placement officer visits root, redirect to their command console
-  useEffect(() => {
-    if (isOfficer) {
-      router.push('/officer/dashboard')
-    }
-  }, [isOfficer, router])
+  // If faculty visits root, they can view the Faculty Advisory Console directly or navigate to /teacher/panel
+  const isTeacher = isFaculty
 
   const handleOpenSource = (docId: string = 'doc_resume_v3') => {
     let doc = mockSourceDocuments[docId]

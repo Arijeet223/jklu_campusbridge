@@ -336,6 +336,7 @@ export default function WhatIfSandboxPage() {
             {filteredMatches.map((m) => (
               <MatchCard
                 key={m.id}
+                id={m.id}
                 jobTitle={m.jobTitle}
                 company={m.company}
                 deadline={m.deadline}
@@ -344,6 +345,9 @@ export default function WhatIfSandboxPage() {
                 alignmentScore={m.company.toLowerCase().includes('razorpay') ? simulatedScore : m.alignmentScore}
                 factorBreakdown={m.factorBreakdown}
                 sandboxToggles={m.sandboxToggles}
+                eligibilityStatus={m.eligibilityStatus}
+                failedPreference={m.failedPreference}
+                missingSkills={m.missingSkills}
                 onOpenDispute={(rule) => handleOpenDispute(rule, m.jobTitle, m.company)}
                 onOpenSource={handleOpenSource}
               />

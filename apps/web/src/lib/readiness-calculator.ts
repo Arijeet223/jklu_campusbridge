@@ -49,7 +49,8 @@ export function computeReadinessProfile(
 
     // Multiplier based on verification provenance
     let tierMultiplier = 0.90 // Ghost / Extracted
-    if (s.evidenceStatus === 'STUDENT_CONFIRMED') tierMultiplier = 0.95
+    if (s.evidenceStatus === 'DOUBT_GHOST') tierMultiplier = 0.0 // Doubt Ghost has zero evidence
+    else if (s.evidenceStatus === 'STUDENT_CONFIRMED') tierMultiplier = 0.95
     else if (s.evidenceStatus === 'ARTIFACT_LINKED') tierMultiplier = 0.97
     else if (s.evidenceStatus === 'ASSESSMENT_VERIFIED' || s.evidenceStatus === 'INSTITUTION_VERIFIED') tierMultiplier = 1.0
 

@@ -63,6 +63,13 @@ const tierConfig: Record<
     icon: '⏱',
     label: 'Expired',
   },
+  DOUBT_GHOST: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-800',
+    border: 'border-amber-300',
+    icon: '⚠',
+    label: 'Doubt Ghost',
+  },
 }
 
 export default function ProvenancePill({

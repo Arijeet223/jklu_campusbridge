@@ -5,7 +5,7 @@ declare module 'next-auth' {
   interface Session {
     user: {
       id: string
-      role: 'STUDENT' | 'TEACHER' | 'FACULTY' | 'PLACEMENT_OFFICER' | 'OFFICER' | 'TPO' | 'ADMIN'
+      role: 'STUDENT' | 'FACULTY'
       department?: string
       institution_id?: string
       isVerifiedOfficer?: boolean
@@ -14,7 +14,7 @@ declare module 'next-auth' {
 
   interface User {
     id: string
-    role: string
+    role: 'STUDENT' | 'FACULTY'
     department?: string
     institution_id?: string
     isVerifiedOfficer?: boolean
@@ -24,9 +24,10 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     id?: string
-    role?: string
+    role?: 'STUDENT' | 'FACULTY'
     department?: string
     institution_id?: string
     isVerifiedOfficer?: boolean
   }
 }
+

@@ -12,7 +12,7 @@ import {
   ApiError,
 } from '@/lib/api-client'
 import { mockSourceDocuments } from '@/lib/mock-data'
-import type { SourceDocument, Skill } from '@/lib/types'
+import type { SourceDocument, Skill, EvidenceStatus } from '@/lib/types'
 import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react'
 
 export default function StudentDashboardPage() {
@@ -64,21 +64,32 @@ export default function StudentDashboardPage() {
       }
 
       // 2. Map evidence rows to Skill models
-      const mappedSkills: Skill[] = (evidenceRes || []).map((ev: any, idx: number) => ({
-        id: ev.evidence_id || `ev-${idx}`,
-        name: ev.skill_name || 'Skill',
-        category: ev.category || 'Core CS',
-        proficiency: ev.multiplier >= 0.85 ? 'Advanced' : 'Intermediate',
-        evidenceStatus:
-          ev.tier === '4_ASSESSMENT_VERIFIED'
-            ? 'ASSESSMENT_VERIFIED'
-            : ev.tier === '2_STUDENT_CONFIRMED'
-            ? 'STUDENT_CONFIRMED'
-            : 'EXTRACTED',
-        sourceDocumentId: ev.source_doc || 'doc_resume_v3',
-        sourceSpan: ev.source_span_text || 'Verified via curriculum transcript',
-        confidence: Number(ev.confidence || 0.90),
-      }))
+      const mappedSkills: Skill[] = (evidenceRes || []).map((ev: any, idx: number) => {
+        const tier = String(ev.tier || ev.evidence_status || ev.evidenceStatus || '')
+        let evStatus: EvidenceStatus = 'EXTRACTED'
+        if (tier.includes('DOUBT')) {
+          evStatus = 'DOUBT_GHOST'
+        } else if (tier.includes('INSTITUTION')) {
+          evStatus = 'INSTITUTION_VERIFIED'
+        } else if (tier.includes('ASSESSMENT') || tier.includes('VERIFIED')) {
+          evStatus = 'ASSESSMENT_VERIFIED'
+        } else if (tier.includes('ARTIFACT')) {
+          evStatus = 'ARTIFACT_LINKED'
+        } else if (tier.includes('CONFIRMED')) {
+          evStatus = 'STUDENT_CONFIRMED'
+        }
+
+        return {
+          id: ev.evidence_id || ev.id || `ev-${idx}`,
+          name: ev.skill_name || ev.name || 'Skill',
+          category: ev.category || 'Technical Skills',
+          proficiency: (ev.proficiency as any) || (ev.multiplier >= 0.85 ? 'Advanced' : 'Intermediate'),
+          evidenceStatus: evStatus,
+          sourceDocumentId: ev.source_doc || ev.sourceDocumentId || 'doc_resume_v3',
+          sourceSpan: ev.source_span_text || ev.sourceSpan || 'Verified via profile ledger',
+          confidence: Number(ev.confidence ?? (evStatus === 'DOUBT_GHOST' ? 0 : 0.90)),
+        }
+      })
 
       setSkills(mappedSkills)
     } catch (err: any) {

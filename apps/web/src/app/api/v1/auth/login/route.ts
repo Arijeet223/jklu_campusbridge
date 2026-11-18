@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (process.env.DATABASE_URL) {
       try {
         const sql = neon(process.env.DATABASE_URL)
-        if (role === 'OFFICER' || role === 'TPO') {
+        if (role === 'FACULTY' || role === 'TEACHER' || role === 'OFFICER' || role === 'TPO') {
           const rows = await sql`
             SELECT staff_id, full_name, email, role, department, institution_id
             FROM staff_users
@@ -54,30 +54,8 @@ export async function POST(req: NextRequest) {
                 id: u.staff_id,
                 name: u.full_name,
                 email: u.email,
-                role: 'OFFICER',
-                department: u.department || 'Training & Placement Office',
-                institution: u.institution_id || 'JKLU',
-              },
-            })
-          }
-        } else if (role === 'TEACHER' || role === 'FACULTY') {
-          const rows = await sql`
-            SELECT staff_id, full_name, email, role, department, institution_id
-            FROM staff_users
-            WHERE LOWER(email) = ${identifier}
-            LIMIT 1
-          `
-          if (rows.length > 0) {
-            const u = rows[0]
-            return NextResponse.json({
-              status: 'OK',
-              token: `cb-jwt-${u.staff_id}-${Date.now()}`,
-              user: {
-                id: u.staff_id,
-                name: u.full_name,
-                email: u.email,
-                role: 'TEACHER',
-                department: u.department || 'Computer Science & Engineering',
+                role: 'FACULTY',
+                department: u.department || 'Department of Computer Science & Placements',
                 institution: u.institution_id || 'JKLU',
               },
             })
@@ -116,30 +94,26 @@ export async function POST(req: NextRequest) {
     // 2. Serverless Built-in & Demo Account Resolution (Guaranteed Vercel Support)
     let userPayload: any = null
 
-    if (role === 'OFFICER') {
-      userPayload = {
-        id: 'TPO-JKLU-001',
-        name: 'Prof. Rajesh Menon',
-        email: identifier.includes('@') ? identifier : 'rajesh.menon@jklu.edu.in',
-        role: 'OFFICER',
-        department: 'Career Services & Training Placement Office',
-        institution: 'JKLU (JK Lakshmipat University)',
-        isVerifiedOfficer: true,
-      }
-    } else if (
+    if (
       role === 'FACULTY' ||
       role === 'TEACHER' ||
+      role === 'OFFICER' ||
       identifier.includes('kavita') ||
+      identifier.includes('menon') ||
       identifier.includes('faculty') ||
-      identifier.includes('teacher')
+      identifier.includes('teacher') ||
+      identifier.includes('tpo') ||
+      identifier.includes('officer')
     ) {
+      const isMenon = identifier.includes('menon') || identifier.includes('tpo') || identifier.includes('officer')
       userPayload = {
-        id: 'FAC-JKLU-014',
-        name: 'Dr. Kavita Iyer',
-        email: identifier.includes('@') ? identifier : 'kavita.iyer@jklu.edu.in',
-        role: 'TEACHER',
-        department: 'Computer Science & Engineering',
+        id: isMenon ? 'FAC-JKLU-001' : 'FAC-JKLU-014',
+        name: isMenon ? 'Prof. Rajesh Menon' : 'Dr. Kavita Iyer',
+        email: identifier.includes('@') ? identifier : (isMenon ? 'rajesh.menon@jklu.edu.in' : 'kavita.iyer@jklu.edu.in'),
+        role: 'FACULTY',
+        department: isMenon ? 'Faculty Placement Chair • CSE' : 'Computer Science & Engineering',
         institution: 'JKLU (JK Lakshmipat University)',
+        isVerifiedOfficer: true,
       }
     } else {
       // Student Resolution

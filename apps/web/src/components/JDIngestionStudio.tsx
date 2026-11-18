@@ -80,14 +80,92 @@ export default function JDIngestionStudio({
     setActionNotice(`Recruitment drive approved & published for ${currentJd.company}!`)
   }
 
-  // Handle simulated ingestion of newly pasted JD
-  const handleParseNewJD = () => {
+  // Handle AI Ingestion using Qdrant and Qwen 2.5 backend
+  const handleParseNewJD = async () => {
     if (!newCompany.trim() || !newTitle.trim() || !newRawText.trim()) {
       alert('Please fill out Company, Job Title, and raw Job Description text.')
       return
     }
 
     setIsParsing(true)
+    const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'
+
+    try {
+      const res = await fetch(`${backendBase}/jd/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: newCompany,
+          role_title: newTitle,
+          jd_text: newRawText,
+          ctc_band: '16–24 LPA',
+          min_cgpa: 7.5,
+          max_backlogs: 0,
+          allowed_branches: ['B.Tech CSE', 'B.Tech IT'],
+          uploaded_by: 'FAC-JKLU-014',
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        const newId = data.job_id || `jd_${Date.now()}`
+        const criteriaList: JDCriterion[] = [
+          {
+            id: `crit_${Date.now()}_deg`,
+            label: `Degree Gate (${(data.allowed_branches || ['B.Tech CSE', 'B.Tech IT']).join(', ')})`,
+            ruleExpression: `branch in ${JSON.stringify(data.allowed_branches || ['B.Tech CSE', 'B.Tech IT'])}`,
+            gateType: 'MANDATORY',
+            sourceSpan: 'Faculty Program Policy',
+          },
+          {
+            id: `crit_${Date.now()}_cgpa`,
+            label: `CGPA Gate (≥ ${data.min_cgpa || 7.5})`,
+            ruleExpression: `cgpa >= ${data.min_cgpa || 7.5}`,
+            gateType: 'MANDATORY',
+            sourceSpan: 'Faculty Academic Threshold',
+          },
+          ...(data.mandatory_skills || []).map((sk: string, idx: number) => ({
+            id: `crit_m_${Date.now()}_${idx}`,
+            label: `Mandatory Core: ${sk}`,
+            ruleExpression: `has_skill("${sk}")`,
+            gateType: 'MANDATORY' as const,
+            sourceSpan: `Qwen 2.5 Ingested • Qdrant Collection`,
+          })),
+          ...(data.preferred_skills || []).map((sk: string, idx: number) => ({
+            id: `crit_p_${Date.now()}_${idx}`,
+            label: `Preferred Competency: ${sk}`,
+            ruleExpression: `has_skill("${sk}")`,
+            gateType: 'PREFERRED' as const,
+            weight: 0.15,
+            sourceSpan: `Qwen 2.5 Extracted • Soft Alignment Factor`,
+          })),
+        ]
+
+        const newParsed: ParsedJD = {
+          id: newId,
+          jobTitle: newTitle,
+          company: newCompany,
+          department: 'Engineering & Technology',
+          targetBatch: 'Class of 2027',
+          minCgpa: data.min_cgpa || 7.5,
+          deadline: '2026-12-15',
+          status: 'Under Review',
+          rawText: newRawText,
+          criteria: criteriaList,
+        }
+
+        setJds((prev) => ({ ...prev, [newId]: newParsed }))
+        setSelectedJdId(newId)
+        setIsParsing(false)
+        setActiveMode('SELECT')
+        setActionNotice(`Qwen 2.5 extracted ${criteriaList.length} criteria into Qdrant vector index (${data.extraction_agent || 'AI Core'}). Please calibrate preferences.`)
+        return
+      }
+    } catch (err) {
+      console.warn('[JD Ingestion] Backend call failed, using client fallback:', err)
+    }
+
+    // Client fallback
     setTimeout(() => {
       const newId = `jd_custom_${Date.now()}`
       const newParsed: ParsedJD = {
@@ -130,7 +208,7 @@ export default function JDIngestionStudio({
             weight: 0.15,
             sourceSpan: 'Raw JD • Culture Requirements',
             isAmbiguous: true,
-            ambiguityReason: 'Subjective non-deterministic phrasing cannot be evaluated as an automated hard gate. Classified as alignment factor.',
+            ambiguityReason: 'Subjective non-deterministic phrasing cannot be evaluated as an automated hard gate.',
           },
         ],
       }
@@ -139,7 +217,7 @@ export default function JDIngestionStudio({
       setSelectedJdId(newId)
       setIsParsing(false)
       setActiveMode('SELECT')
-      setActionNotice('AI layout-aware parser extracted 4 criteria with source spans. Please review and calibrate.')
+      setActionNotice('Deterministic criteria extracted. Review and calibrate below.')
     }, 800)
   }
 

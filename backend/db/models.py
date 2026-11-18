@@ -66,6 +66,10 @@ class StudentProfile(Base, TimestampMixin):
     visibility_state: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict, nullable=False)
     academic_records: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
     calculated_academic_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    profile_completeness: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    github_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    resume_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    academic_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     evidence: Mapped[List[SkillEvidence]] = relationship(
@@ -99,6 +103,10 @@ class StudentProfile(Base, TimestampMixin):
             "visibility_state": self.visibility_state or {},
             "academic_records": self.academic_records if isinstance(self.academic_records, list) else [],
             "calculated_academic_score": float(self.calculated_academic_score or 0.0),
+            "profile_completeness": float(self.profile_completeness or 0.0),
+            "github_verified": bool(self.github_verified),
+            "resume_verified": bool(self.resume_verified),
+            "academic_verified": bool(self.academic_verified),
         }
 
 
@@ -116,11 +124,11 @@ class StaffUser(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(
-        String(32), default="PLACEMENT_OFFICER", nullable=False
-    )  # PLACEMENT_OFFICER, FACULTY_MENTOR, ADMIN
-    department: Mapped[str] = mapped_column(String(128), default="Central Placement Cell")
+        String(32), default="FACULTY", nullable=False
+    )  # Strict 2-way system: STUDENT vs FACULTY
+    department: Mapped[str] = mapped_column(String(128), default="Department of Computer Science & Placements")
     assigned_cohort: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
-    permissions_scope: Mapped[Optional[str]] = mapped_column(String(255), default="OFFICER_FULL")
+    permissions_scope: Mapped[Optional[str]] = mapped_column(String(255), default="FACULTY_PLACEMENT_AUTHORITY")
 
     def to_dict(self) -> dict[str, Any]:
         return {

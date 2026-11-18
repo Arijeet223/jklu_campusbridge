@@ -3,8 +3,8 @@
 import { User, Compass, BookOpen, FileText, Shield, Briefcase, ArrowLeftRight } from 'lucide-react'
 
 interface NavRailProps {
-  currentRole?: 'STUDENT' | 'OFFICER'
-  onRoleChange?: (role: 'STUDENT' | 'OFFICER') => void
+  currentRole?: 'STUDENT' | 'FACULTY'
+  onRoleChange?: (role: 'STUDENT' | 'FACULTY') => void
   activeTab?: string
   onTabChange?: (tab: string) => void
 }
@@ -36,18 +36,30 @@ const studentNavItems = [
   },
 ]
 
-const officerNavItems = [
+const facultyNavItems = [
+  {
+    id: 'advisees',
+    icon: User,
+    label: 'Advisees & Capstones',
+    badge: null,
+  },
+  {
+    id: 'jd-ingestion',
+    icon: Briefcase,
+    label: 'JD Ingestion & Gates',
+    badge: 'Active',
+  },
   {
     id: 'liquidity',
     icon: Briefcase,
-    label: 'JD Liquidity Simulator',
-    badge: '3 draft JDs',
+    label: 'Cohort Liquidity Simulator',
+    badge: null,
   },
   {
     id: 'disputes',
     icon: FileText,
     label: 'Exception Queue',
-    badge: '2 pending',
+    badge: 'Pending',
   },
 ]
 
@@ -58,7 +70,7 @@ export default function NavRail({
   onTabChange,
 }: NavRailProps) {
   const isStudent = currentRole === 'STUDENT'
-  const navItems = isStudent ? studentNavItems : officerNavItems
+  const navItems = isStudent ? studentNavItems : facultyNavItems
 
   return (
     <nav
@@ -70,11 +82,11 @@ export default function NavRail({
         <div className="flex items-center justify-between">
           <div className="inline-flex items-center gap-1.5 rounded-md bg-oxford-surface px-2.5 py-1 text-xs font-semibold text-oxford">
             <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-            {isStudent ? 'Student Workspace' : 'Placement Console'}
+            {isStudent ? 'Student Workspace' : 'Faculty Console'}
           </div>
           <button
             type="button"
-            onClick={() => onRoleChange?.(isStudent ? 'OFFICER' : 'STUDENT')}
+            onClick={() => onRoleChange?.(isStudent ? 'FACULTY' : 'STUDENT')}
             className="flex items-center gap-1 rounded p-1 text-[11px] font-medium text-ink-muted hover:bg-subtle hover:text-ink-primary focus-visible:outline-oxford"
             title="Switch Persona"
           >

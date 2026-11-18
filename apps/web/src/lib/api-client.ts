@@ -198,6 +198,19 @@ export async function fetchLiveStudentEvidence(studentId: string) {
   return apiFetch<any[]>(`students/${studentId}/evidence`)
 }
 
+export async function addCustomStudentSkill(
+  studentId: string,
+  payload: { skill_name: string; category?: string; proficiency?: string }
+) {
+  return apiFetch<{ status: string; skill: any }>(
+    `students/${studentId}/custom-skill`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  )
+}
+
 export async function confirmStudentEvidence(
   studentId: string,
   evidenceId: string

@@ -456,6 +456,8 @@ class EvidenceDict(dict):
     @property
     def evidence_status(self):
         t = str(self.get("evidence_status") or self.get("tier") or "")
+        if "DOUBT" in t:
+            return EvidenceStatus.DOUBT_GHOST
         if "EXTRACTED" in t:
             return EvidenceStatus.EXTRACTED
         if "CONFIRMED" in t:
@@ -465,34 +467,164 @@ class EvidenceDict(dict):
         return EvidenceStatus.EXTRACTED
 
 
+def _format_evidence_item(e: dict[str, Any]) -> dict[str, Any]:
+    tier_str = str(e.get("tier") or e.get("evidence_status") or "1_EXTRACTED_UNCONFIRMED")
+    
+    # Map tier to status
+    if "DOUBT" in tier_str or tier_str == "DOUBT_GHOST":
+        ev_status = "DOUBT_GHOST"
+        mult = 0.0
+    elif "INSTITUTION" in tier_str:
+        ev_status = "INSTITUTION_VERIFIED"
+        mult = 1.0
+    elif "ASSESSMENT" in tier_str or "VERIFIED" in tier_str:
+        ev_status = "ASSESSMENT_VERIFIED"
+        mult = 1.0
+    elif "ARTIFACT" in tier_str:
+        ev_status = "ARTIFACT_LINKED"
+        mult = 0.75
+    elif "CONFIRMED" in tier_str:
+        ev_status = "STUDENT_CONFIRMED"
+        mult = 0.95
+    else:
+        ev_status = "EXTRACTED"
+        mult = 0.50
+
+    ev_id = str(e.get("evidence_id") or e.get("id") or f"ev-{uuid.uuid4().hex[:6]}")
+    skill_name = str(e.get("skill_name") or e.get("name") or "")
+    prof = str(e.get("proficiency") or "Intermediate").capitalize()
+    cat = str(e.get("category") or "Technical Skills")
+    src_doc = str(e.get("source_doc") or e.get("sourceDocumentId") or "Resume.pdf")
+    src_span = str(e.get("source_span_text") or e.get("source_span") or e.get("sourceSpan") or f"{src_doc} • {cat}")
+    conf = float(e.get("confidence") or (0.0 if ev_status == "DOUBT_GHOST" else 0.92))
+
+    return {
+        "id": ev_id,
+        "evidence_id": ev_id,
+        "name": skill_name,
+        "skill_name": skill_name,
+        "category": cat,
+        "proficiency": prof,
+        "evidenceStatus": ev_status,
+        "evidence_status": ev_status,
+        "tier": tier_str,
+        "multiplier": mult,
+        "confidence": conf,
+        "sourceDocumentId": src_doc,
+        "source_doc": src_doc,
+        "sourceSpan": src_span,
+        "source_span_text": src_span,
+        "student_id": str(e.get("student_id") or ""),
+    }
+
+
 @router.get("/students/{student_id}/evidence")
 async def get_student_evidence(
     student_id: str,
     session: AsyncSession = Depends(get_async_session),
 ) -> list[dict[str, Any]]:
-    """Return all skill evidence for a student via Async PostgreSQL CRUD with Excel fallback."""
+    """Return all skill evidence for a student via Async PostgreSQL CRUD with Excel fallback. Never returns mock data."""
     if _is_valid_db_session(session):
         try:
             ev_list = await db_get_student_evidence(session, student_id)
             if ev_list:
-                return [EvidenceDict(e.to_dict()) for e in ev_list]
+                return [_format_evidence_item(e.to_dict()) for e in ev_list]
         except Exception as e:
             logger.warning("Database error fetching evidence for '%s': %s", student_id, e)
 
     store = get_excel_store()
     evidence_rows = store.get_sheet(SHEET_EVIDENCE)
     stu_key = student_id.strip().lower()
-    matched_ev = [
-        EvidenceDict(e) for e in evidence_rows
-        if str(e.get("student_id", "")).strip().lower() == stu_key
-        or (stu_key in ("stu-101", "aarav.sharma@nitk.edu") and str(e.get("student_id", "")).strip().lower() == "stu-101")
-    ]
 
-    # In-memory mock seed for domain & API unit tests
-    if student_id in _STUDENTS_BY_ID:
-        return _STUDENTS_BY_ID[student_id][1]
+    # Deduplicate by skill_name (case-insensitive) keeping latest
+    deduped: dict[str, dict[str, Any]] = {}
+    for e in evidence_rows:
+        if str(e.get("student_id", "")).strip().lower() == stu_key:
+            formatted = _format_evidence_item(e)
+            sk_key = formatted["name"].strip().lower()
+            deduped[sk_key] = formatted
 
-    return matched_ev
+    return list(deduped.values())
+
+
+class CustomSkillPayload(BaseModel):
+    skill_name: str
+    category: str = "Technical Skills"
+    proficiency: str = "Intermediate"
+
+
+@router.post("/students/{student_id}/custom-skill")
+async def add_custom_student_skill(
+    student_id: str,
+    req: CustomSkillPayload,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Adds a manually reported skill assigned the DOUBT_GHOST state (0.0x multiplier, no evidence)."""
+    skill_name = req.skill_name.strip()
+    if not skill_name:
+        raise HTTPException(status_code=400, detail="Skill name cannot be empty.")
+
+    ev_id = f"ev-doubt-{student_id.lower()}-{int(time.time()*1000)}-{uuid.uuid4().hex[:4]}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    ev_dict = {
+        "evidence_id": ev_id,
+        "id": ev_id,
+        "student_id": student_id,
+        "skill_name": skill_name,
+        "name": skill_name,
+        "category": req.category or "Technical Skills",
+        "proficiency": req.proficiency or "Intermediate",
+        "tier": "0_DOUBT_GHOST",
+        "multiplier": 0.0,
+        "evidence_status": "DOUBT_GHOST",
+        "evidenceStatus": "DOUBT_GHOST",
+        "source_doc": "Manual Student Claim",
+        "sourceDocumentId": "doc_manual_claim",
+        "source_span_text": "Self-reported by student (No document evidence)",
+        "sourceSpan": "Self-reported by student (No document evidence)",
+        "confidence": 0.0,
+        "verified_by": None,
+        "created_at": now_iso,
+    }
+
+    # Save to PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import create_evidence
+            await create_evidence(session, {
+                "evidence_id": ev_id,
+                "student_id": student_id,
+                "skill_name": skill_name,
+                "category": req.category,
+                "tier": "0_DOUBT_GHOST",
+                "multiplier": 0.0,
+                "source_doc": "Manual Student Claim",
+                "source_span_text": "Self-reported by student (No document evidence)",
+                "confidence": 0.0,
+            })
+            await session.commit()
+        except Exception as e:
+            logger.warning("Database error saving custom skill for '%s': %s", student_id, e)
+
+    # Save to Excel
+    store = get_excel_store()
+    store.insert_row(SHEET_EVIDENCE, {
+        "evidence_id": ev_id,
+        "student_id": student_id,
+        "skill_name": skill_name,
+        "category": req.category,
+        "proficiency": req.proficiency,
+        "tier": "0_DOUBT_GHOST",
+        "tier_multiplier": 0.0,
+        "evidence_status": "DOUBT_GHOST",
+        "source_doc": "Manual Student Claim",
+        "source_span": "Self-reported by student (No document evidence)",
+        "confidence": 0.0,
+        "verified_by": None,
+    })
+
+    return {"status": "SUCCESS", "skill": _format_evidence_item(ev_dict)}
 
 
 @router.post("/students/{student_id}/evidence/{evidence_id}/confirm")
@@ -516,6 +648,47 @@ async def confirm_skill_evidence(
         key_col="evidence_id",
         key_val=evidence_id,
         updates={"tier": "2_STUDENT_CONFIRMED", "multiplier": 0.50},
+    )
+    return {"status": "SUCCESS" if ok else "NOT_FOUND", "evidence_id": evidence_id}
+
+
+@router.post("/students/{student_id}/evidence/{evidence_id}/faculty-verify")
+async def faculty_verify_skill(
+    student_id: str,
+    evidence_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Upgrades a DOUBT_GHOST or unconfirmed skill into INSTITUTION_VERIFIED (1.0x Solid Token)."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    if _is_valid_db_session(session):
+        try:
+            stmt = select(SkillEvidence).where(
+                SkillEvidence.student_id == student_id,
+                SkillEvidence.evidence_id == evidence_id,
+            )
+            res = await session.execute(stmt)
+            ev = res.scalar_one_or_none()
+            if ev:
+                ev.tier = "5_INSTITUTION_VERIFIED"
+                ev.multiplier = 1.0
+                ev.verified_by = "FACULTY_MENTOR"
+                ev.verified_at = datetime.now(timezone.utc)
+                await session.commit()
+                return {"status": "SUCCESS", "evidence_id": evidence_id, "evidence": ev.to_dict()}
+        except Exception as e:
+            logger.warning("Database faculty-verify failed for '%s': %s", evidence_id, e)
+
+    store = get_excel_store()
+    ok = store.update_row(
+        SHEET_EVIDENCE,
+        key_col="evidence_id",
+        key_val=evidence_id,
+        updates={
+            "tier": "5_INSTITUTION_VERIFIED",
+            "tier_multiplier": 1.0,
+            "evidence_status": "INSTITUTION_VERIFIED",
+            "verified_by": "FACULTY_MENTOR",
+        },
     )
     return {"status": "SUCCESS" if ok else "NOT_FOUND", "evidence_id": evidence_id}
 
@@ -595,12 +768,41 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
             skill_map[sk_name] = mult
 
     match_results = []
+
+    # Merge Faculty Calibrated JDs with Excel Jobs
+    combined_jobs = []
+    try:
+        from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+        for f_id, f_data in FACULTY_MANAGED_JDS.items():
+            combined_jobs.append({
+                "job_id": f_data.get("job_id", f_id),
+                "company_name": f_data.get("company_name", "Tech Drive"),
+                "role_title": f_data.get("role_title", "Software Engineer"),
+                "min_cgpa": f_data.get("min_cgpa", 7.0),
+                "max_backlogs": f_data.get("max_backlogs", 0),
+                "allowed_branches": f_data.get("allowed_branches", ["B.Tech CSE", "B.Tech IT"]),
+                "mandatory_skills_json": f_data.get("mandatory_skills", ["Python", "SQL"]),
+                "preferred_skills_json": f_data.get("preferred_skills", ["Docker"]),
+                "ctc_lpa": 22.0,
+                "deadline_hours": 72,
+            })
+    except Exception:
+        pass
+
+    seen_job_ids = {j["job_id"] for j in combined_jobs}
     for j in jobs_rows:
+        jid = str(j.get("job_id", ""))
+        if jid not in seen_job_ids:
+            combined_jobs.append(j)
+            seen_job_ids.add(jid)
+
+    for j in combined_jobs:
         job_id = str(j.get("job_id", f"job-{len(match_results)+1}"))
         company = str(j.get("company_name", "Tech Company"))
         role = str(j.get("role_title", "Software Engineer"))
         min_cgpa = float(j.get("min_cgpa", 7.0))
         max_backlogs = int(j.get("max_backlogs", 0))
+        allowed_branches = j.get("allowed_branches", ["B.Tech CSE", "B.Tech IT", "B.Tech AI"])
 
         # Parse mandatory skills
         raw_mand = j.get("mandatory_skills_json", "[]")
@@ -618,17 +820,40 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
 
         # Evaluate rules
         rules = []
+        stu_program = str(matched_student.get('program', 'B.Tech CSE'))
+        stu_tokens = set(re.findall(r'[a-z]+', stu_program.lower()))
+        if "cse" in stu_tokens or ("computer" in stu_tokens and "science" in stu_tokens) or "cs" in stu_tokens:
+            stu_tokens.update(["cse", "cs", "computer", "science"])
+        if "ai" in stu_tokens or "artificial" in stu_tokens:
+            stu_tokens.update(["ai", "artificial", "intelligence", "cse", "cs"])
+
+        def check_branch_allowed(branches: list[str]) -> bool:
+            if not branches:
+                return True
+            for b in branches:
+                b_tokens = set(re.findall(r'[a-z]+', b.lower()))
+                if "cse" in b_tokens or ("computer" in b_tokens and "science" in b_tokens) or "cs" in b_tokens:
+                    b_tokens.update(["cse", "cs", "computer", "science"])
+                if "ai" in b_tokens or "artificial" in b_tokens:
+                    b_tokens.update(["ai", "artificial", "intelligence", "cse", "cs"])
+                if stu_tokens.intersection(b_tokens):
+                    return True
+            return False
+
+        branch_matches = check_branch_allowed(allowed_branches)
+        branch_status = "MEETS" if branch_matches else "DOES_NOT_MEET"
+
         rules.append({
             "id": f"er_{job_id}_deg",
-            "label": f"{matched_student.get('program', 'B.Tech CSE')} '26",
-            "status": "MEETS",
-            "ruleExpression": f"program == '{matched_student.get('program', 'B.Tech CSE')}'",
+            "label": f"Program Gate ({', '.join(allowed_branches[:2]) if allowed_branches else stu_program})",
+            "status": branch_status,
+            "ruleExpression": f"program in {allowed_branches}",
         })
 
         cgpa_status = "MEETS" if stu_cgpa >= min_cgpa else "DOES_NOT_MEET"
         rules.append({
             "id": f"er_{job_id}_cgpa",
-            "label": f"CGPA ≥ {min_cgpa}",
+            "label": f"CGPA ≥ {min_cgpa:.2f}",
             "status": cgpa_status,
             "ruleExpression": f"cgpa >= {min_cgpa} (Candidate: {stu_cgpa})",
         })
@@ -706,6 +931,28 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
         deadline_hrs = int(j.get('deadline_hours', 120) or 120)
         deadline_iso = (datetime.now(timezone.utc) + timedelta(hours=deadline_hrs)).isoformat()
 
+        # Deterministic R.O.N.E.N. Eligibility Status Calculation
+        missing_mandatory = [sk for idx, sk in enumerate(mand_skills) if idx < len(mand_scores) and mand_scores[idx] < 0.50]
+        
+        if cgpa_status == "DOES_NOT_MEET":
+            eligibility_status = "FILTERED_OUT"
+            failed_preference = f"CGPA {stu_cgpa:.2f} is below Faculty Cutoff of {min_cgpa:.2f}"
+        elif backlog_status == "DOES_NOT_MEET":
+            eligibility_status = "FILTERED_OUT"
+            failed_preference = f"Active backlogs ({stu_backlogs}) exceed allowed threshold ({max_backlogs})"
+        elif branch_status == "DOES_NOT_MEET":
+            eligibility_status = "FILTERED_OUT"
+            failed_preference = f"Program '{stu_program}' is not in permitted branches ({', '.join(allowed_branches[:2])})"
+        elif missing_mandatory:
+            eligibility_status = "ACTION_REQUIRED"
+            failed_preference = f"Missing Mandatory Skill{'s' if len(missing_mandatory) > 1 else ''}: {', '.join(missing_mandatory)}"
+        elif any(r.get("status") == "UNKNOWN" for r in rules):
+            eligibility_status = "ACTION_REQUIRED"
+            failed_preference = "Unconfirmed competency flags require 120s Arena verification"
+        else:
+            eligibility_status = "ELIGIBLE"
+            failed_preference = None
+
         match_results.append({
             "id": job_id,
             "jobTitle": role,
@@ -713,6 +960,9 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
             "deadline": deadline_iso,
             "eligibilityRules": rules,
             "alignmentScore": live_score,
+            "eligibilityStatus": eligibility_status,
+            "failedPreference": failed_preference,
+            "missingSkills": missing_mandatory,
             "factorBreakdown": [
                 {"id": f"fb_1_{job_id}", "label": "Required Skills", "weight": 0.35, "score": round(mand_avg * 100), "color": "bg-[#6D3B56]"},
                 {"id": f"fb_2_{job_id}", "label": "Projects & Evidence", "weight": 0.20, "score": round(pref_avg * 100), "color": "bg-[#0F766E]"},
@@ -1131,19 +1381,32 @@ class ConfirmedSkillItem(BaseModel):
 
 class OnboardingCompleteRequest(BaseModel):
     student_id: str = "STU-101"
-    confirmed_skills: list[ConfirmedSkillItem]
+    confirmed_skills: list[ConfirmedSkillItem] = []
     candidate_metadata: dict[str, Any] | None = None
     document_id: str | None = None
     file_name: str | None = None
+    academic_records: list[dict[str, Any]] | None = None
+    calculated_academic_score: float | None = None
 
 
 @router.post("/onboarding/complete")
 async def complete_onboarding(request: OnboardingCompleteRequest) -> dict[str, Any]:
-    """Solidify user-confirmed Ghost Cards, calculate mathematical readiness score & radar graph, activate account."""
+    """Solidify user-confirmed Ghost Cards, save to PostgreSQL, calculate mathematical readiness score & radar graph, activate account."""
     store = get_excel_store()
     student_id = request.student_id.strip()
 
-    # 1. Register confirmed skills in SHEET_EVIDENCE
+    if not request.confirmed_skills:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot complete onboarding: At least one confirmed skill card is required.",
+        )
+
+    # 1. Purge previous entries for this student in SHEET_EVIDENCE and register confirmed skills
+    import pandas as pd
+    all_ev = store.get_sheet(SHEET_EVIDENCE)
+    retained_ev = [e for e in all_ev if str(e.get("student_id", "")).strip().lower() != student_id.lower()]
+    store._cache[SHEET_EVIDENCE] = pd.DataFrame(retained_ev)
+
     doc_id = request.document_id or f"doc_resume_{uuid.uuid4().hex[:8]}"
     doc_name = request.file_name or "Resume.pdf"
 
@@ -1246,7 +1509,78 @@ async def complete_onboarding(request: OnboardingCompleteRequest) -> dict[str, A
 
     store.update_row(SHEET_STUDENTS, key_col="student_id", key_val=student_id, updates=updates)
 
-    # 4. Log audit entry
+    # 4. Persist finalized records to Neon PostgreSQL
+    try:
+        from backend.db.session import async_session_factory
+        from backend.db.crud import update_student
+        import asyncio
+
+        async def _save_to_neon():
+            async with async_session_factory() as session:
+                pg_updates: dict[str, Any] = {
+                    "readiness_index": float(overall_readiness),
+                    "profile_completeness": 100.0,
+                    "resume_verified": True,
+                    "academic_verified": bool(request.academic_records),
+                }
+                if request.calculated_academic_score is not None:
+                    pg_updates["calculated_academic_score"] = float(request.calculated_academic_score)
+                if request.academic_records:
+                    pg_updates["academic_records"] = request.academic_records
+                if meta.get("cgpa"):
+                    pg_updates["cgpa"] = float(meta["cgpa"])
+                if meta.get("program"):
+                    pg_updates["program"] = str(meta["program"])
+                if meta.get("name"):
+                    pg_updates["full_name"] = str(meta["name"])
+                await update_student(session, student_id, pg_updates)
+
+                # Persist confirmed skills to skill_evidence table
+                from backend.db.crud import bulk_insert_evidence
+                pg_ev_items = []
+                for sk in request.confirmed_skills:
+                    pg_ev_items.append({
+                        "evidence_id": f"ev-{student_id.lower()}-{int(time.time()*1000)}-{uuid.uuid4().hex[:4]}",
+                        "student_id": student_id,
+                        "skill_name": sk.name,
+                        "category": sk.category or ("Soft Skills" if sk.is_soft_skill else "Technical Skills"),
+                        "tier": "2_STUDENT_CONFIRMED" if sk.evidenceStatus == "STUDENT_CONFIRMED" else "1_EXTRACTED_UNCONFIRMED",
+                        "multiplier": 1.0 if sk.evidenceStatus == "STUDENT_CONFIRMED" else 0.50,
+                        "source_doc": doc_name,
+                        "source_span_text": sk.sourceSpan or f"{doc_name} • {sk.category or 'Skills'}",
+                        "confidence": sk.confidence or 0.95,
+                    })
+                try:
+                    await bulk_insert_evidence(session, pg_ev_items)
+                except Exception as ev_err:
+                    logger.warning("bulk_insert_evidence skipped: %s", ev_err)
+
+                await session.commit()
+
+        # Run non-blocking or awaited
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(_save_to_neon())
+        else:
+            asyncio.run(_save_to_neon())
+    except Exception as pg_err:
+        logger.warning(f"Neon PostgreSQL update during onboarding completion skipped: {pg_err}")
+
+    # 5. Synchronize unified knowledge base into Qdrant
+    try:
+        from rag.qdrant_service import get_qdrant_service
+        qs = get_qdrant_service()
+        qs.upsert_student_unified_knowledge(
+            student_id=student_id,
+            full_name=meta.get("name", "Student"),
+            skills=[s.name for s in request.confirmed_skills],
+            academic_records=request.academic_records,
+            cgpa=float(meta.get("cgpa", 8.42)),
+        )
+    except Exception as qd_err:
+        logger.warning(f"Qdrant unified knowledge sync during onboarding completion skipped: {qd_err}")
+
+    # 6. Log audit entry
     store.insert_row(
         SHEET_AUDIT,
         {
@@ -1280,6 +1614,8 @@ async def complete_onboarding(request: OnboardingCompleteRequest) -> dict[str, A
         },
         "radar_polygon": polygon_str,
         "confirmed_skills_count": len(request.confirmed_skills),
+        "academic_score": request.calculated_academic_score,
+        "academic_records_count": len(request.academic_records or []),
     }
 
 

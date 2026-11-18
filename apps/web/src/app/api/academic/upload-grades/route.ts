@@ -26,16 +26,19 @@ export async function POST(req: NextRequest) {
       `${cleanBase}/academic/upload-grades`,
     ]
 
+    let lastErrorDetail = 'Failed to connect to backend academic parsing service.'
+    let lastStatusCode = 503
+
     for (const ep of endpoints) {
       try {
         const forwardData = new FormData()
-        forwardData.append('file', file)
+        forwardData.append('file', file, file.name)
         forwardData.append('student_id', studentId)
 
         const forwardRes = await fetch(ep, {
           method: 'POST',
           body: forwardData,
-          signal: AbortSignal.timeout(25000), // OCR + LLM can take a few seconds
+          signal: AbortSignal.timeout(35000), // OCR + LLM can take up to 25-30s on heavy image
         })
 
         if (forwardRes.ok) {
@@ -43,81 +46,23 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(data)
         } else {
           const errJson = await forwardRes.json().catch(() => ({}))
+          lastErrorDetail = errJson.detail || `Backend returned HTTP ${forwardRes.status}`
+          lastStatusCode = forwardRes.status
           console.warn(`Endpoint ${ep} returned ${forwardRes.status}:`, errJson)
         }
-      } catch (err) {
+      } catch (err: any) {
+        lastErrorDetail = err.message || 'Connection failed'
         console.warn(`Failed forwarding to ${ep}:`, err)
       }
     }
 
-    // High-fidelity fallback if backend is offline
-    const fileName = file.name
-    return NextResponse.json({
-      status: 'EXTRACTED_GHOST_CARDS',
-      file_name: fileName,
-      student_id: studentId,
-      extraction_method: 'CLIENT_FALLBACK_SYNTHESIS',
-      ocr_duration_ms: 120,
-      llm_model: 'Qwen 2.5:7b (Local Fallback Parser)',
-      llm_latency_ms: 250,
-      page_count: 1,
-      grades_count: 4,
-      ghost_grade_cards: [
-        {
-          id: `grade_ghost_${Date.now()}_0`,
-          subject_name: 'Data Structures & Algorithms',
-          grade_or_marks: 'A',
-          grade_point: 9.0,
-          credits: 4.0,
-          is_failed: false,
-          is_confirmed: false,
-          source_doc: fileName,
-        },
-        {
-          id: `grade_ghost_${Date.now()}_1`,
-          subject_name: 'Database Management Systems',
-          grade_or_marks: 'A+',
-          grade_point: 10.0,
-          credits: 4.0,
-          is_failed: false,
-          is_confirmed: false,
-          source_doc: fileName,
-        },
-        {
-          id: `grade_ghost_${Date.now()}_2`,
-          subject_name: 'Computer Networks',
-          grade_or_marks: 'B+',
-          grade_point: 8.0,
-          credits: 3.0,
-          is_failed: false,
-          is_confirmed: false,
-          source_doc: fileName,
-        },
-        {
-          id: `grade_ghost_${Date.now()}_3`,
-          subject_name: 'Operating Systems & Architecture',
-          grade_or_marks: 'A',
-          grade_point: 9.0,
-          credits: 4.0,
-          is_failed: false,
-          is_confirmed: false,
-          source_doc: fileName,
-        },
-      ],
-      provisional_performance: {
-        gpa: 9.07,
-        percentage: 86.1,
-        academic_standing: 'OUTSTANDING',
-        honors_eligible: true,
-        total_credits: 15.0,
-        failed_subjects: 0,
-        insights: [
-          'Strong performance across core computer science foundational subjects.',
-          'Zero backlogs detected with honors standing eligibility.',
-        ],
+    // Never return mock/dummy courses (e.g. DBMS, Computer Networks)
+    return NextResponse.json(
+      {
+        detail: lastErrorDetail || 'Unable to extract academic grades. Please ensure the document is clear and readable.',
       },
-      message: `Extracted provisional Ghost Grade Cards from ${fileName}. Review and confirm your academic records.`,
-    })
+      { status: lastStatusCode }
+    )
   } catch (err: any) {
     return NextResponse.json(
       { detail: err.message || 'Failed to process grade sheet upload.' },

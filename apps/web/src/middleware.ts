@@ -3,15 +3,16 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 /**
- * Next.js Edge Middleware for Strict 3-Way Role-Based Access Control (RBAC).
+ * Next.js Edge Middleware for Strict 2-Way Role-Based Access Control (RBAC).
  *
- * Enforces airtight boundaries between:
+ * Enforces airtight 2-way boundaries between:
  * 1. STUDENT -> Restricted to Student Workspace (/student/*).
- *               Forbidden from Teacher, PTO/Placement, and Orbital portals.
- * 2. TEACHER -> Restricted to Teacher Portal (/teacher/*) & Orbital Diagnostics.
- *               Forbidden from Student Workspace and PTO/Placement consoles.
- * 3. PLACEMENT_OFFICER -> Restricted to PTO Console (/officer/*, /pto-dashboard) & Orbital Diagnostics.
- *                         Forbidden from Student Workspace and Teacher portals.
+ *               Forbidden from Faculty/Teacher and Institutional consoles.
+ * 2. FACULTY -> Restricted to Faculty Advisory & Placement Consoles (/teacher/*, /faculty/*).
+ *               Forbidden from Student Workspace.
+ *
+ * Legacy PTO / Placement Officer routes (/pto-dashboard, /tpo-dashboard, /officer/*)
+ * are consolidated and seamlessly merged into the Faculty route namespace (/teacher/panel).
  */
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -27,8 +28,10 @@ export async function middleware(req: NextRequest) {
   const rawRole = ((token?.role as string) || cookieRole).toUpperCase()
 
   const isStudent = rawRole === 'STUDENT'
-  const isTeacher = rawRole === 'TEACHER' || rawRole === 'FACULTY' || rawRole === 'FACULTY_MENTOR'
-  const isOfficer =
+  const isFaculty =
+    rawRole === 'FACULTY' ||
+    rawRole === 'TEACHER' ||
+    rawRole === 'FACULTY_MENTOR' ||
     rawRole === 'PLACEMENT_OFFICER' ||
     rawRole === 'OFFICER' ||
     rawRole === 'TPO' ||
@@ -43,9 +46,9 @@ export async function middleware(req: NextRequest) {
     pathname === '/resume-upload' ||
     pathname.startsWith('/resume-upload/')
 
-  const isTeacherRoute = pathname.startsWith('/teacher')
+  const isFacultyRoute = pathname.startsWith('/teacher') || pathname.startsWith('/faculty')
 
-  const isOfficerRoute =
+  const isLegacyOfficerRoute =
     pathname.startsWith('/pto-dashboard') ||
     pathname.startsWith('/tpo-dashboard') ||
     pathname.startsWith('/officer')
@@ -54,8 +57,7 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/admin/diagnostics') ||
     pathname.startsWith('/orbital')
 
-  // Check if route requires authentication
-  const isProtectedRoute = isStudentRoute || isTeacherRoute || isOfficerRoute || isOrbitalRoute
+  const isProtectedRoute = isStudentRoute || isFacultyRoute || isLegacyOfficerRoute || isOrbitalRoute
 
   if (isProtectedRoute) {
     if (!isAuth) {
@@ -64,11 +66,21 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(loginUrl)
     }
 
-    // ── 3-WAY RBAC ENFORCEMENT ──────────────────────────────────────────
+    // Legacy Officer Routes: Seamlessly merge into Faculty Console
+    if (isLegacyOfficerRoute) {
+      if (isStudent) {
+        const redirectUrl = new URL('/student/dashboard', req.url)
+        redirectUrl.searchParams.set('error', 'institutional_access_restricted')
+        return NextResponse.redirect(redirectUrl)
+      }
+      return NextResponse.redirect(new URL('/teacher/panel', req.url))
+    }
+
+    // ── STRICT 2-WAY RBAC ENFORCEMENT ────────────────────────────────────
 
     // 1. STUDENT ACCESS RULES
     if (isStudent) {
-      if (isTeacherRoute || isOfficerRoute || isOrbitalRoute) {
+      if (isFacultyRoute || isOrbitalRoute) {
         const redirectUrl = new URL('/student/dashboard', req.url)
         redirectUrl.searchParams.set('error', 'institutional_access_restricted')
         return NextResponse.redirect(redirectUrl)
@@ -82,24 +94,11 @@ export async function middleware(req: NextRequest) {
       return NextResponse.next()
     }
 
-    // 2. TEACHER ACCESS RULES
-    if (isTeacher) {
-      if (isStudentRoute || isOfficerRoute) {
+    // 2. FACULTY ACCESS RULES
+    if (isFaculty) {
+      if (isStudentRoute) {
         const redirectUrl = new URL('/teacher/panel', req.url)
         redirectUrl.searchParams.set('error', 'student_access_restricted')
-        return NextResponse.redirect(redirectUrl)
-      }
-      if (pathname === '/orbital') {
-        return NextResponse.redirect(new URL('/admin/diagnostics', req.url))
-      }
-      return NextResponse.next()
-    }
-
-    // 3. PLACEMENT OFFICER ACCESS RULES
-    if (isOfficer) {
-      if (isStudentRoute || isTeacherRoute) {
-        const redirectUrl = new URL('/officer/dashboard', req.url)
-        redirectUrl.searchParams.set('error', 'officer_workspace_restricted')
         return NextResponse.redirect(redirectUrl)
       }
       if (pathname === '/orbital') {
@@ -124,6 +123,8 @@ export const config = {
     '/student/:path*',
     '/teacher',
     '/teacher/:path*',
+    '/faculty',
+    '/faculty/:path*',
     '/admin/diagnostics',
     '/admin/diagnostics/:path*',
     '/orbital',

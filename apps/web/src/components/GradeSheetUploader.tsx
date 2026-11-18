@@ -17,6 +17,7 @@ import {
   GraduationCap,
   ArrowRight,
   Calculator,
+  X,
 } from 'lucide-react'
 
 export interface GhostGradeCard {
@@ -50,6 +51,7 @@ interface GradeSheetUploaderProps {
   }) => void
   isModal?: boolean
   onClose?: () => void
+  isSetupStage?: boolean
 }
 
 const GRADE_OPTIONS = [
@@ -102,6 +104,7 @@ export default function GradeSheetUploader({
   onComplete,
   isModal = false,
   onClose,
+  isSetupStage = false,
 }: GradeSheetUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -109,6 +112,14 @@ export default function GradeSheetUploader({
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgressMsg, setUploadProgressMsg] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+
+  // Immutability notice during onboarding setup
+  const [setupImmutabilityToast, setSetupImmutabilityToast] = useState<string | null>(null)
+
+  const triggerImmutabilityNotice = () => {
+    setSetupImmutabilityToast('After setting up, you can change your level with evidence in the profile section.')
+    setTimeout(() => setSetupImmutabilityToast(null), 5000)
+  }
 
   // Ghost Cards state
   const [ghostCards, setGhostCards] = useState<GhostGradeCard[]>([])
@@ -248,6 +259,14 @@ export default function GradeSheetUploader({
         })
       )
 
+      if (cards.length === 0) {
+        setUploadError(
+          'No academic course subjects could be detected in this document. Please ensure the screenshot or document is clear and readable, or click "Add Course Manually" below.'
+        )
+      } else {
+        setUploadError(null)
+      }
+
       setGhostCards(cards)
     } catch (err: any) {
       setUploadError(err.message || 'Error processing grade sheet.')
@@ -258,6 +277,10 @@ export default function GradeSheetUploader({
   }
 
   const handleUpdateCard = (id: string, updates: Partial<GhostGradeCard>) => {
+    if (isSetupStage) {
+      triggerImmutabilityNotice()
+      return
+    }
     setGhostCards((prev) =>
       prev.map((c) => {
         if (c.id === id) {
@@ -275,10 +298,18 @@ export default function GradeSheetUploader({
   }
 
   const handleDeleteCard = (id: string) => {
+    if (isSetupStage) {
+      triggerImmutabilityNotice()
+      return
+    }
     setGhostCards((prev) => prev.filter((c) => c.id !== id))
   }
 
   const handleAddSubject = () => {
+    if (isSetupStage) {
+      triggerImmutabilityNotice()
+      return
+    }
     const newCard: GhostGradeCard = {
       id: `grade_ghost_custom_${Date.now()}`,
       subject_name: '',
@@ -399,37 +430,64 @@ export default function GradeSheetUploader({
   }
 
   return (
-    <div className={`space-y-6 ${isModal ? '' : 'p-6 rounded-3xl border-2 border-[#E6E3DC] bg-white shadow-xs'}`}>
+    <div className={`w-full ${isModal ? 'flex flex-col h-full bg-[#FAF8F5] rounded-3xl overflow-hidden' : 'p-6 rounded-3xl border-2 border-[#E6E3DC] bg-[#FAF8F5] shadow-xs space-y-6'}`}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F1EFEA] pb-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-[#DE95BE]/20 text-[#6D3B56] border border-[#DE95BE] flex items-center gap-1.5">
-              <GraduationCap className="h-3.5 w-3.5" />
-              Automated Grade Sheet Parsing &amp; Deterministic Scoring
-            </span>
-            <span className="text-3xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
-              Qwen 2.5 + RapidOCR
-            </span>
+      {isModal ? (
+        <div className="bg-[#6D3B56] text-white px-6 py-4.5 rounded-t-3xl flex items-center justify-between border-b border-[#552940] shrink-0 border-t-0">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+              <GraduationCap className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-display font-extrabold text-white tracking-tight">
+                  Academic Grade Sheet Verification
+                </h3>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-white/15 text-white/90">
+                  Deterministic Scoring
+                </span>
+              </div>
+              <p className="text-xs text-white/70 mt-0.5">
+                Upload PDF transcripts or portal screenshots (.png, .jpg) • Verified via Qwen 2.5 &amp; RapidOCR
+              </p>
+            </div>
           </div>
-          <h3 className="text-lg font-display font-extrabold text-ink-primary">
-            Upload Grade Sheet or Portal Screenshot
-          </h3>
-          <p className="text-xs text-ink-secondary">
-            Upload PDF transcripts or image screenshots (.png, .jpg). Qwen 2.5 extracts subjects deterministically into <strong className="text-[#6D3B56]">Ghost Grade Cards</strong> for your verification before database mutation.
-          </p>
-        </div>
 
-        {isModal && onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="self-start sm:self-auto px-3 py-1.5 rounded-xl border border-[#E2DFD9] bg-[#FAF8F6] hover:bg-white text-xs font-bold text-ink-secondary transition-all cursor-pointer"
-          >
-            Close
-          </button>
-        )}
-      </div>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#F1EFEA] pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-[#DE95BE]/20 text-[#6D3B56] border border-[#DE95BE] flex items-center gap-1.5">
+                <GraduationCap className="h-3.5 w-3.5" />
+                Automated Grade Sheet Parsing &amp; Deterministic Scoring
+              </span>
+              <span className="text-3xs font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                Qwen 2.5 + RapidOCR
+              </span>
+            </div>
+            <h3 className="text-lg font-display font-extrabold text-ink-primary">
+              Upload Grade Sheet or Portal Screenshot
+            </h3>
+            <p className="text-xs text-ink-secondary">
+              Upload PDF transcripts or image screenshots (.png, .jpg). Qwen 2.5 extracts subjects deterministically into <strong className="text-[#6D3B56]">Ghost Grade Cards</strong> for your verification before database mutation.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Body */}
+      <div className={isModal ? 'p-6 sm:p-7 overflow-y-auto max-h-[calc(90vh-80px)] space-y-5 bg-[#FAF8F5] flex-1' : 'space-y-6'}>
 
       {/* Error / Success Notifications */}
       {uploadError && (
@@ -446,74 +504,105 @@ export default function GradeSheetUploader({
         </div>
       )}
 
+      {/* Immutability Notice during Setup Phase */}
+      {setupImmutabilityToast && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-amber-700 shrink-0" />
+            <span>{setupImmutabilityToast}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSetupImmutabilityToast(null)}
+            className="text-amber-800 hover:text-amber-950 font-bold text-xs cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Dropzone */}
       {ghostCards.length === 0 && (
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            setIsDragging(true)
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setIsDragging(false)
-            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-              handleProcessFile(e.dataTransfer.files[0])
-            }
-          }}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-3 border-dashed rounded-3xl p-8 sm:p-12 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-4 ${
-            isDragging
-              ? 'border-[#6D3B56] bg-[#F0B6D5]/20 scale-[1.01]'
-              : 'border-[#E2DFD9] bg-[#FAF8F6] hover:bg-[#F1EFEA] hover:border-[#6D3B56]/50'
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,application/pdf,image/png,image/jpeg,image/jpg,image/webp"
-            className="hidden"
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                handleProcessFile(e.target.files[0])
+        <div className="space-y-3">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragging(true)
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setIsDragging(false)
+              if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleProcessFile(e.dataTransfer.files[0])
               }
             }}
-          />
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-3 border-dashed rounded-3xl p-8 sm:p-12 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-4 ${
+              isDragging
+                ? 'border-[#6D3B56] bg-[#F0B6D5]/20 scale-[1.01]'
+                : 'border-[#E2DFD9] bg-[#FAF8F6] hover:bg-[#F1EFEA] hover:border-[#6D3B56]/50'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf,image/png,image/jpeg,image/jpg,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  handleProcessFile(e.target.files[0])
+                }
+              }}
+            />
 
-          <div className="h-16 w-16 rounded-3xl bg-[#F0B6D5]/40 text-[#6D3B56] flex items-center justify-center shadow-xs">
-            {isUploading ? (
-              <RefreshCw className="h-8 w-8 animate-spin" />
-            ) : (
-              <UploadCloud className="h-8 w-8" />
+            <div className="h-16 w-16 rounded-3xl bg-[#F0B6D5]/40 text-[#6D3B56] flex items-center justify-center shadow-xs">
+              {isUploading ? (
+                <RefreshCw className="h-8 w-8 animate-spin" />
+              ) : (
+                <UploadCloud className="h-8 w-8" />
+              )}
+            </div>
+
+            <div>
+              <h4 className="font-display font-bold text-base text-ink-primary">
+                {isUploading ? 'Extracting Academic Records...' : 'Click or Drag & Drop Grade Sheet'}
+              </h4>
+              <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
+                Accepts PDF transcripts or clear mobile/desktop screenshots of college portals (.png, .jpg, .jpeg). RapidOCR and Qwen 2.5 parse tabular subjects without local file retention.
+              </p>
+            </div>
+
+            {uploadProgressMsg && (
+              <div className="font-mono text-2xs font-semibold text-[#6D3B56] animate-pulse">
+                {uploadProgressMsg}
+              </div>
             )}
           </div>
 
-          <div>
-            <h4 className="font-display font-bold text-base text-ink-primary">
-              {isUploading ? 'Extracting Academic Records...' : 'Click or Drag & Drop Grade Sheet'}
-            </h4>
-            <p className="text-xs text-ink-muted mt-1 max-w-md mx-auto">
-              Accepts PDF transcripts or clear mobile/desktop screenshots of college portals (.png, .jpg, .jpeg). RapidOCR and Qwen 2.5 parse tabular subjects without local file retention.
-            </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between text-2xs text-ink-muted px-2 gap-2">
+            <span>Zero-Retention Guarantee: Document OCR parsed strictly in RAM. Real-time extraction with no dummy fallback.</span>
+            <button
+              type="button"
+              onClick={handleAddSubject}
+              className="text-xs font-bold text-[#6D3B56] hover:underline flex items-center gap-1 cursor-pointer shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Add Course Manually</span>
+            </button>
           </div>
-
-          {uploadProgressMsg && (
-            <div className="font-mono text-2xs font-semibold text-[#6D3B56] animate-pulse">
-              {uploadProgressMsg}
-            </div>
-          )}
         </div>
       )}
 
       {/* GHOST CARDS REVIEW & DETERMINISTIC VERIFICATION */}
       {ghostCards.length > 0 && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {/* Extraction Meta Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#FAF8F6] border border-[#E6E3DC]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#FAF8F6] border border-[#E6E3DC]">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-3xs font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
-                  <Ghost className="h-3 w-3" />
+                <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                  <Ghost className="h-3 w-3 text-slate-500" />
                   GHOST GRADE CARDS • UNCONFIRMED
                 </span>
                 <span className="text-xs font-bold text-ink-primary">
@@ -531,7 +620,7 @@ export default function GradeSheetUploader({
               <button
                 type="button"
                 onClick={handleAddSubject}
-                className="px-3 py-1.5 rounded-xl border border-[#E2DFD9] bg-white hover:bg-[#F1EFEA] text-xs font-bold text-[#6D3B56] transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
+                className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-[#6D3B56] transition-all cursor-pointer shadow-2xs flex items-center gap-1.5"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add Course
@@ -544,7 +633,7 @@ export default function GradeSheetUploader({
                   setHasConfirmed(false)
                   setConfirmSuccessMsg(null)
                 }}
-                className="px-3 py-1.5 rounded-xl border border-[#E2DFD9] bg-white hover:bg-[#F1EFEA] text-xs font-bold text-ink-muted transition-all cursor-pointer shadow-2xs"
+                className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-gray-500 transition-all cursor-pointer shadow-2xs"
               >
                 Re-upload
               </button>
@@ -552,36 +641,36 @@ export default function GradeSheetUploader({
           </div>
 
           {/* Live Deterministic Score Ribbon */}
-          <div className="p-4 rounded-2xl bg-[#6D3B56] text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm border-b-2 border-[#552940]">
+          <div className="p-3.5 rounded-2xl bg-[#6D3B56] text-white flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs border-b-2 border-[#552940]">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
-                <Calculator className="h-5 w-5 text-white" />
+              <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                <Calculator className="h-4.5 w-4.5 text-white" />
               </div>
               <div>
-                <div className="text-3xs font-mono font-bold tracking-wider uppercase text-white/70">
+                <div className="text-[10px] font-mono font-bold tracking-wider uppercase text-white/70">
                   Deterministic Scoring Shell (Pure Python / JS)
                 </div>
                 <div className="text-sm font-bold flex items-center gap-2 mt-0.5">
                   <span>Calculated GPA:</span>
-                  <span className="font-mono text-lg font-black text-[#F0B6D5]">
+                  <span className="font-mono text-base font-black text-[#F0B6D5]">
                     {livePerformance.gpa.toFixed(2)}
                   </span>
                   <span className="text-xs text-white/80">/ 10.0</span>
                   <span className="text-white/40">•</span>
                   <span>Percentage:</span>
-                  <span className="font-mono text-sm font-extrabold text-white">
+                  <span className="font-mono text-xs font-extrabold text-white">
                     {livePerformance.percentage}%
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <div className="px-3 py-1 rounded-xl bg-white/10 text-2xs font-mono font-bold">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="px-2.5 py-1 rounded-lg bg-white/10 text-2xs font-mono font-bold">
                 Credits: <strong>{livePerformance.totalCredits}</strong>
               </div>
               <div
-                className={`px-3 py-1 rounded-xl text-2xs font-mono font-bold ${
+                className={`px-2.5 py-1 rounded-lg text-2xs font-mono font-bold ${
                   livePerformance.failCount === 0
                     ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/40'
                     : 'bg-rose-500/30 text-rose-200 border border-rose-400/40'
@@ -589,14 +678,14 @@ export default function GradeSheetUploader({
               >
                 Backlogs: <strong>{livePerformance.failCount}</strong>
               </div>
-              <div className="px-3 py-1 rounded-xl bg-[#F0B6D5] text-[#6D3B56] text-2xs font-extrabold uppercase tracking-wider">
+              <div className="px-2.5 py-1 rounded-lg bg-[#F0B6D5] text-[#6D3B56] text-2xs font-extrabold uppercase tracking-wider">
                 {livePerformance.standing}
               </div>
             </div>
           </div>
 
           {/* Ghost Grade Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[460px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 max-h-[480px] overflow-y-auto pr-1">
             {ghostCards.map((card, idx) => {
               const { points, isFailed } = getGradePoint(card.grade_or_marks)
               const isConfirmed = card.is_confirmed || hasConfirmed
@@ -604,27 +693,27 @@ export default function GradeSheetUploader({
               return (
                 <div
                   key={card.id}
-                  className={`p-4 rounded-2xl border-2 transition-all relative flex flex-col justify-between gap-3 w-full min-w-0 ${
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all relative flex flex-col justify-between gap-3.5 w-full min-w-0 ${
                     isConfirmed
-                      ? 'border-[#6D3B56] bg-white shadow-xs ring-1 ring-[#6D3B56]/20'
-                      : 'border-dashed border-[#DE95BE] bg-[#FAF8F6]/90 hover:bg-white hover:border-[#6D3B56] shadow-2xs'
+                      ? 'border-emerald-300 bg-emerald-50/30 shadow-xs'
+                      : 'border-[#E6E3DC] bg-white hover:border-[#6D3B56]/50 hover:shadow-xs shadow-2xs'
                   }`}
                 >
                   {/* Top card header */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center gap-1.5">
                         <span className="text-3xs font-mono font-bold text-ink-muted">
                           #{idx + 1}
                         </span>
                         {isConfirmed ? (
-                          <span className="font-mono text-3xs font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
-                            <Check className="h-3 w-3 stroke-[3]" />
+                          <span className="font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                            <Check className="h-3 w-3 stroke-[2.5] text-emerald-600" />
                             1.0x Solid Verified
                           </span>
                         ) : (
-                          <span className="font-mono text-3xs font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
-                            <Ghost className="h-3 w-3 text-amber-600" />
+                          <span className="font-mono text-3xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                            <Ghost className="h-3 w-3 text-slate-500" />
                             0.5x Ghost (Unconfirmed)
                           </span>
                         )}
@@ -637,18 +726,22 @@ export default function GradeSheetUploader({
                         onChange={(e) =>
                           handleUpdateCard(card.id, { subject_name: e.target.value })
                         }
+                        onClick={isSetupStage ? triggerImmutabilityNotice : undefined}
+                        readOnly={isSetupStage || hasConfirmed}
                         placeholder="Subject / Course Name..."
                         disabled={hasConfirmed}
-                        className="w-full text-sm font-bold text-ink-primary bg-transparent border-b border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-hidden py-1 px-0 transition-colors"
+                        className={`w-full text-sm font-bold text-ink-primary bg-transparent border-b border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-hidden py-1 px-0 transition-colors ${
+                          isSetupStage ? 'cursor-not-allowed opacity-90' : ''
+                        }`}
                       />
                     </div>
 
                     {!hasConfirmed && (
                       <button
                         type="button"
-                        onClick={() => handleDeleteCard(card.id)}
+                        onClick={isSetupStage ? triggerImmutabilityNotice : () => handleDeleteCard(card.id)}
                         className="p-1.5 rounded-lg text-ink-muted hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Remove course"
+                        title={isSetupStage ? 'Editing locked during setup' : 'Remove course'}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -656,7 +749,7 @@ export default function GradeSheetUploader({
                   </div>
 
                   {/* Course Details: Grade & Credits */}
-                  <div className="pt-2 border-t border-[#F1EFEA] grid grid-cols-2 gap-2 text-xs">
+                  <div className="pt-3 border-t border-[#F1EFEA] grid grid-cols-2 gap-3 text-xs">
                     {/* Grade Selector */}
                     <div>
                       <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-ink-muted mb-1">
@@ -667,12 +760,13 @@ export default function GradeSheetUploader({
                         onChange={(e) =>
                           handleUpdateCard(card.id, { grade_or_marks: e.target.value })
                         }
-                        disabled={hasConfirmed}
-                        className={`w-full py-1.5 px-2.5 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
+                        onClick={isSetupStage ? triggerImmutabilityNotice : undefined}
+                        disabled={hasConfirmed || isSetupStage}
+                        className={`w-full py-2 px-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
                           isFailed
                             ? 'bg-rose-50 border-rose-300 text-rose-800'
-                            : 'bg-white border-[#E2DFD9] text-ink-primary focus:border-[#6D3B56]'
-                        }`}
+                            : 'bg-white border-[#E2DFD9] text-ink-primary focus:border-[#6D3B56] focus:outline-hidden'
+                        } ${isSetupStage ? 'cursor-not-allowed opacity-90' : ''}`}
                       >
                         {GRADE_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -692,8 +786,11 @@ export default function GradeSheetUploader({
                         onChange={(e) =>
                           handleUpdateCard(card.id, { credits: parseFloat(e.target.value) })
                         }
-                        disabled={hasConfirmed}
-                        className="w-full py-1.5 px-2.5 rounded-xl border border-[#E2DFD9] bg-white text-xs font-bold text-ink-primary focus:border-[#6D3B56] cursor-pointer"
+                        onClick={isSetupStage ? triggerImmutabilityNotice : undefined}
+                        disabled={hasConfirmed || isSetupStage}
+                        className={`w-full py-2 px-3 rounded-xl border border-[#E2DFD9] bg-white text-xs font-bold text-ink-primary focus:border-[#6D3B56] focus:outline-hidden cursor-pointer ${
+                          isSetupStage ? 'cursor-not-allowed opacity-90' : ''
+                        }`}
                       >
                         <option value={1.0}>1.0 Credit (Lab / Seminar)</option>
                         <option value={2.0}>2.0 Credits</option>
@@ -708,10 +805,10 @@ export default function GradeSheetUploader({
                   {/* Point preview badge */}
                   <div className="flex items-center justify-between text-3xs font-mono text-ink-muted pt-1">
                     <span>
-                      Points: <strong>{points.toFixed(1)}</strong>
+                      Points: <strong className="text-ink-primary font-bold">{points.toFixed(1)}</strong>
                     </span>
                     <span>
-                      Weighted: <strong>{(points * (Number(card.credits) || 3.0)).toFixed(1)}</strong>
+                      Weighted: <strong className="text-[#6D3B56] font-bold">{(points * (Number(card.credits) || 3.0)).toFixed(1)}</strong>
                     </span>
                   </div>
                 </div>
@@ -766,6 +863,7 @@ export default function GradeSheetUploader({
           )}
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -46,13 +46,13 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     id: 'FAC-014',
     name: 'Dr. Kavita Iyer',
     role: 'FACULTY',
-    subtext: 'Faculty Mentor • Department Advisory & Endorsements',
+    subtext: 'Faculty Advisor • Department of Computer Science',
   },
   {
-    id: 'TPO-001',
+    id: 'FAC-001',
     name: 'Prof. Rajesh Menon',
-    role: 'OFFICER',
-    subtext: 'Placement Officer • Cohort Liquidity & Exceptions',
+    role: 'FACULTY',
+    subtext: 'Faculty Placement Chair • Engineering & Technology',
   },
   {
     id: 'ADM-001',

@@ -405,6 +405,7 @@ export default function StudentMatchesPage() {
               return (
                 <div key={match.id} className="relative">
                   <MatchCard
+                    id={match.id}
                     jobTitle={match.jobTitle}
                     company={match.company}
                     deadline={match.deadline}
@@ -413,6 +414,9 @@ export default function StudentMatchesPage() {
                     alignmentScore={currentScore}
                     factorBreakdown={match.factorBreakdown}
                     sandboxToggles={match.sandboxToggles}
+                    eligibilityStatus={match.eligibilityStatus}
+                    failedPreference={match.failedPreference}
+                    missingSkills={match.missingSkills}
                     onOpenDispute={handleOpenDispute}
                     onAddPlan={() => {
                       setSprintNotice(`Added ${match.jobTitle} to your 72h Sprint Roadmap!`)

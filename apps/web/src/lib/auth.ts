@@ -58,10 +58,10 @@ export const authOptions: NextAuthOptions = {
                   id: staff.staff_id,
                   name: staff.full_name,
                   email: staff.email,
-                  role: isOfficer ? 'PLACEMENT_OFFICER' : (staff.role === 'FACULTY' || staff.role === 'TEACHER' ? 'TEACHER' : staff.role || 'TEACHER'),
-                  department: staff.department || 'Training & Placement Office',
+                  role: 'FACULTY' as const,
+                  department: staff.department || 'Department of Computer Science & Placements',
                   institution_id: staff.institution_id || 'JKLU',
-                  isVerifiedOfficer: isOfficer && isJKLU,
+                  isVerifiedOfficer: true,
                 }
               }
             }
@@ -82,7 +82,7 @@ export const authOptions: NextAuthOptions = {
                   id: student.student_id,
                   name: student.full_name,
                   email: student.email,
-                  role: 'STUDENT',
+                  role: 'STUDENT' as const,
                   department: student.program || 'B.Tech CSE',
                   institution_id: student.institution_id || 'JKLU',
                   isVerifiedOfficer: false,
@@ -94,37 +94,30 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // 2. Built-in / Demo Fallback Accounts (Works offline or prior to Neon seeding)
-        // A. Verified JKLU Placement Officers
+        // 2. Built-in / Demo Fallback Accounts (Strict 2-Way: Faculty & Student)
+        // A. Faculty (includes placement authorities and mentors)
         if (
           email === 'officer@jklu.edu.in' ||
           email === 'tpo@jklu.edu.in' ||
           email === 'tpo-001' ||
           email === 'rajesh.menon@nitk.edu' ||
           email.includes('menon') ||
+          email.includes('faculty') ||
+          email.includes('mentor') ||
+          email === 'kavita@jklu.edu.in' ||
+          email.includes('iyer') ||
+          email.includes('teacher') ||
           (email.includes('jklu') && (email.includes('tpo') || email.includes('officer')))
         ) {
+          const isMenon = email.includes('menon') || email.includes('tpo') || email.includes('officer')
           return {
-            id: 'TPO-JKLU-001',
-            name: 'Prof. Rajesh Menon',
-            email: email.includes('@') ? email : 'tpo@jklu.edu.in',
-            role: 'PLACEMENT_OFFICER',
-            department: 'Training & Placement Office',
+            id: isMenon ? 'FAC-JKLU-001' : 'FAC-JKLU-014',
+            name: isMenon ? 'Prof. Rajesh Menon' : 'Dr. Kavita Iyer',
+            email: email.includes('@') ? email : (isMenon ? 'rajesh.menon@jklu.edu.in' : 'kavita.iyer@jklu.edu.in'),
+            role: 'FACULTY' as const,
+            department: isMenon ? 'Faculty Placement Chair • CSE' : 'Computer Science & Engineering',
             institution_id: 'JKLU',
             isVerifiedOfficer: true,
-          }
-        }
-
-        // B. Faculty Mentors
-        if (email.includes('faculty') || email.includes('mentor') || email === 'kavita@jklu.edu.in' || email.includes('teacher')) {
-          return {
-            id: 'FAC-JKLU-014',
-            name: 'Dr. Kavita Iyer',
-            email: email.includes('@') ? email : 'kavita@jklu.edu.in',
-            role: 'TEACHER',
-            department: 'Computer Science & Engineering',
-            institution_id: 'JKLU',
-            isVerifiedOfficer: false,
           }
         }
 
@@ -191,7 +184,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = (token.id as string) || ''
-        session.user.role = (token.role as any) || 'STUDENT'
+        session.user.role = (token.role as any) === 'STUDENT' ? 'STUDENT' : 'FACULTY'
         session.user.department = (token.department as string) || ''
         session.user.institution_id = (token.institution_id as string) || 'JKLU'
         session.user.isVerifiedOfficer = Boolean(token.isVerifiedOfficer)

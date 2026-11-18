@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { GraduationCap, Users, Building2 } from 'lucide-react'
 
-type LoginRole = 'STUDENT' | 'FACULTY' | 'OFFICER'
+type LoginRole = 'STUDENT' | 'FACULTY'
 type AuthMode = 'SIGN_IN' | 'REGISTER'
 
 export default function LoginPage() {
@@ -25,10 +25,10 @@ export default function LoginPage() {
       const params = new URLSearchParams(window.location.search)
       const err = params.get('error')
       const msg = params.get('message')
-      if (err === 'jklu_officer_access_required') {
-        setRbacNotice(msg || 'Restricted Area: Access to the Placement & Training Officer console is strictly restricted to verified JKLU placement officers.')
-      } else if (err === 'faculty_access_required') {
-        setRbacNotice('Restricted Area: Faculty Advisory Console requires verified faculty credentials.')
+      if (err === 'faculty_access_required' || err === 'institutional_access_restricted') {
+        setRbacNotice(msg || 'Restricted Area: Faculty Advisory Console requires verified faculty credentials.')
+      } else if (err === 'student_access_restricted') {
+        setRbacNotice(msg || 'Restricted Area: Student Workspace is restricted to verified student accounts.')
       }
     }
   }, [])
@@ -49,12 +49,9 @@ export default function LoginPage() {
     if (newRole === 'STUDENT') {
       setIdentifier('aarav.sharma@jklu.edu.in')
       setPassword('student@jklu2026')
-    } else if (newRole === 'FACULTY') {
+    } else {
       setIdentifier('kavita.iyer@jklu.edu.in')
       setPassword('faculty@jklu2026')
-    } else {
-      setIdentifier('rajesh.menon@jklu.edu.in')
-      setPassword('tpo@jklu2026')
     }
   }
 
@@ -62,12 +59,7 @@ export default function LoginPage() {
     setIsLoading(true)
     setErrorMsg(null)
 
-    const roleForCookie =
-      authRole === 'FACULTY'
-        ? 'TEACHER'
-        : authRole === 'OFFICER'
-        ? 'PLACEMENT_OFFICER'
-        : 'STUDENT'
+    const roleForCookie = authRole === 'FACULTY' ? 'FACULTY' : 'STUDENT'
     if (typeof window !== 'undefined') {
       document.cookie = `cb_role=${roleForCookie}; Path=/; Max-Age=2592000; SameSite=Lax`
     }
@@ -91,6 +83,7 @@ export default function LoginPage() {
         if (
           authRole === 'STUDENT' &&
           (callbackTarget.startsWith('/teacher') ||
+            callbackTarget.startsWith('/faculty') ||
             callbackTarget.startsWith('/officer') ||
             callbackTarget.startsWith('/admin') ||
             callbackTarget.startsWith('/pto') ||
@@ -100,17 +93,7 @@ export default function LoginPage() {
         }
         if (
           authRole === 'FACULTY' &&
-          (callbackTarget.startsWith('/student') ||
-            callbackTarget.startsWith('/officer') ||
-            callbackTarget.startsWith('/pto') ||
-            callbackTarget.startsWith('/tpo'))
-        ) {
-          return defaultPath
-        }
-        if (
-          authRole === 'OFFICER' &&
-          (callbackTarget.startsWith('/student') ||
-            callbackTarget.startsWith('/teacher'))
+          callbackTarget.startsWith('/student')
         ) {
           return defaultPath
         }
@@ -146,10 +129,8 @@ export default function LoginPage() {
           } else {
             router.push(resolveDestination('/student/dashboard'))
           }
-        } else if (authRole === 'FACULTY') {
-          router.push(resolveDestination('/teacher/panel'))
         } else {
-          router.push(resolveDestination('/officer/dashboard'))
+          router.push(resolveDestination('/teacher/panel'))
         }
         return
       }
@@ -190,20 +171,13 @@ export default function LoginPage() {
               needs_onboarding: false,
               readiness_index: 82,
             }
-          : authRole === 'FACULTY'
-          ? {
+          : {
               id: 'STF-014',
               name: 'Dr. Kavita Iyer',
               email: authIdentifier,
-              role: 'FACULTY_MENTOR',
-              department: 'Computer Science',
-            }
-          : {
-              id: 'TPO-001',
-              name: 'Prof. Rajesh Menon',
-              email: authIdentifier,
-              role: 'PLACEMENT_OFFICER',
-              department: 'Career Development Centre',
+              role: 'FACULTY',
+              department: 'Computer Science & Engineering',
+              institution: 'JKLU (JK Lakshmipat University)',
             }
 
       if (typeof window !== 'undefined') {
@@ -213,10 +187,8 @@ export default function LoginPage() {
 
       if (authRole === 'STUDENT') {
         router.push(resolveDestination('/student/dashboard'))
-      } else if (authRole === 'FACULTY') {
-        router.push(resolveDestination('/teacher/panel'))
       } else {
-        router.push(resolveDestination('/officer/dashboard'))
+        router.push(resolveDestination('/teacher/panel'))
       }
     } finally {
       setIsLoading(false)
@@ -392,44 +364,32 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Role Segmented Pill Tab Switcher */}
+          {/* Role Segmented Pill Tab Switcher: Strict 2-Way (Student & Faculty) */}
           {authMode === 'SIGN_IN' && (
             <div className="bg-surface-container-low p-1.5 rounded-full flex items-center justify-between gap-1 mb-6 border border-outline-variant/60">
               <button
                 type="button"
                 onClick={() => handleRoleChange('STUDENT')}
-                className={`flex-1 py-2 px-3 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2.5 px-4 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   role === 'STUDENT'
                     ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                <GraduationCap className="h-3.5 w-3.5" />
+                <GraduationCap className="h-4 w-4" />
                 <span>Student</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleRoleChange('FACULTY')}
-                className={`flex-1 py-2 px-3 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2.5 px-4 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   role === 'FACULTY'
                     ? 'bg-secondary text-on-secondary shadow-[0_3px_0_#284b5b]'
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                <Users className="h-3.5 w-3.5" />
-                <span>Mentor</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRoleChange('OFFICER')}
-                className={`flex-1 py-2 px-3 text-center rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  role === 'OFFICER'
-                    ? 'bg-tertiary text-on-tertiary shadow-[0_3px_0_#2a4e3e]'
-                    : 'text-on-surface-variant hover:text-on-surface'
-                }`}
-              >
-                <Building2 className="h-3.5 w-3.5" />
-                <span>TPO Officer</span>
+                <Building2 className="h-4 w-4" />
+                <span>Faculty</span>
               </button>
             </div>
           )}
@@ -525,13 +485,13 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setRole('OFFICER')
+                      setRole('FACULTY')
                       setIdentifier('rajesh.menon@jklu.edu.in')
-                      setPassword('tpo@jklu2026')
+                      setPassword('faculty@jklu2026')
                     }}
-                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-tertiary-container/40 border border-tertiary-fixed-dim hover:bg-tertiary-container text-on-surface transition-all"
+                    className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant hover:bg-surface-container-high text-on-surface transition-all"
                   >
-                    Prof. Menon (TPO)
+                    Prof. Menon (Faculty)
                   </button>
                 </div>
               </div>

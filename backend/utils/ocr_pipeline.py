@@ -65,17 +65,109 @@ def get_rapid_ocr() -> Optional[Any]:
     return _rapid_ocr_instance
 
 
+def preprocess_image_for_ocr(image_bytes: bytes) -> bytes:
+    """Preprocess image in-memory for optimal OCR character detection."""
+    try:
+        img = Image.open(io.BytesIO(image_bytes))
+
+        # Convert palette/transparency to standard RGB
+        if img.mode in ("RGBA", "LA", "P"):
+            background = Image.new("RGB", img.size, (255, 255, 255))
+            if img.mode == "P":
+                img = img.convert("RGBA")
+            background.paste(img, mask=img.split()[-1] if "A" in img.mode else None)
+            img = background
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+
+        # Upscale small or low-resolution portal screenshots (e.g. mobile portal screenshots)
+        if img.width < 1200:
+            scale = 1200.0 / float(img.width)
+            new_size = (1200, int(img.height * scale))
+            img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+        out_buf = io.BytesIO()
+        img.save(out_buf, format="PNG")
+        return out_buf.getvalue()
+    except Exception as e:
+        logger.warning(f"Image preprocessing skipped: {e}")
+        return image_bytes
+
+
+def group_ocr_boxes_into_lines(ocr_result: list[Any]) -> str:
+    """Spatially group RapidOCR bounding boxes into coherent table lines.
+    
+    Portals like TCS iON render tabular rows where columns (Course Code, Subject Name,
+    Credits, Grade) are detected as separate text boxes. Grouping them by vertical
+    alignment (y_mid) and ordering left-to-right (x_min) produces structured rows.
+    """
+    if not ocr_result:
+        return ""
+
+    boxes = []
+    for item in ocr_result:
+        if len(item) >= 2 and item[1]:
+            box = item[0]
+            text = str(item[1]).strip()
+            if not text:
+                continue
+            ys = [pt[1] for pt in box]
+            xs = [pt[0] for pt in box]
+            y_mid = sum(ys) / len(ys)
+            x_min = min(xs)
+            height = max(ys) - min(ys)
+            boxes.append({"text": text, "y_mid": y_mid, "x_min": x_min, "height": height})
+
+    if not boxes:
+        return ""
+
+    # Sort primarily by vertical coordinate
+    boxes.sort(key=lambda b: b["y_mid"])
+
+    avg_h = sum(b["height"] for b in boxes) / len(boxes)
+    y_threshold = max(8.0, avg_h * 0.65)
+
+    lines: list[str] = []
+    curr_line: list[dict[str, Any]] = []
+    curr_y: Optional[float] = None
+
+    for b in boxes:
+        if curr_y is None or abs(b["y_mid"] - curr_y) <= y_threshold:
+            curr_line.append(b)
+            curr_y = (curr_y + b["y_mid"]) / 2.0 if curr_y is not None else b["y_mid"]
+        else:
+            curr_line.sort(key=lambda x: x["x_min"])
+            lines.append(" | ".join(x["text"] for x in curr_line))
+            curr_line = [b]
+            curr_y = b["y_mid"]
+
+    if curr_line:
+        curr_line.sort(key=lambda x: x["x_min"])
+        lines.append(" | ".join(x["text"] for x in curr_line))
+
+    return "\n".join(lines)
+
+
 def run_image_ocr(image_bytes: bytes) -> tuple[str, str]:
     """Run OCR on in-memory image bytes (PNG, JPG, JPEG, WEBP)."""
     text_lines: list[str] = []
     method = "OCR_RAPID"
 
+    # Preprocess image for clean OCR
+    processed_bytes = preprocess_image_for_ocr(image_bytes)
+
     # 1. Primary Engine: RapidOCR (ONNX runtime, in-memory, self-contained)
     rapid = get_rapid_ocr()
     if rapid:
         try:
-            result, _ = rapid(image_bytes)
+            result, _ = rapid(processed_bytes)
             if result:
+                # Use spatial line grouping to reconstruct table rows
+                structured_text = group_ocr_boxes_into_lines(result)
+                if structured_text.strip():
+                    return structured_text.strip(), "RapidOCR (ONNX Spatial Table)"
+
+                # Fallback to simple line-by-line concatenation
                 for item in result:
                     if len(item) >= 2 and item[1]:
                         text_lines.append(str(item[1]).strip())
@@ -87,7 +179,7 @@ def run_image_ocr(image_bytes: bytes) -> tuple[str, str]:
     # 2. Secondary Fallback Engine: pytesseract
     if PYTESSERACT_AVAILABLE:
         try:
-            img = Image.open(io.BytesIO(image_bytes))
+            img = Image.open(io.BytesIO(processed_bytes))
             text = pytesseract.image_to_string(img)
             if text and text.strip():
                 return text.strip(), "PyTesseract (Fallback)"

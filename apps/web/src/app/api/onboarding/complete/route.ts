@@ -7,6 +7,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { student_id = 'STU-101', confirmed_skills = [], candidate_metadata = {}, file_name = 'Resume.pdf' } = body
 
+    if (!Array.isArray(confirmed_skills) || confirmed_skills.length === 0) {
+      return NextResponse.json(
+        { detail: 'Cannot complete onboarding: At least one confirmed skill card is required.' },
+        { status: 400 }
+      )
+    }
+
     // 1. Try forwarding to remote or local FastAPI backend if reachable
     const backendBase = (process.env.CAMPUSBRIDGE_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '')
     try {

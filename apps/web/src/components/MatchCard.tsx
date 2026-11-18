@@ -1,13 +1,24 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import * as Collapsible from '@radix-ui/react-collapsible'
-import { ChevronDown, Building2, Calendar, Sparkles } from 'lucide-react'
+import {
+  ChevronDown,
+  Building2,
+  Calendar,
+  Sparkles,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  ArrowRight,
+} from 'lucide-react'
 import type { EligibilityRule, AlignmentFactor, SandboxToggle } from '@/lib/types'
 import { ClientOnlyDate } from '@/lib/date-format'
 import CounterfactualSandbox from './CounterfactualSandbox'
 
 interface MatchCardProps {
+  id?: string
   jobTitle: string
   company: string
   deadline: string
@@ -16,6 +27,9 @@ interface MatchCardProps {
   alignmentScore: number
   factorBreakdown: AlignmentFactor[]
   sandboxToggles: SandboxToggle[]
+  eligibilityStatus?: 'ELIGIBLE' | 'ACTION_REQUIRED' | 'FILTERED_OUT'
+  failedPreference?: string | null
+  missingSkills?: string[]
   onAddPlan?: () => void
   onOpenDispute?: (rule: EligibilityRule, jobTitle: string, company: string) => void
   onOpenSource?: (docId: string) => void
@@ -72,6 +86,7 @@ function EligibilityPill({
 }
 
 export default function MatchCard({
+  id,
   jobTitle,
   company,
   deadline,
@@ -80,6 +95,9 @@ export default function MatchCard({
   alignmentScore,
   factorBreakdown,
   sandboxToggles,
+  eligibilityStatus,
+  failedPreference,
+  missingSkills = [],
   onAddPlan,
   onOpenDispute,
   onOpenSource,
@@ -87,8 +105,68 @@ export default function MatchCard({
   const [sandboxOpen, setSandboxOpen] = useState(false)
   const totalWeight = factorBreakdown.reduce((s, f) => s + f.weight, 0) || 1
 
+  const resolvedStatus: 'ELIGIBLE' | 'ACTION_REQUIRED' | 'FILTERED_OUT' =
+    eligibilityStatus ||
+    (eligibilityRules.some((r) => r.status === 'DOES_NOT_MEET')
+      ? 'FILTERED_OUT'
+      : eligibilityRules.some((r) => r.status === 'UNKNOWN')
+      ? 'ACTION_REQUIRED'
+      : 'ELIGIBLE')
+
   return (
     <article className="overflow-hidden rounded-3xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0_4px_0_#EAD7E2] transition-all hover:border-primary-container font-body-md text-on-surface">
+      {/* Deterministic R.O.N.E.N. Eligibility Status Banner */}
+      <div className="mb-4">
+        {resolvedStatus === 'ELIGIBLE' && (
+          <div className="flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-xs text-emerald-900 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <div>
+                <strong className="font-extrabold uppercase tracking-wide">Eligible for Drive</strong>
+                <span className="ml-1 text-emerald-800 text-[11px]">• Meets all Faculty gates &amp; mandatory criteria</span>
+              </div>
+            </div>
+            <span className="font-mono text-[10px] font-bold bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-full">
+              R.O.N.E.N. Verified ✓
+            </span>
+          </div>
+        )}
+
+        {resolvedStatus === 'ACTION_REQUIRED' && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />
+                <strong className="font-extrabold uppercase tracking-wide">Action Required</strong>
+              </div>
+              <span className="font-mono text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                Gate Bottleneck
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 pl-6">
+              {failedPreference || 'Missing confirmed mandatory skills to pass Faculty filter.'}
+            </p>
+          </div>
+        )}
+
+        {resolvedStatus === 'FILTERED_OUT' && (
+          <div className="rounded-2xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-900 shadow-2xs space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                <strong className="font-extrabold uppercase tracking-wide">Filtered Out</strong>
+              </div>
+              <span className="font-mono text-[10px] font-bold bg-rose-200 text-rose-900 px-2 py-0.5 rounded-full">
+                Hard Disqualification
+              </span>
+            </div>
+            <p className="text-[11px] text-rose-800 pl-6">
+              {failedPreference || 'Student profile does not meet Faculty baseline gate.'}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Header & Compensation */}
       <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-outline-variant/60">
         <div>
@@ -195,6 +273,20 @@ export default function MatchCard({
           />
         </Collapsible.Content>
       </Collapsible.Root>
+
+      {/* Direct What-If Counterfactual Sandbox Link */}
+      <div className="mt-3.5 pt-3 border-t border-[#F1EFEA] flex items-center justify-between">
+        <span className="text-[11px] text-ink-muted">
+          Need to pass this Faculty gate?
+        </span>
+        <Link
+          href={`/student/what-if-sandbox?jobId=${id || 'jm_razorpay'}`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6D3B56] hover:text-[#582e44] hover:underline"
+        >
+          <span>Open What-If Sandbox on this Job</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
     </article>
   )
 }
