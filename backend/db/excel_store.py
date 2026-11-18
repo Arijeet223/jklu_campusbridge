@@ -65,6 +65,8 @@ COLUMNS = {
         "target_roles",
         "readiness_index",
         "sprint_mode_active",
+        "academic_records",
+        "calculated_academic_score",
     ],
     SHEET_TEACHERS: [
         "staff_id",

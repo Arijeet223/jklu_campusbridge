@@ -64,6 +64,8 @@ class StudentProfile(Base, TimestampMixin):
     github_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
     institution_id: Mapped[str] = mapped_column(String(64), default="inst-nitk-001", nullable=False)
     visibility_state: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict, nullable=False)
+    academic_records: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
+    calculated_academic_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
 
     # Relationships
     evidence: Mapped[List[SkillEvidence]] = relationship(
@@ -95,6 +97,8 @@ class StudentProfile(Base, TimestampMixin):
             "github_url": self.github_url or "",
             "institution_id": self.institution_id,
             "visibility_state": self.visibility_state or {},
+            "academic_records": self.academic_records if isinstance(self.academic_records, list) else [],
+            "calculated_academic_score": float(self.calculated_academic_score or 0.0),
         }
 
 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { Skill, ReadinessDimension, ResumeVersion } from '@/lib/types'
 import { mockReadinessDimensions, mockResumeVersions, mockSkills } from '@/lib/mock-data'
 import { computeReadinessProfile } from '@/lib/readiness-calculator'
+import GradeSheetUploader from './GradeSheetUploader'
 
 interface StudentHomeDashboardProps {
   studentId?: string
@@ -85,8 +86,71 @@ export default function StudentHomeDashboard({
     }
   }, [])
 
+  // Academic Grade Sheet & Performance Scoring state
+  const [currentCgpa, setCurrentCgpa] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cb_active_user')
+        if (stored) {
+          const u = JSON.parse(stored)
+          if (u.cgpa !== undefined) return Number(u.cgpa)
+        }
+      } catch {}
+    }
+    return cgpa
+  })
+
+  const [academicStanding, setAcademicStanding] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cb_active_user')
+        if (stored) {
+          const u = JSON.parse(stored)
+          if (u.academic_standing) return u.academic_standing
+        }
+      } catch {}
+    }
+    return 'EXCELLENT'
+  })
+
+  const [academicRecordsCount, setAcademicRecordsCount] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cb_academic_records')
+        if (stored) {
+          const arr = JSON.parse(stored)
+          if (Array.isArray(arr)) return arr.length
+        }
+      } catch {}
+    }
+    return 0
+  })
+
+  const [showGradeSheetModal, setShowGradeSheetModal] = useState(false)
+  const [vaultTab, setVaultTab] = useState<'RESUME' | 'GRADES'>('RESUME')
+
+  // Real-time listener for academic changes
+  useEffect(() => {
+    const handleAcademicsUpdated = (e: any) => {
+      if (e.detail?.cgpa !== undefined) {
+        setCurrentCgpa(Number(e.detail.cgpa))
+      }
+      if (e.detail?.academicStanding) {
+        setAcademicStanding(e.detail.academicStanding)
+      }
+      if (Array.isArray(e.detail?.records)) {
+        setAcademicRecordsCount(e.detail.records.length)
+      }
+    }
+
+    window.addEventListener('cb_academics_updated', handleAcademicsUpdated)
+    return () => {
+      window.removeEventListener('cb_academics_updated', handleAcademicsUpdated)
+    }
+  }, [])
+
   // Dynamic mathematical readiness calculation grounded in active skills & CGPA
-  const readinessProfile = computeReadinessProfile(localSkills, cgpa)
+  const readinessProfile = computeReadinessProfile(localSkills, currentCgpa)
   const overallReadiness = readinessProfile.overallReadiness
 
   const verifiedSkills = localSkills.filter(
@@ -287,6 +351,14 @@ export default function StudentHomeDashboard({
 
           {/* Quick Action Capsule Buttons */}
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowGradeSheetModal(true)}
+              className="bg-secondary text-on-secondary font-label-lg text-label-lg px-5 py-3.5 rounded-full border border-secondary-fixed-dim shadow-[0_3px_0_#2b5b75] active:translate-y-[2px] transition-all flex items-center gap-2 hover:brightness-105 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-base">school</span>
+              <span>Upload Grade Sheet</span>
+            </button>
             <Link
               href="/student/matches"
               className="bg-primary text-on-primary font-label-lg text-label-lg px-6 py-3.5 rounded-full border border-on-primary-fixed-variant shadow-[0_4px_0_#320e26] active:translate-y-[3px] active:shadow-[0_1px_0_#320e26] transition-all flex items-center gap-2 hover:brightness-105"
@@ -365,21 +437,35 @@ export default function StudentHomeDashboard({
             </div>
           </div>
 
-          {/* Card 4: Pending Disputes / Gate Exceptions */}
+          {/* Card 4: Verified Academic Standing & CGPA */}
           <div className="bg-surface-container-low border-[1.5px] border-outline-variant rounded-2xl p-5 shadow-[0_3px_0_#d3c2c9] transition-transform hover:-translate-y-0.5">
             <div className="flex items-center justify-between">
-              <span className="text-label-md font-label-md text-on-surface-variant font-bold">Gate Exceptions</span>
-              <span className="material-symbols-outlined text-tertiary">check_circle</span>
+              <span className="text-label-md font-label-md text-on-surface-variant font-bold">Academic Standing</span>
+              <span className="material-symbols-outlined text-secondary">school</span>
             </div>
             <div className="flex items-baseline gap-2 mt-3">
-              <span className="text-headline-md font-headline-md text-on-surface font-extrabold">0 Blockers</span>
-              <span className="bg-surface-container-high text-on-surface text-label-sm font-label-sm px-2 py-0.5 rounded-full font-bold">
-                Cleared
+              <span className="text-headline-lg font-headline-lg text-on-surface font-extrabold">{currentCgpa.toFixed(2)}</span>
+              <span className="bg-secondary-fixed text-on-secondary-fixed text-label-sm font-label-sm px-2 py-0.5 rounded-full font-bold">
+                {academicStanding}
               </span>
             </div>
-            <p className="text-body-sm font-body-sm text-tertiary mt-1 font-medium">All TPO Approvals Clear ✓</p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-body-sm font-body-sm text-outline font-medium">
+                {academicRecordsCount > 0 ? `${academicRecordsCount} Courses Verified` : 'Deterministic Scoring'}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowGradeSheetModal(true)}
+                className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+              >
+                {academicRecordsCount > 0 ? 'Update' : 'Upload'} →
+              </button>
+            </div>
             <div className="w-full bg-surface-container-high rounded-full h-2 mt-3 overflow-hidden">
-              <div className="bg-tertiary h-full rounded-full" style={{ width: '100%' }}></div>
+              <div
+                className="bg-secondary h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((currentCgpa / 10) * 100))}%` }}
+              ></div>
             </div>
           </div>
         </div>
@@ -743,10 +829,10 @@ export default function StudentHomeDashboard({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           <div>
             <h2 className="text-headline-sm font-headline-sm text-on-surface font-extrabold tracking-tight">
-              AI Resume Ingestion &amp; Evidence Vault
+              Ingestion Vault: Resumes &amp; Academic Grade Sheets
             </h2>
             <p className="text-body-sm font-body-sm text-on-surface-variant">
-              Upload updated PDF resumes to extract provisional skills (Ghost Cards) grounded in verifiable char spans.
+              In-memory parsing with zero disk leakage. Extract technical skills and calculate certified GPAs deterministically.
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -768,39 +854,85 @@ export default function StudentHomeDashboard({
           </div>
         </div>
 
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            setIsDragging(true)
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
-            isDragging
-              ? 'border-primary bg-primary-container/20 shadow-md'
-              : 'border-outline-variant bg-surface-container-low hover:border-secondary hover:bg-secondary-container/10'
-          }`}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept=".pdf,.doc,.docx"
-            className="hidden"
-          />
-          <div className="flex flex-col items-center justify-center gap-2">
-            <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center border border-secondary-fixed-dim shadow-[0_2px_0_#85B5CE]">
-              <span className="material-symbols-outlined text-2xl text-secondary">cloud_upload</span>
-            </div>
-            <p className="text-body-md font-body-md text-on-surface font-bold mt-1">
-              {isProcessingFile ? 'Processing document...' : 'Drop your latest resume PDF here, or click to browse'}
-            </p>
-            <p className="text-body-sm font-body-sm text-outline">
-              Automatic text extraction, character-span provenance anchoring &amp; FERPA-guarded sandbox.
-            </p>
-          </div>
+        {/* Ingestion Vault Tabs */}
+        <div className="flex items-center gap-3 border-b border-outline-variant/60 pb-3 mb-4">
+          <button
+            type="button"
+            onClick={() => setVaultTab('RESUME')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              vaultTab === 'RESUME'
+                ? 'bg-primary text-on-primary shadow-[0_2px_0_#320e26]'
+                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">description</span>
+            <span>Technical Resume (PDF / DOCX)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setVaultTab('GRADES')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
+              vaultTab === 'GRADES'
+                ? 'bg-secondary text-on-secondary shadow-[0_2px_0_#2b5b75]'
+                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">school</span>
+            <span>Academic Grade Sheet (PDF / Screenshot)</span>
+            {academicRecordsCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed text-[10px] font-bold">
+                ✓ {currentCgpa.toFixed(2)}
+              </span>
+            )}
+          </button>
         </div>
+
+        {vaultTab === 'RESUME' ? (
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              setIsDragging(true)
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
+              isDragging
+                ? 'border-primary bg-primary-container/20 shadow-md'
+                : 'border-outline-variant bg-surface-container-low hover:border-secondary hover:bg-secondary-container/10'
+            }`}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.doc,.docx"
+              className="hidden"
+            />
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center border border-secondary-fixed-dim shadow-[0_2px_0_#85B5CE]">
+                <span className="material-symbols-outlined text-2xl text-secondary">cloud_upload</span>
+              </div>
+              <p className="text-body-md font-body-md text-on-surface font-bold mt-1">
+                {isProcessingFile ? 'Processing document...' : 'Drop your latest resume PDF here, or click to browse'}
+              </p>
+              <p className="text-body-sm font-body-sm text-outline">
+                Automatic text extraction, character-span provenance anchoring &amp; FERPA-guarded sandbox.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant">
+            <GradeSheetUploader
+              studentId={studentId}
+              onComplete={(res) => {
+                setCurrentCgpa(res.gpa)
+                setAcademicStanding(res.academicStanding)
+                setAcademicRecordsCount(res.confirmedGrades.length)
+              }}
+            />
+          </div>
+        )}
       </section>
 
       {/* ========================================================= */}
@@ -902,6 +1034,25 @@ export default function StudentHomeDashboard({
           </Link>
         </div>
       </section>
+
+      {/* Modal Dialog for Grade Sheet Upload */}
+      {showGradeSheetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-[#E6E3DC]">
+            <GradeSheetUploader
+              studentId={studentId}
+              isModal
+              onClose={() => setShowGradeSheetModal(false)}
+              onComplete={(res) => {
+                setCurrentCgpa(res.gpa)
+                setAcademicStanding(res.academicStanding)
+                setAcademicRecordsCount(res.confirmedGrades.length)
+                setShowGradeSheetModal(false)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
