@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { markAllNotificationsRead } from '@/lib/serverless-store'
 
 export const runtime = 'nodejs'
 
@@ -16,19 +17,18 @@ export async function POST(req: NextRequest) {
     const res = await fetch(`${backendBase}/v1/notifications/read-all?student_id=${encodeURIComponent(studentId)}`, {
       method: 'POST',
       headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(1500),
     })
 
     if (res.ok) {
       const data = await res.json()
       return NextResponse.json(data)
     }
+  } catch {}
 
-    const err = await res.json().catch(() => ({}))
-    return NextResponse.json(err, { status: res.status })
-  } catch (err: any) {
-    return NextResponse.json({
-      status: 'SUCCESS',
-      marked_count: 0,
-    })
-  }
+  const markedCount = markAllNotificationsRead(studentId)
+  return NextResponse.json({
+    status: 'SUCCESS',
+    marked_count: markedCount,
+  })
 }

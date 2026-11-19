@@ -132,6 +132,7 @@ export interface ParsedJD {
   criteria: JDCriterion[]
   approvedBy?: string
   approvedAt?: string
+  ctcLpa?: number
 }
 
 /** Source document reference for the drawer. */

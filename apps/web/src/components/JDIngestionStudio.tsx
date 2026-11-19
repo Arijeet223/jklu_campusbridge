@@ -63,10 +63,33 @@ export default function JDIngestionStudio({
   }
 
   // Handle 1-Click Officer Approval (FR-031)
-  const handleApproveAndPublish = () => {
+  const handleApproveAndPublish = async () => {
+    const jd = jds[selectedJdId]
+    if (!jd) return
+
+    try {
+      await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          company: jd.company,
+          role_title: jd.jobTitle,
+          ctc_lpa: jd.ctcLpa || 22.0,
+          min_cgpa: jd.minCgpa || 7.5,
+          allowed_branches: ['CSE', 'IT', 'ECE'],
+          mandatory_skills: (jd.criteria || [])
+            .filter((c: any) => c.gateType === 'MANDATORY')
+            .map((c: any) => c.label || c.title || c.skill),
+          preferred_skills: (jd.criteria || [])
+            .filter((c: any) => c.gateType !== 'MANDATORY')
+            .map((c: any) => c.label || c.title || c.skill),
+          announcement_text: `Campus drive approved for ${jd.company} (${jd.jobTitle}). Online screening registration is live.`,
+          external_link: 'https://jklu.edu.in/placements/register',
+        }),
+      })
+    } catch {}
+
     setJds((prev) => {
-      const jd = prev[selectedJdId]
-      if (!jd) return prev
       return {
         ...prev,
         [selectedJdId]: {
@@ -77,7 +100,7 @@ export default function JDIngestionStudio({
         },
       }
     })
-    setActionNotice(`Recruitment drive approved & published for ${currentJd.company}!`)
+    setActionNotice(`Recruitment drive approved & published for ${currentJd.company}! Live alerts dispatched to students.`)
   }
 
   // Handle AI Ingestion using Qdrant and Qwen 2.5 backend

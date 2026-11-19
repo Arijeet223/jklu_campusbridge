@@ -4,7 +4,7 @@
     "sender": "assistant",
     "agentName": "🤖 J.A.R.V.I.S.",
     "text": "Hey Aarav Sharma! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
-    "timestamp": "16:27",
+    "timestamp": "08:09",
     "widgetType": "none",
     "trace": {
       "engine": {
@@ -659,6 +659,71 @@
         "hallucinations_detected": 0
       },
       "total_latency_ms": 8990.22
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1795071073563",
+    "sender": "user",
+    "text": "hwyyy broo",
+    "timestamp": "06:51",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1795071073563",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Heyyy! It looks like you might have typed \"hwyyy,\" which isn't quite clear. Did you mean to say something like \"How are you\" or did you have a specific question in mind? Just let me know, and I'll be happy to help! 🌟",
+    "timestamp": "06:51",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 14370.82
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 14370.82
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1795071102359",
+    "sender": "user",
+    "text": "what is my 72hrs plan",
+    "timestamp": "06:51",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1795071102359",
+    "sender": "assistant",
+    "agentName": "⏱️ K.R.O.N.O.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** Consulting K.R.O.N.O.S. to retrieve your active 72-Hour Sprint Plan for **RazorpayX Labs**.\n\n---\n\n⏱️ **K.R.O.N.O.S.:** Yes, Arijeet Basak! Here is your selected 72-hour sprint plan for **RazorpayX Labs (SDE-1 (Backend & Distributed Systems))**:\n\n• **Target Drive:** **RazorpayX Labs** • SDE-1 (Backend & Distributed Systems)\n• **Identified Skill Gaps:** Data Structures & Algorithms\n• **Active Selected Drives (3):** job_razorpay, job_rzp_01, JOB-2026-01\n• **Hour-by-Hour Roadmap:**\n  - **Hours 00–24:** Core Deficit Closure & Targeted Problem Sets\n  - **Hours 24–48:** High-Throughput Implementation & Practice Arena Quests\n  - **Hours 48–72:** 120s Micro-Defense Drills & AI Voice Mock\n\nYour full interactive sprint checklist is rendered below. If you ever want to remove this drive from your plan, click **'Remove from 72h Plan'** on the card below or tell me *'remove it from the plan'*!",
+    "timestamp": "06:51",
+    "widgetType": "sprint_plan",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_2: SPECIALIST_AGENT_DELEGATION",
+      "delegated_agent": "K.R.O.N.O.S.",
+      "engine": {
+        "name": "Multi-Agent Pantheon (K.R.O.N.O.S.)",
+        "latency_ms": 3076
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Verified Grounded",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 3076
     },
     "citations": []
   }

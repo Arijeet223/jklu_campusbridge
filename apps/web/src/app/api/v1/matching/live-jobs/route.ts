@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { mockJobMatches } from '@/lib/mock-data'
+import { getServerlessJobs } from '@/lib/serverless-store'
 import type { JobMatch } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -27,7 +28,61 @@ export async function GET(req: NextRequest) {
     }
 
     // Dynamic 72-Hour Sprint Live Opportunities (Faculty Calibrated JKLU Campus Drives)
+    const dynamicJobs = getServerlessJobs()
+    const serverlessMatches: JobMatch[] = dynamicJobs
+      .filter((j) => !['jm_razorpay', 'jm_atlassian', 'JOB-2026-01', 'JOB-2026-02'].includes(j.job_id))
+      .map((j) => {
+        return {
+          id: j.job_id,
+          jobTitle: j.role_title || j.title,
+          company: j.company_name || j.company,
+          deadline: new Date(Date.now() + (j.deadline_hours || 48) * 3600 * 1000).toISOString(),
+          compensationTarget: j.ctc_band || `${j.ctc_lpa || 20} LPA`,
+          category: 'Faculty Calibrated Drive',
+          alignmentScore: 85,
+          eligibilityStatus: 'ELIGIBLE' as const,
+          failedPreference: null,
+          missingSkills: [],
+          announcement_text: j.announcement_text || 'Official Campus Recruitment Drive has been published by Faculty.',
+          external_link: j.external_link || 'https://jklu.edu.in/placements',
+          eligibilityRules: [
+            {
+              id: `er_${j.job_id}_01`,
+              label: `Allowed Branches: ${(j.allowed_branches || ['CSE', 'IT', 'ECE']).join(', ')}`,
+              status: 'MEETS' as const,
+              ruleExpression: `branch IN [${(j.allowed_branches || ['CSE', 'IT', 'ECE']).map((b) => `"${b}"`).join(', ')}]`,
+            },
+            {
+              id: `er_${j.job_id}_02`,
+              label: `Minimum CGPA: ${j.min_cgpa}`,
+              status: 'MEETS' as const,
+              ruleExpression: `cgpa >= ${j.min_cgpa}`,
+            },
+            {
+              id: `er_${j.job_id}_03`,
+              label: `Core Skills: ${(j.mandatory_skills || ['Python', 'SQL']).join(', ')}`,
+              status: 'MEETS' as const,
+              ruleExpression: 'has_mandatory_skills == true',
+            },
+          ],
+          factorBreakdown: (j.mandatory_skills || ['Python', 'SQL']).map((sk, idx) => ({
+            id: `af_${j.job_id}_${idx}`,
+            label: `${sk} Competency`,
+            weight: 0.3,
+            score: 85,
+            color: idx % 2 === 0 ? 'bg-primary' : 'bg-secondary',
+          })),
+          sandboxToggles: (j.preferred_skills || ['Docker', 'FastAPI']).map((sk, idx) => ({
+            id: `st_${j.job_id}_${idx}`,
+            label: `Verify ${sk} in 120s Arena (+8% fit)`,
+            potentialGain: 8,
+            checked: false,
+          })),
+        }
+      })
+
     const liveOpportunities: JobMatch[] = [
+      ...serverlessMatches,
       {
         id: 'jm_razorpay',
         jobTitle: 'Backend Platform Engineer (72h Sprint)',

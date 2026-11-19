@@ -19,7 +19,7 @@ from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -4002,6 +4002,7 @@ async def get_single_placement_drive(
 @router.post("/jobs")
 async def create_placement_drive(
     payload: JobCreateUpdatePayload,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, Any]:
     """Create a new placement drive."""
@@ -4030,10 +4031,30 @@ async def create_placement_drive(
     except Exception:
         pass
 
+    # 4. Background Notification Broadcast (In-App + Twilio SMS + Telegram Bot)
+    try:
+        from services.notifications import get_notification_dispatcher
+        dispatcher = get_notification_dispatcher()
+        comp = str(data.get("company_name") or payload.company or payload.company_name or "New Placement Drive")
+        role = str(data.get("role_title") or payload.title or payload.role_title or "Software Engineer")
+        cgpa_req = float(data.get("min_cgpa") or payload.min_cgpa or 7.0)
+        ctc = str(data.get("ctc_band") or (f"{payload.ctc_lpa} LPA" if payload.ctc_lpa else "Competitive"))
+        background_tasks.add_task(
+            dispatcher.broadcast_new_jd_alert,
+            company_name=comp,
+            role_title=role,
+            min_cgpa=cgpa_req,
+            ctc_band=ctc,
+            job_id=jid,
+        )
+        logger.info(f"[FACULTY_DRIVE_BROADCAST] Scheduled background notification broadcast for {comp} ({role})")
+    except Exception as be:
+        logger.warning(f"Could not schedule drive broadcast: {be}")
+
     return {
         "status": "SUCCESS",
         "job": data,
-        "message": f"Placement drive for {payload.company_name} created successfully.",
+        "message": f"Placement drive for {payload.company_name or payload.company} created successfully.",
     }
 
 

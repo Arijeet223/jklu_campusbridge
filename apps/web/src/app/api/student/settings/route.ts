@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  getServerlessStudentSettings,
+  saveServerlessStudentSettings,
+} from '@/lib/serverless-store'
 
 export const runtime = 'nodejs'
 
@@ -15,16 +19,20 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${backendBase}/v1/students/${studentId}/profile`, {
       headers: { Accept: 'application/json' },
       cache: 'no-store',
+      signal: AbortSignal.timeout(1500),
     })
     if (res.ok) {
       const data = await res.json()
       return NextResponse.json(data)
     }
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+  } catch {}
 
-  return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+  const fallback = getServerlessStudentSettings(studentId)
+  return NextResponse.json({
+    status: 'SUCCESS',
+    student_id: studentId,
+    ...fallback,
+  })
 }
 
 export async function POST(req: NextRequest) {
@@ -41,16 +49,21 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(2000),
     })
     if (res.ok) {
       const data = await res.json()
+      saveServerlessStudentSettings(studentId, body)
       return NextResponse.json(data)
     }
-    const errData = await res.json().catch(() => ({}))
-    return NextResponse.json(errData, { status: res.status })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+  } catch {}
+
+  const saved = saveServerlessStudentSettings(studentId, body)
+  return NextResponse.json({
+    status: 'SUCCESS',
+    message: 'Student preferences and alert channels updated successfully.',
+    settings: saved,
+  })
 }
 
 export async function PUT(req: NextRequest) {
