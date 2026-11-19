@@ -20,18 +20,8 @@ export default function RootHomePage() {
   const [userDepartment, setUserDepartment] = useState<string>('B.Tech Computer Science')
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<SourceDocument | null>(mockSourceDocuments['doc_resume_v3'] ?? null)
-  const [skills, setSkills] = useState<Skill[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('cb_user_skills')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          if (Array.isArray(parsed)) return parsed
-        }
-      } catch {}
-    }
-    return []
-  })
+  const [studentCgpa, setStudentCgpa] = useState<number>(0.0)
+  const [skills, setSkills] = useState<Skill[]>([])
 
   useEffect(() => {
     try {
@@ -45,9 +35,26 @@ export default function RootHomePage() {
         setUserName(activeUser.name)
       }
 
+      if (activeUser?.cgpa !== undefined) {
+        setStudentCgpa(Number(activeUser.cgpa))
+      }
+
       if (role === 'TEACHER' || role === 'FACULTY' || role === 'FACULTY_MENTOR') {
         setUserDepartment((activeUser as any)?.department || 'Department of CSE')
       }
+
+      // Strictly fetch verified skills from central database for active student
+      const sid = activeUser?.id || (session?.user as any)?.student_id || 'STU-101'
+      fetch(`/api/students/${sid}/evidence`, { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data) => {
+          if (Array.isArray(data)) {
+            setSkills(data)
+          } else {
+            setSkills([])
+          }
+        })
+        .catch(() => setSkills([]))
     } catch {}
   }, [session])
 
@@ -147,8 +154,8 @@ export default function RootHomePage() {
     <AppLayout pageTitle="Dashboard Overview" breadcrumb="Student Workspace">
       <div className="space-y-6">
         <StudentHomeDashboard
-          studentName={userName || 'Aarav Sharma'}
-          cgpa={8.42}
+          studentName={userName || 'Student'}
+          cgpa={studentCgpa}
           branch="B.Tech Computer Science"
           institution="JKLU (JK Lakshmipat University)"
           skills={skills}

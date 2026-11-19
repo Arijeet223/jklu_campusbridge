@@ -67,9 +67,7 @@ export default function StudentDashboardPage() {
       const mappedSkills: Skill[] = (evidenceRes || []).map((ev: any, idx: number) => {
         const tier = String(ev.tier || ev.evidence_status || ev.evidenceStatus || '')
         let evStatus: EvidenceStatus = 'EXTRACTED'
-        if (tier.includes('DOUBT')) {
-          evStatus = 'DOUBT_GHOST'
-        } else if (tier.includes('INSTITUTION')) {
+        if (tier.includes('INSTITUTION')) {
           evStatus = 'INSTITUTION_VERIFIED'
         } else if (tier.includes('ASSESSMENT') || tier.includes('VERIFIED')) {
           evStatus = 'ASSESSMENT_VERIFIED'
@@ -87,7 +85,7 @@ export default function StudentDashboardPage() {
           evidenceStatus: evStatus,
           sourceDocumentId: ev.source_doc || ev.sourceDocumentId || 'doc_resume_v3',
           sourceSpan: ev.source_span_text || ev.sourceSpan || 'Verified via profile ledger',
-          confidence: Number(ev.confidence ?? (evStatus === 'DOUBT_GHOST' ? 0 : 0.90)),
+          confidence: Number(ev.confidence ?? 0.90),
         }
       })
 

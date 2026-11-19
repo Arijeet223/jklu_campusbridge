@@ -101,3 +101,5 @@ app.include_router(setup_router, prefix="/student")
 # Core domain & diagnostic routers
 app.include_router(router)
 app.include_router(router, prefix="/api")
+app.include_router(router, prefix="/v1")
+app.include_router(router, prefix="/api/v1")

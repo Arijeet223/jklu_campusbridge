@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useSession, signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   UserCheck,
+  UserCog,
+  User,
   Gamepad2,
   Target,
   MessageSquare,
@@ -22,6 +24,7 @@ import {
   Sparkles,
   Menu,
   X,
+  Zap,
 } from 'lucide-react'
 
 interface AppLayoutProps {
@@ -46,17 +49,47 @@ export default function AppLayout({
   const { data: session } = useSession()
 
   const [localRole, setLocalRole] = useState<string | null>(null)
+  const [currentStudentId, setCurrentStudentId] = useState('STU-101')
   const [currentStudentName, setCurrentStudentName] = useState(userName)
   const [currentSubtitle, setCurrentSubtitle] = useState(userSubtitle)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false)
+
+  const loadNotifications = useCallback(async (sid: string) => {
+    try {
+      setIsLoadingNotifications(true)
+      const res = await fetch(`/api/notifications/mine?student_id=${encodeURIComponent(sid)}`, {
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.notifications)) {
+          setNotifications(data.notifications)
+          const unread = data.unread_count ?? data.notifications.filter((n: any) => !n.is_read).length
+          setUnreadCount(unread)
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch real notifications:', e)
+    } finally {
+      setIsLoadingNotifications(false)
+    }
+  }, [])
 
   // 1. Resolve Active Role from NextAuth Session with localStorage fallback
   useEffect(() => {
+    let resolvedSid = 'STU-101'
     try {
       const stored = localStorage.getItem('cb_active_user')
       if (stored) {
         const parsed = JSON.parse(stored)
+        if (parsed.id || parsed.student_id) {
+          resolvedSid = parsed.id || parsed.student_id
+          setCurrentStudentId(resolvedSid)
+        }
         if (parsed.role) setLocalRole(parsed.role)
         if (parsed.name) setCurrentStudentName(parsed.name)
         if (parsed.program && parsed.cgpa) {
@@ -73,7 +106,25 @@ export default function AppLayout({
       }
     } catch {}
     setMobileSidebarOpen(false)
-  }, [pathname, router])
+    loadNotifications(resolvedSid)
+
+    const handleProfileOrNotifsUpdated = () => {
+      loadNotifications(resolvedSid)
+    }
+    window.addEventListener('cb_notifications_updated', handleProfileOrNotifsUpdated)
+    window.addEventListener('cb_profile_updated', handleProfileOrNotifsUpdated)
+
+    // Optional 30s background poll for incoming alerts
+    const timer = setInterval(() => {
+      loadNotifications(resolvedSid)
+    }, 30000)
+
+    return () => {
+      window.removeEventListener('cb_notifications_updated', handleProfileOrNotifsUpdated)
+      window.removeEventListener('cb_profile_updated', handleProfileOrNotifsUpdated)
+      clearInterval(timer)
+    }
+  }, [pathname, router, loadNotifications])
 
   const resolvedRole = (
     (session?.user?.role as string) ||
@@ -100,11 +151,13 @@ export default function AppLayout({
   // 2. Strict 2-Way Navigation Definitions
   const studentNavItems = [
     { label: 'Dashboard Overview', href: '/student/dashboard', icon: LayoutDashboard },
+    { label: 'Live Opportunities', href: '/student/matches', icon: Briefcase },
+    { label: '72-Hour Sprint Plan', href: '/student/sprint-plan', icon: Zap },
     { label: 'Profile & Provenance', href: '/student/profile-evidence', icon: UserCheck },
-    { label: 'What-If Fit Sandbox', href: '/student/what-if-sandbox', icon: Target },
     { label: 'Practice & 120s Arena', href: '/student/arena', icon: Gamepad2 },
     { label: 'AI Conversational Coach', href: '/student/chat', icon: MessageSquare },
     { label: 'Applications & Kanban', href: '/student/applications', icon: ClipboardList },
+    { label: 'Account & Ingestion', href: '/student/settings', icon: UserCog },
   ]
 
   const facultyNavItems = [
@@ -112,48 +165,37 @@ export default function AppLayout({
     { label: 'AI Orbital Check', href: '/admin/diagnostics', icon: Activity },
   ]
 
-  const notifications = [
-    {
-      id: 'notif-1',
-      title: 'Razorpay FinTech Sprint JD Live',
-      description: '84% match alignment, 0 backlogs required. Fast-track application window closes in 18 hours.',
-      time: '10m ago',
-      unread: true,
-      tag: 'Job Drive',
-      tagColor: 'bg-primary-container text-on-primary-container',
-      href: isStudent ? '/student/matches' : roleHome,
-    },
-    {
-      id: 'notif-2',
-      title: 'Skill Assessment Verified',
-      description: 'Python & FastAPI Microservices upgraded to 4_ASSESSMENT_VERIFIED via 120s Micro-Defense (+8 pts).',
-      time: '1h ago',
-      unread: true,
-      tag: 'Skill Verified',
-      tagColor: 'bg-tertiary-container text-on-tertiary-container',
-      href: isStudent ? '/student/arena' : roleHome,
-    },
-    {
-      id: 'notif-3',
-      title: 'Faculty Policy Gate Notice',
-      description: 'Atlassian Cohort Eligibility Gate updated: Min CGPA set to 7.5. Your 8.42 CGPA meets hard criteria.',
-      time: '3h ago',
-      unread: false,
-      tag: 'Faculty Gate',
-      tagColor: 'bg-secondary-container text-on-secondary-container',
-      href: roleHome,
-    },
-    {
-      id: 'notif-4',
-      title: 'DPDP Privacy Shield Active',
-      description: 'Your profile is protected under DPDP Act 2023 small-cell suppression (k ≥ 5) until explicit application submission.',
-      time: '1d ago',
-      unread: false,
-      tag: 'Privacy Shield',
-      tagColor: 'bg-surface-container text-on-surface',
-      href: isStudent ? '/student/privacy-shield' : roleHome,
-    },
-  ]
+  const handleMarkAsRead = async (id: string) => {
+    // Optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true, unread: false } : n))
+    )
+    setUnreadCount((prev) => Math.max(0, prev - 1))
+
+    try {
+      await fetch(`/api/notifications/${encodeURIComponent(id)}/read`, {
+        method: 'POST',
+      })
+    } catch (e) {
+      console.warn('Failed marking notification read:', e)
+    }
+  }
+
+  const handleMarkAllAsRead = async () => {
+    // Optimistic UI update
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, is_read: true, unread: false }))
+    )
+    setUnreadCount(0)
+
+    try {
+      await fetch(`/api/notifications/read-all?student_id=${encodeURIComponent(currentStudentId)}`, {
+        method: 'POST',
+      })
+    } catch (e) {
+      console.warn('Failed marking all notifications read:', e)
+    }
+  }
 
   // Safe Logout & Client-Side Cache Eviction
   const handleLogout = async () => {
@@ -335,10 +377,52 @@ export default function AppLayout({
           </div>
         </div>
 
-        {/* Sidebar Footer: Profile Capsule & Logout */}
-        <div className="p-3.5 border-t border-outline-variant/60 bg-surface-container">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-full bg-primary-container text-on-primary-container font-bold text-xs flex items-center justify-center border border-outline-variant shadow-[0_2px_0_#DE95BE]">
+        {/* Sidebar Footer: Account Page at Bottom of Side Panel */}
+        <div className="p-3.5 border-t border-outline-variant/60 bg-surface-container space-y-2.5">
+          {/* Dedicated Account Page Link at Bottom of Side Panel */}
+          {isStudent && (
+            <Link
+              href="/student/settings"
+              className={`flex items-center justify-between px-3 py-2.5 rounded-2xl border transition-all ${
+                pathname === '/student/settings' || pathname === '/student/account'
+                  ? 'bg-primary text-on-primary border-primary shadow-[0_2px_0_#643953]'
+                  : 'bg-surface-container-lowest text-on-surface border-outline-variant hover:bg-surface-container-high shadow-2xs'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-xs border shrink-0 ${
+                    pathname === '/student/settings' || pathname === '/student/account'
+                      ? 'bg-white/20 text-white border-white/30'
+                      : 'bg-primary-container text-on-primary-container border-outline-variant shadow-2xs'
+                  }`}
+                >
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 text-left">
+                  <span className="text-xs font-bold block truncate leading-tight">Account &amp; Career Info</span>
+                  <span
+                    className={`text-[10px] block truncate ${
+                      pathname === '/student/settings' || pathname === '/student/account'
+                        ? 'text-white/80'
+                        : 'text-outline'
+                    }`}
+                  >
+                    GitHub, Telegram &amp; Ingestion
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 opacity-60 shrink-0" />
+            </Link>
+          )}
+
+          {/* Student Profile Capsule linking to Account */}
+          <Link
+            href={isStudent ? '/student/settings' : roleHome}
+            className="flex items-center gap-2.5 group hover:opacity-90 transition-opacity p-1 -m-1 rounded-xl"
+            title="Manage Student Account"
+          >
+            <div className="h-8 w-8 rounded-full bg-primary-container text-on-primary-container font-bold text-xs flex items-center justify-center border border-outline-variant shadow-[0_2px_0_#DE95BE] group-hover:scale-105 transition-transform shrink-0">
               {currentStudentName
                 .split(' ')
                 .map((n) => n[0])
@@ -347,12 +431,15 @@ export default function AppLayout({
                 .toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-xs font-bold text-on-surface truncate">{currentStudentName}</div>
+              <div className="text-xs font-bold text-on-surface truncate group-hover:text-primary transition-colors flex items-center gap-1">
+                <span>{currentStudentName}</span>
+                <span className="material-symbols-outlined text-[12px] text-outline">settings</span>
+              </div>
               <div className="text-[10px] text-on-surface-variant truncate font-medium">{currentSubtitle}</div>
             </div>
-          </div>
+          </Link>
 
-          <div className="flex items-center gap-2 mt-3">
+          <div className="flex items-center gap-2 pt-1">
             {isStudent ? (
               <Link
                 href="/student/privacy-shield"
@@ -445,7 +532,7 @@ export default function AppLayout({
               <button
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
-                className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center shadow-[0_2px_0_#d3c2c9] cursor-pointer ${
+                className={`h-9 w-9 rounded-full border transition-all flex items-center justify-center shadow-[0_2px_0_#d3c2c9] cursor-pointer relative ${
                   notificationsOpen
                     ? 'bg-primary text-on-primary border-primary shadow-[0_2px_0_#643953]'
                     : 'bg-surface-container-lowest border-outline-variant text-outline hover:text-on-surface'
@@ -453,7 +540,11 @@ export default function AppLayout({
                 title="Placement & System Alerts"
               >
                 <Bell className="h-4 w-4" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-error ring-2 ring-white animate-pulse" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white font-bold text-[10px] flex items-center justify-center ring-2 ring-white animate-pulse shadow-sm">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Tactical Dropdown Drawer */}
@@ -462,41 +553,79 @@ export default function AppLayout({
                   <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60 mb-3">
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-sm text-on-surface">Campus Activity Feed</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container">
-                        2 unread
-                      </span>
+                      {unreadCount > 0 ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-container text-on-primary-container">
+                          {unreadCount} unread
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary-container">
+                          All caught up
+                        </span>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setNotificationsOpen(false)}
-                      className="text-outline hover:text-on-surface text-xs font-bold"
-                    >
-                      Close
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {unreadCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleMarkAllAsRead}
+                          className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setNotificationsOpen(false)}
+                        className="text-outline hover:text-on-surface text-xs font-bold cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                    {notifications.map((n) => (
-                      <Link
-                        key={n.id}
-                        href={n.href}
-                        onClick={() => setNotificationsOpen(false)}
-                        className={`block p-3 rounded-xl border transition-all hover:translate-x-1 ${
-                          n.unread
-                            ? 'bg-surface-container-low border-outline-variant shadow-[0_2px_0_#EAD7E2]'
-                            : 'bg-surface border-transparent opacity-75 hover:opacity-100'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${n.tagColor}`}>
-                            {n.tag}
-                          </span>
-                          <span className="text-[10px] font-bold text-outline">{n.time}</span>
-                        </div>
-                        <h4 className="font-extrabold text-xs text-on-surface">{n.title}</h4>
-                        <p className="text-[11px] text-on-surface-variant leading-tight mt-0.5">{n.description}</p>
-                      </Link>
-                    ))}
+                    {notifications.length === 0 ? (
+                      <div className="py-8 text-center text-on-surface-variant">
+                        <span className="material-symbols-outlined text-3xl text-outline mb-1 block">notifications_none</span>
+                        <p className="text-xs font-bold text-on-surface">No alerts right now</p>
+                        <p className="text-[11px] text-outline mt-0.5">
+                          You will receive real-time notifications when new placement drives or skill assessments land.
+                        </p>
+                      </div>
+                    ) : (
+                      notifications.map((n) => {
+                        const isUnread = !n.is_read
+                        return (
+                          <Link
+                            key={n.id}
+                            href={n.link || n.href || roleHome}
+                            onClick={() => {
+                              if (isUnread) handleMarkAsRead(n.id)
+                              setNotificationsOpen(false)
+                            }}
+                            className={`block p-3 rounded-xl border transition-all hover:translate-x-1 ${
+                              isUnread
+                                ? 'bg-surface-container-low border-primary/40 shadow-[0_2px_0_#EAD7E2]'
+                                : 'bg-surface border-transparent opacity-75 hover:opacity-100'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${n.tagColor || 'bg-primary-container text-on-primary-container'}`}>
+                                {n.tag || 'Job Drive'}
+                              </span>
+                              <span className="text-[10px] font-bold text-outline">
+                                {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (n.time || 'Recent')}
+                              </span>
+                            </div>
+                            <h4 className="font-extrabold text-xs text-on-surface flex items-center justify-between">
+                              <span>{n.title}</span>
+                              {isUnread && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
+                            </h4>
+                            <p className="text-[11px] text-on-surface-variant leading-tight mt-0.5">{n.message || n.description}</p>
+                          </Link>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
               )}

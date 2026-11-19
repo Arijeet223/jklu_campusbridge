@@ -52,12 +52,12 @@ from backend.db.excel_store import (
 )
 
 
-JARVIS_SYSTEM_PROMPT = """You are J.A.R.V.I.S., the primary AI career companion and senior mentor for CampusBridge AI. Be a natural, highly intelligent, conversational peer and mentor.
+JARVIS_SYSTEM_PROMPT = """You are J.A.R.V.I.S., the primary AI companion for CampusBridge. You are highly curated to the user. Base all advice strictly on the skills, courses, and GitHub info found in their personal knowledge base. Speak naturally as a mentor.
 CORE DIRECTIVES:
-- Dual Knowledge Base Access: You have access to the student's personal resume/grades and all active campus placements. If the user asks 'How do I look for the TechCorp drive?' or questions about any placement drive, company readiness, or career preparation, seamlessly query their personal skills and the relevant company JD to provide highly personalized, conversational advice on how they should practice.
+- Personal Knowledge Base Grounding: Seamlessly query the student's personal verified profile data from Qdrant using the query_student_context tool. Base all guidance on their actual confirmed skills, verified grades/courses, and GitHub telemetry.
 - Conversational Mentor Tone: Converse naturally about this data without acting like a search engine (e.g., talk like an encouraging, strategic senior mentor, not a database). Never dump raw database rows or JSON keys.
-- Actionable Practice Recommendations: Relate the student's coursework and verified project evidence to the company's expectations, and recommend concrete, high-leverage practice actions (e.g., in the DSA Arena, SQL Arena, or building microservice prototypes).
-- Action-Oriented: You have tools (e.g., query_student_profile, query_active_placements, draft_professor_email). Invoke them seamlessly without reciting internal mechanics.
+- Actionable Practice Recommendations: Relate the student's coursework and verified project evidence to career opportunities and interview readiness, recommending concrete practice actions in the arena.
+- Action-Oriented: You have tools (e.g., query_student_context, query_active_placements, draft_professor_email). Invoke them seamlessly without reciting internal mechanics.
 - FORBIDDEN BEHAVIORS: NEVER repeat canned greetings. NEVER append robotic feature menus (e.g., 'Would you like to check your sprint plan?'). Answer the prompt naturally, insightfully, and stop."""
 
 
@@ -1289,6 +1289,29 @@ class AgentOrchestrator:
 
         actual_id = str(context.actor_id if context else "STU-101").strip()
 
+        # Query Student's Selected Drives for 72-Hour Sprint Context
+        try:
+            from backend.db.excel_store import get_excel_store, SHEET_JOBS
+            store = get_excel_store()
+            selected_drives = store.get_student_selected_drives(actual_id)
+            if selected_drives:
+                hidden_context.append("\n[STUDENT ACTIVELY SELECTED 72-HOUR SPRINT PLACEMENTS]:")
+                for d_id in selected_drives:
+                    j_row = store.get_row(SHEET_JOBS, "job_id", d_id)
+                    if j_row:
+                        hidden_context.append(
+                            f"- Selected Placement Drive: {j_row.get('company_name')} — {j_row.get('role_title')} "
+                            f"(CTC: {j_row.get('ctc_band')}, Min CGPA: {j_row.get('min_cgpa')}). "
+                            f"Mandatory: {j_row.get('mandatory_skills_json')}. Notes: {j_row.get('announcement_text') or 'None'}"
+                        )
+                hidden_context.append(
+                    "DIRECTIVE: The student has joined these specific placement drives. If the user asks about their 72h sprint plan, "
+                    "their chances, or interview prep, discuss their chosen drives and gaps directly! Remind them they can also click "
+                    "'Remove from 72h Plan' on the interactive card to remove a drive anytime."
+                )
+        except Exception:
+            pass
+
         # DUAL-CONTEXT QDRANT RETRIEVAL (Student Profile + Active Placements)
         if is_career:
             try:
@@ -1297,15 +1320,15 @@ class AgentOrchestrator:
 
                 # 1. Query Personal Student Knowledge Base in Qdrant (student_id pre-filtered)
                 t0_prof = time.perf_counter()
-                student_hits = qs.query_student_profile(student_id=actual_id, query=prompt, top_k=3)
+                student_hits = qs.query_student_context(student_id=actual_id, query=prompt, top_k=4)
                 lat_prof = round((time.perf_counter() - t0_prof) * 1000, 2)
                 if student_hits:
                     mcp_tools_used.append({
                         "server": "student-knowledge",
-                        "tool": "query_student_profile",
+                        "tool": "query_student_context",
                         "status": "ALLOWED",
                         "execution_time_ms": lat_prof,
-                        "summary": f"Retrieved {len(student_hits)} verified student profile chunks (Resume, Grades, GitHub)",
+                        "summary": f"Retrieved {len(student_hits)} verified student profile chunks from personal knowledge base",
                     })
                     hidden_context.append("\n[STUDENT PERSONAL KNOWLEDGE BASE (Verified Evidence)]:")
                     for h in student_hits:
@@ -1345,7 +1368,7 @@ class AgentOrchestrator:
                 logger.warning(f"Dual-context Qdrant retrieval skipped: {e}")
 
         # Fallback to stored_chunks if Qdrant returned empty
-        if is_career and stored_chunks and not any(t["tool"] == "query_student_profile" for t in mcp_tools_used):
+        if is_career and stored_chunks and not any(t["tool"] in ("query_student_context", "query_student_profile") for t in mcp_tools_used):
             actor_id = str(context.actor_id if context else "").strip().lower()
             student_chunks = [
                 c for c in stored_chunks

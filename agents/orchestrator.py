@@ -399,6 +399,54 @@ class AgentOrchestrator:
             action_status = "MUTATED"
             reply = ""
 
+            # 0. Drive removal / deselect from 72h Sprint Plan
+            if not mutated and any(w in p_lower for w in ["remove from plan", "remove it from the plan", "remove it from plan", "remove from sprint", "remove drive", "deselect drive", "cancel sprint", "drop drive", "delete drive from plan", "remove this drive"]):
+                selected_drives = store.get_student_selected_drives(actual_id)
+                if selected_drives:
+                    # Find which drive to remove if user mentioned one specifically
+                    drive_to_remove = None
+                    for jid in selected_drives:
+                        j_row = store.get_row(SHEET_JOBS, "job_id", jid)
+                        c_name = (j_row.get("company_name") or "").lower() if j_row else ""
+                        if c_name and c_name in p_lower:
+                            drive_to_remove = jid
+                            break
+                    if not drive_to_remove:
+                        drive_to_remove = selected_drives[-1]
+
+                    j_info = store.get_row(SHEET_JOBS, "job_id", drive_to_remove)
+                    c_display = (j_info.get("company_name") if j_info else None) or ("RazorpayX" if "razorpay" in drive_to_remove.lower() else ("Atlassian" if "atlassian" in drive_to_remove.lower() else drive_to_remove))
+
+                    store.select_student_drive(actual_id, drive_to_remove)
+                    remaining = store.get_student_selected_drives(actual_id)
+                    reply = (
+                        f"🤖 **J.A.R.V.I.S.:** Done, {student_name}! I have removed **{c_display}** from your active 72-Hour Sprint Plan. "
+                        + (f"You still have {len(remaining)} other drive(s) selected." if remaining else "You currently have no active sprint drives. Head over to **Live Opportunities** whenever you want to select a new one!")
+                    )
+                    mutated = True
+                    return {
+                        "response": reply,
+                        "agent_name": "🤖 J.A.R.V.I.S.",
+                        "delegated_agent": "K.R.O.N.O.S.",
+                        "widget_type": "sprint_plan",
+                        "session_id": str(uuid.uuid4()),
+                        "trace": {
+                            "intent": intent.value,
+                            "delegated_agent": "K.R.O.N.O.S.",
+                            "engine": {"name": "Action Dispatcher", "latency_ms": 12.0},
+                            "mcp_tools": [],
+                            "rag_chunks": [],
+                            "guardrail": {"status": "Drive Deselected Successfully", "valid_citations": [], "hallucinations_detected": 0},
+                            "total_latency_ms": 12.0,
+                        },
+                    }
+                else:
+                    reply = (
+                        f"🤖 **J.A.R.V.I.S.:** You don't have any placement drives in your 72-hour sprint plan right now, {student_name}. "
+                        f"You can browse and select live campus drives from the **Live Opportunities** page!"
+                    )
+                    mutated = True
+
             # Attempt LLM-assisted entity extraction first
             extracted_entities = self._extract_entities_via_llm(prompt)
 
@@ -637,24 +685,57 @@ class AgentOrchestrator:
             elif any(k in p_lower for k in ["sprint", "72h", "72 hrs", "72-hr", "72hr", "72 hours", "roadmap", "plan", "trajectory", "prep"]):
                 delegated_agent = "K.R.O.N.O.S."
                 widget_type = "sprint_plan"
-                traj_res = trajectory_curator.generate_trajectory(actual_id, job_id=target_job_id, timeline_mode="72h_sprint")
-                target_role_str = traj_res.get("target_role", "Software Engineer at TechCorp India")
-                curr_read = traj_res.get("current_readiness_pct", 74)
-                proj_read = traj_res.get("projected_readiness_pct", 92)
-                gain = traj_res.get("potential_gain_pct", 18)
 
-                dsa_list = traj_res.get("recommended_dsa_quests", [])
-                sql_list = traj_res.get("recommended_sql_quests", [])
-                top_dsa = dsa_list[0]["title"] if dsa_list else "Sliding Window / Two Sum"
-                top_sql = sql_list[0]["title"] if sql_list else "SQL Window Functions & Aggregation"
+                # Check student's actual selected drives from store
+                selected_drive_ids = store.get_student_selected_drives(actual_id)
+                all_jobs = store.get_sheet(SHEET_JOBS)
 
-                handoff_announcement = (
-                    f"🤖 **J.A.R.V.I.S.:** You've got 3 high-impact items left before Friday's {target_role_str} placement drive: a 15-min SQL challenge, pushing your project artifact, and a 2-min micro-defense. Ready to tackle the SQL challenge first?"
-                )
+                if selected_drive_ids:
+                    # Resolve active selected drive
+                    active_job = None
+                    for jid in selected_drive_ids:
+                        found = next((j for j in all_jobs if str(j.get("job_id", "")).strip().lower() == jid.strip().lower() or jid.lower() in str(j.get("job_id", "")).lower() or ("razorpay" in jid.lower() and "razorpay" in str(j.get("company_name", "")).lower()) or ("atlassian" in jid.lower() and "atlassian" in str(j.get("company_name", "")).lower())), None)
+                        if found:
+                            active_job = found
+                            break
 
-                specialist_body = (
-                    f"⏱️ **K.R.O.N.O.S.:** I've compiled your 72-hour sprint kit below with your exact 3 milestones to boost your readiness from {curr_read}% to {proj_read}% (+{gain}% gain). Which checkpoint do you want to hit first?"
-                )
+                    company_name = active_job.get("company_name", "RazorpayX") if active_job else ("RazorpayX" if "razorpay" in selected_drive_ids[0].lower() else "Target Placement Drive")
+                    role_title = active_job.get("role_title", "Backend Platform Engineer") if active_job else "Software Engineer"
+                    mand_skills = active_job.get("mandatory_skills_json", ["SQL", "FastAPI"]) if active_job else ["SQL", "FastAPI"]
+                    if isinstance(mand_skills, str):
+                        try:
+                            mand_skills = json.loads(mand_skills)
+                        except Exception:
+                            mand_skills = ["SQL", "Python"]
+
+                    # Calculate skill gaps
+                    verified_lower = {s.lower() for s in confirmed_skills}
+                    gaps = [m for m in mand_skills if not any(m.lower() in v or v in m.lower() for v in verified_lower)]
+                    gap_str = ", ".join(gaps) if gaps else "System Concurrency & Micro-Defense Architecture"
+
+                    handoff_announcement = (
+                        f"🤖 **J.A.R.V.I.S.:** Consulting K.R.O.N.O.S. to retrieve your active 72-Hour Sprint Plan for **{company_name}**."
+                    )
+                    specialist_body = (
+                        f"⏱️ **K.R.O.N.O.S.:** Yes, {student_name}! Here is your selected 72-hour sprint plan for **{company_name} ({role_title})**:\n\n"
+                        f"• **Target Drive:** **{company_name}** • {role_title}\n"
+                        f"• **Identified Skill Gaps:** {gap_str}\n"
+                        f"• **Active Selected Drives ({len(selected_drive_ids)}):** {', '.join(selected_drive_ids)}\n"
+                        f"• **Hour-by-Hour Roadmap:**\n"
+                        f"  - **Hours 00–24:** Core Deficit Closure & Targeted Problem Sets\n"
+                        f"  - **Hours 24–48:** High-Throughput Implementation & Practice Arena Quests\n"
+                        f"  - **Hours 48–72:** 120s Micro-Defense Drills & AI Voice Mock\n\n"
+                        f"Your full interactive sprint checklist is rendered below. If you ever want to remove this drive from your plan, click **'Remove from 72h Plan'** on the card below or tell me *'remove it from the plan'*!"
+                    )
+                else:
+                    handoff_announcement = (
+                        f"🤖 **J.A.R.V.I.S.:** Checking your placement drive sprint targets..."
+                    )
+                    specialist_body = (
+                        f"⏱️ **K.R.O.N.O.S.:** You don't have any campus drives selected in your 72-hour sprint plan right now, {student_name}!\n\n"
+                        f"To unlock your hour-by-hour roadmap targeting your exact skill gaps, head over to **Live Opportunities** and click **'+ Select / Join Drive'** on any active placement drive (such as RazorpayX or Atlassian). "
+                        f"Once joined, I'll automatically generate your tactical plan right here!"
+                    )
 
             # Sub-Branch 2B: Skills & Evidence Audit (T.E.R.R.A.)
             elif any(k in p_lower for k in ["skill", "skills", "unconfirmed", "ghost", "evidence", "check my skills", "review my skills"]):

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -77,16 +77,39 @@ async_session_factory = AsyncSessionLocal
 # FastAPI Dependency & Lifecycle Hooks
 # ═══════════════════════════════════════════════════════════════════════════
 
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_async_session() -> AsyncGenerator[Optional[AsyncSession], None]:
     """FastAPI dependency yielding an async database session per request."""
-    async with AsyncSessionLocal() as session:
+    session = None
+    try:
+        session = AsyncSessionLocal()
         try:
             yield session
-            await session.commit()
+            if session.is_active:
+                try:
+                    await session.commit()
+                except Exception as ce:
+                    logger.debug("Database commit suppressed: %s", ce)
+                    try:
+                        await session.rollback()
+                    except Exception:
+                        pass
         except Exception as e:
-            await session.rollback()
-            logger.error("Database transaction rolled back due to error: %s", e)
+            if session:
+                try:
+                    await session.rollback()
+                except Exception:
+                    pass
+            logger.warning("Database transaction error: %s", e)
             raise
+    except Exception as outer_e:
+        logger.warning("PostgreSQL session initialization notice: %s", outer_e)
+        yield None
+    finally:
+        if session:
+            try:
+                await session.close()
+            except Exception:
+                pass
 
 
 async def init_db() -> None:

@@ -38,6 +38,7 @@ SHEET_SQL = "SQL_Practice_Bank"
 SHEET_JOBS = "Opportunities_JDs"
 SHEET_DISPUTES = "Disputes_And_Defenses"
 SHEET_AUDIT = "MCP_Audit_Logs"
+SHEET_NOTIFICATIONS = "Notifications"
 
 ALL_SHEETS = [
     SHEET_STUDENTS,
@@ -48,6 +49,7 @@ ALL_SHEETS = [
     SHEET_JOBS,
     SHEET_DISPUTES,
     SHEET_AUDIT,
+    SHEET_NOTIFICATIONS,
 ]
 
 COLUMNS = {
@@ -67,6 +69,20 @@ COLUMNS = {
         "sprint_mode_active",
         "academic_records",
         "calculated_academic_score",
+        "github_url",
+        "phone_number",
+        "sms_notifications_enabled",
+        "telegram_id",
+        "telegram_chat_id",
+        "telegram_notifications_enabled",
+        "allow_telegram_notifications",
+        "bio",
+        "selected_drives",
+        "visibility_state",
+        "profile_completeness",
+        "github_verified",
+        "resume_verified",
+        "academic_verified",
     ],
     SHEET_TEACHERS: [
         "staff_id",
@@ -126,6 +142,9 @@ COLUMNS = {
         "preferred_skills_json",
         "approved_by_officer",
         "status",
+        "announcement_text",
+        "external_link",
+        "resources",
     ],
     SHEET_DISPUTES: [
         "ticket_id",
@@ -149,6 +168,16 @@ COLUMNS = {
         "latency_ms",
         "status",
         "summary",
+    ],
+    SHEET_NOTIFICATIONS: [
+        "id",
+        "user_id",
+        "title",
+        "message",
+        "is_read",
+        "tag",
+        "link",
+        "created_at",
     ],
 }
 
@@ -1068,6 +1097,19 @@ class ExcelStore:
             df = self._cache[sheet_name]
             return df.to_dict(orient="records")
 
+    def get_all_rows(self, sheet_name: str) -> List[Dict[str, Any]]:
+        """Alias for get_sheet to retrieve all rows."""
+        return self.get_sheet(sheet_name)
+
+    def get_row(self, sheet_name: str, key_col: str, key_val: Any) -> Optional[Dict[str, Any]]:
+        """Returns the first matching row from sheet cache, or None if not found."""
+        rows = self.get_sheet(sheet_name)
+        target = str(key_val).strip().lower()
+        for r in rows:
+            if str(r.get(key_col, "")).strip().lower() == target:
+                return r
+        return None
+
     def insert_row(self, sheet_name: str, row_dict: Dict[str, Any], sync: bool = True) -> Dict[str, Any]:
         """Inserts a new row into the sheet cache and commits write-through to Excel."""
         with self._lock:
@@ -1102,16 +1144,29 @@ class ExcelStore:
             if sheet_name not in self._cache:
                 return False
             df = self._cache[sheet_name]
-            mask = df[key_col].astype(str) == str(key_val)
+            clean_val = str(key_val).strip().lower()
+            mask = df[key_col].astype(str).str.strip().str.lower() == clean_val
+
+            if not mask.any() and sheet_name == SHEET_STUDENTS:
+                # Also try matching by email or roll_no for resilient student updates
+                if "email" in df.columns:
+                    mask = mask | (df["email"].astype(str).str.strip().str.lower() == clean_val)
+                if not mask.any() and "roll_no" in df.columns:
+                    mask = mask | (df["roll_no"].astype(str).str.strip().str.lower() == clean_val)
+
             if not mask.any():
-                return False
+                # If student row doesn't exist yet, insert it to avoid saving errors
+                new_row = {**updates, key_col: key_val}
+                self.insert_row(sheet_name, new_row, sync=sync)
+                return True
 
             for col, val in updates.items():
-                if col in df.columns:
-                    if isinstance(val, (dict, list)):
-                        df.loc[mask, col] = json.dumps(val)
-                    else:
-                        df.loc[mask, col] = val
+                if col not in df.columns:
+                    df[col] = None
+                if isinstance(val, (dict, list)):
+                    df.loc[mask, col] = json.dumps(val)
+                else:
+                    df.loc[mask, col] = val
 
             self._cache[sheet_name] = df
             if sync:
@@ -1302,6 +1357,119 @@ class ExcelStore:
             return {"passed": False, "error": f"SQL Execution Error: {str(e)}"}
         finally:
             conn.close()
+
+    def add_notification(
+        self,
+        user_id: str,
+        title: str,
+        message: str,
+        tag: str = "Job Drive",
+        link: str = "/student/matches",
+        notif_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Insert a new in-app notification into the Excel store."""
+        import uuid
+        nid = notif_id or f"notif-{uuid.uuid4().hex[:10]}"
+        now_iso = datetime.now(timezone.utc).isoformat()
+        row = {
+            "id": nid,
+            "user_id": user_id,
+            "title": title,
+            "message": message,
+            "is_read": False,
+            "tag": tag,
+            "link": link,
+            "created_at": now_iso,
+        }
+        self.insert_row(SHEET_NOTIFICATIONS, row)
+        return row
+
+    def get_notifications(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+        """Retrieve notifications for a user, sorted newest first."""
+        records = self.get_sheet(SHEET_NOTIFICATIONS)
+        if not records:
+            return []
+        user_records = [r for r in records if str(r.get("user_id", "")).strip() == str(user_id).strip()]
+        if not user_records:
+            return []
+        try:
+            user_records.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+        except Exception:
+            user_records.reverse()
+
+        out = []
+        for r in user_records[:limit]:
+            is_read_val = bool(r.get("is_read") in (True, 1, "True", "true", "1"))
+            out.append({
+                "id": str(r.get("id") or ""),
+                "user_id": str(r.get("user_id") or ""),
+                "title": str(r.get("title") or ""),
+                "message": str(r.get("message") or ""),
+                "description": str(r.get("message") or ""),
+                "is_read": is_read_val,
+                "unread": not is_read_val,
+                "tag": str(r.get("tag") or "Job Drive"),
+                "tagColor": "bg-primary-container text-on-primary-container",
+                "link": str(r.get("link") or "/student/matches"),
+                "href": str(r.get("link") or "/student/matches"),
+                "created_at": str(r.get("created_at") or ""),
+                "time": "Just now",
+            })
+        return out
+
+    def mark_notification_as_read(self, notification_id: str) -> bool:
+        """Mark a notification as read in the Excel store."""
+        return self.update_row(SHEET_NOTIFICATIONS, "id", notification_id, {"is_read": True})
+
+    def mark_all_notifications_as_read(self, user_id: str) -> int:
+        """Mark all notifications for a student as read."""
+        with self._lock:
+            if SHEET_NOTIFICATIONS not in self._cache:
+                return 0
+            df = self._cache[SHEET_NOTIFICATIONS]
+            if df is None or df.empty or "user_id" not in df.columns:
+                return 0
+            mask = (df["user_id"].astype(str) == str(user_id).strip()) & (df["is_read"] != True)
+            count = int(mask.sum())
+            if count > 0:
+                df.loc[mask, "is_read"] = True
+                self._save_to_excel()
+            return count
+
+    def select_student_drive(self, student_id: str, job_id: str) -> dict[str, Any]:
+        """Toggle a student's selected placement drive."""
+        row = self.get_row(SHEET_STUDENTS, "student_id", student_id)
+        if not row:
+            return {"student_id": student_id, "job_id": job_id, "is_selected": False, "selected_drives": []}
+
+        raw = row.get("selected_drives", "[]")
+        try:
+            drives = json.loads(raw) if isinstance(raw, str) else list(raw)
+        except Exception:
+            drives = []
+
+        if job_id in drives:
+            drives.remove(job_id)
+            is_selected = False
+        else:
+            drives.append(job_id)
+            is_selected = True
+
+        self.update_row(SHEET_STUDENTS, "student_id", student_id, {"selected_drives": json.dumps(drives)})
+        return {"student_id": student_id, "job_id": job_id, "is_selected": is_selected, "selected_drives": drives}
+
+    def get_student_selected_drives(self, student_id: str) -> list[str]:
+        """Get list of placement drive IDs selected by the student."""
+        row = self.get_row(SHEET_STUDENTS, "student_id", student_id)
+        if not row:
+            return []
+        raw = row.get("selected_drives", "[]")
+        try:
+            return json.loads(raw) if isinstance(raw, str) else list(raw)
+        except Exception:
+            return []
+
+
 
 
 # Singleton Instance

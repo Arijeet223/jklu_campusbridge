@@ -21,6 +21,34 @@ export default function StudentChatPage() {
   const [cgpa, setCgpa] = useState(8.42)
   const [skills, setSkills] = useState<Skill[]>(mockSkills)
   const [chatKey, setChatKey] = useState(0)
+  const [selectedDrives, setSelectedDrives] = useState<any[]>([])
+
+  const fetchSelectedDrives = async (sid: string) => {
+    try {
+      const res = await fetch(`/api/student/drives/selected?student_id=${encodeURIComponent(sid)}`, {
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.selected_jobs)) {
+          setSelectedDrives(data.selected_jobs)
+        }
+      }
+    } catch {}
+  }
+
+  const handleRemoveDriveFromSidebar = async (jobId: string, company: string) => {
+    try {
+      const res = await fetch(
+        `/api/student/drives/${encodeURIComponent(jobId)}/select?student_id=${encodeURIComponent(studentId)}`,
+        { method: 'POST', headers: { Accept: 'application/json' } }
+      )
+      if (res.ok) {
+        window.dispatchEvent(new CustomEvent('cb_drives_updated'))
+        setSelectedDrives((prev) => prev.filter((d) => d.job_id !== jobId))
+      }
+    } catch {}
+  }
 
   const handleNewChat = async () => {
     if (typeof window !== 'undefined') {
@@ -40,11 +68,15 @@ export default function StudentChatPage() {
   }
 
   useEffect(() => {
+    let sid = 'STU-101'
     try {
       const stored = localStorage.getItem('cb_active_user')
       if (stored) {
         const u = JSON.parse(stored)
-        if (u.id) setStudentId(u.id)
+        if (u.id) {
+          sid = u.id
+          setStudentId(u.id)
+        }
         if (u.name) setStudentName(u.name)
         if (u.cgpa) setCgpa(Number(u.cgpa))
       }
@@ -56,6 +88,18 @@ export default function StudentChatPage() {
         }
       }
     } catch {}
+
+    fetchSelectedDrives(sid)
+
+    const handleDrivesUpdate = () => {
+      fetchSelectedDrives(sid)
+    }
+    window.addEventListener('cb_drives_updated', handleDrivesUpdate)
+    window.addEventListener('storage', handleDrivesUpdate)
+    return () => {
+      window.removeEventListener('cb_drives_updated', handleDrivesUpdate)
+      window.removeEventListener('storage', handleDrivesUpdate)
+    }
   }, [])
 
   const handleOpenSource = (docId: string = 'doc_resume_v3') => {
@@ -105,36 +149,67 @@ export default function StudentChatPage() {
 
             {/* Pinned & Active Drives */}
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-outline px-1 block mb-2">
-                Pinned &amp; Active Drives
-              </span>
-              <div className="flex flex-col gap-2">
-                <div className="p-3 rounded-2xl bg-primary-container/20 border-2 border-primary-container cursor-pointer shadow-[0_2px_0_#DE95BE] transition-all hover:-translate-y-0.5">
-                  <div className="flex items-start justify-between gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-primary"></span>
-                      <p className="text-xs font-bold text-on-surface leading-tight">RazorpayX Backend Prep</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary-container text-on-primary-container border border-outline-variant">
-                      28h left
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-on-surface-variant mt-1">SDE-1 Systems Concurrency drill</p>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-surface-container-low border border-outline-variant cursor-pointer transition-all hover:border-secondary-fixed-dim">
-                  <div className="flex items-start justify-between gap-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-secondary"></span>
-                      <p className="text-xs font-medium text-on-surface leading-tight">Atlassian Systems Defense</p>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-secondary-container text-on-secondary-container border border-secondary-fixed-dim">
-                      44h left
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-on-surface-variant mt-1">Jira Cloud Core Distributed Log</p>
-                </div>
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-outline block">
+                  Selected 72h Sprint Drives ({selectedDrives.length})
+                </span>
+                <Link
+                  href="/student/matches"
+                  className="text-[10px] font-bold text-primary hover:underline"
+                  title="Manage drives in Live Opportunities"
+                >
+                  Manage →
+                </Link>
               </div>
+
+              {selectedDrives.length === 0 ? (
+                <div className="p-3.5 rounded-2xl bg-surface-container-low border border-dashed border-outline-variant text-center space-y-1.5">
+                  <p className="text-[11px] text-outline font-medium">No drives in 72h sprint</p>
+                  <Link
+                    href="/student/matches"
+                    className="text-xs text-primary font-bold hover:underline block"
+                  >
+                    + Join Drive in Live Opportunities →
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {selectedDrives.map((d) => (
+                    <div
+                      key={d.job_id}
+                      className="p-3 rounded-2xl bg-primary-container/20 border-2 border-primary-container shadow-[0_2px_0_#DE95BE] transition-all hover:-translate-y-0.5 group relative"
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="w-2 h-2 rounded-full bg-primary shrink-0"></span>
+                          <p className="text-xs font-bold text-on-surface leading-tight truncate">
+                            {d.company}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-primary-container text-on-primary-container border border-outline-variant font-mono">
+                            72h Active
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleRemoveDriveFromSidebar(d.job_id, d.company)
+                            }}
+                            className="p-1 rounded-md text-red-600 hover:bg-red-50 hover:text-red-800 transition-colors cursor-pointer"
+                            title={`Remove ${d.company} from 72h plan`}
+                          >
+                            <span className="material-symbols-outlined text-[13px] leading-none">close</span>
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-on-surface-variant mt-1 truncate">
+                        {d.role_title || 'Software Engineer'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Recent Transcripts & Drills */}

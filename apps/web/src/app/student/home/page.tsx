@@ -54,8 +54,7 @@ export default function StudentHomePage() {
       const mapped: Skill[] = (data || []).map((ev: any, idx: number) => {
         const tier = String(ev.tier || ev.evidence_status || ev.evidenceStatus || '')
         let evStatus: any = 'EXTRACTED'
-        if (tier.includes('DOUBT')) evStatus = 'DOUBT_GHOST'
-        else if (tier.includes('INSTITUTION')) evStatus = 'INSTITUTION_VERIFIED'
+        if (tier.includes('INSTITUTION')) evStatus = 'INSTITUTION_VERIFIED'
         else if (tier.includes('ASSESSMENT') || tier.includes('VERIFIED')) evStatus = 'ASSESSMENT_VERIFIED'
         else if (tier.includes('ARTIFACT')) evStatus = 'ARTIFACT_LINKED'
         else if (tier.includes('CONFIRMED')) evStatus = 'STUDENT_CONFIRMED'
@@ -68,7 +67,7 @@ export default function StudentHomePage() {
           evidenceStatus: evStatus,
           sourceDocumentId: ev.source_doc || ev.sourceDocumentId || 'doc_resume_v3',
           sourceSpan: ev.source_span_text || ev.sourceSpan || 'Extracted technical skill token',
-          confidence: Number(ev.confidence ?? (evStatus === 'DOUBT_GHOST' ? 0 : 0.92)),
+          confidence: Number(ev.confidence ?? 0.92),
         }
       })
 
@@ -235,33 +234,44 @@ export default function StudentHomePage() {
             </p>
           </div>
 
-          {/* Time-Horizon Switcher */}
-          <div className="flex items-center gap-2 p-1.5 rounded-full bg-surface-container border border-outline-variant/60">
-            <button
-              type="button"
-              onClick={() => setTimeHorizon('sprint')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                timeHorizon === 'sprint'
-                  ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
+          {/* Actions & Switchers */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/student/preview"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold bg-[#6D3B56] text-white hover:bg-[#52293F] transition-all shadow-[0_3px_0_#320e26]"
             >
-              <Flame className="h-4 w-4" />
-              <span>Sprint Mode (14-Day Push)</span>
-            </button>
+              <ShieldCheck className="h-4 w-4" />
+              <span>How Recruiters See You</span>
+            </Link>
 
-            <button
-              type="button"
-              onClick={() => setTimeHorizon('marathon')}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
-                timeHorizon === 'marathon'
-                  ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
-                  : 'text-on-surface-variant hover:text-on-surface'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              <span>Marathon Mode (120-Day)</span>
-            </button>
+            {/* Time-Horizon Switcher */}
+            <div className="flex items-center gap-2 p-1.5 rounded-full bg-surface-container border border-outline-variant/60">
+              <button
+                type="button"
+                onClick={() => setTimeHorizon('sprint')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                  timeHorizon === 'sprint'
+                    ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <Flame className="h-4 w-4" />
+                <span>Sprint Mode (14-Day Push)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTimeHorizon('marathon')}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                  timeHorizon === 'marathon'
+                    ? 'bg-primary text-on-primary shadow-[0_3px_0_#320e26]'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                <Calendar className="h-4 w-4" />
+                <span>Marathon Mode (120-Day)</span>
+              </button>
+            </div>
           </div>
         </div>
 

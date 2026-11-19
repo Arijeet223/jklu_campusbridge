@@ -37,7 +37,7 @@ export async function POST(
   } catch {}
 
   // Pure Next.js fallback if backend is unreachable
-  const evId = `ev-doubt-${studentId.toLowerCase()}-${Date.now()}`
+  const evId = `ev-ghost-${studentId.toLowerCase()}-${Date.now()}`
   const createdSkill = {
     id: evId,
     evidence_id: evId,
@@ -45,15 +45,15 @@ export async function POST(
     skill_name: skill_name.trim(),
     category,
     proficiency,
-    evidenceStatus: 'DOUBT_GHOST',
-    evidence_status: 'DOUBT_GHOST',
-    tier: '0_DOUBT_GHOST',
-    multiplier: 0.0,
-    confidence: 0.0,
+    evidenceStatus: 'EXTRACTED',
+    evidence_status: 'EXTRACTED',
+    tier: '0.5x_GHOST',
+    multiplier: 0.5,
+    confidence: 0.85,
     sourceDocumentId: 'doc_manual_claim',
     source_doc: 'Manual Student Claim',
-    sourceSpan: 'Self-reported by student (No document evidence)',
-    source_span_text: 'Self-reported by student (No document evidence)',
+    sourceSpan: 'Provisional skill claim (Self-reported)',
+    source_span_text: 'Provisional skill claim (Self-reported)',
     student_id: studentId,
   }
 

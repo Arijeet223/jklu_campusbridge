@@ -136,7 +136,7 @@ async def get_setup_progress(student_id: str = Query("STU-101")):
     evidence = store.get_sheet(SHEET_EVIDENCE)
     matched_ev = [
         e for e in evidence
-        if str(e.get("student_id", "")).strip().lower() in (clean_sid.lower(), "stu-101")
+        if str(e.get("student_id", "")).strip().lower() == clean_sid.lower()
     ]
     confirmed_skills_count = len(matched_ev)
 
@@ -157,8 +157,8 @@ async def get_setup_progress(student_id: str = Query("STU-101")):
     if academic_records_count > 0:
         academic_verified = True
 
-    cgpa = float(student_rec.get("cgpa", 8.42)) if student_rec else 8.42
-    full_name = str(student_rec.get("full_name") or student_rec.get("name") or "Aarav Sharma") if student_rec else "Aarav Sharma"
+    cgpa = float(student_rec.get("cgpa", 0.0)) if student_rec else 0.0
+    full_name = str(student_rec.get("full_name") or student_rec.get("name") or "Student") if student_rec else "Student"
 
     # Attempt fetching from PostgreSQL
     try:
@@ -275,15 +275,15 @@ async def update_setup_progress(payload: SetupProgressUpdatePayload):
             skills_to_embed = [
                 str(e.get("skill_name"))
                 for e in ev_rows
-                if str(e.get("student_id", "")).strip().lower() in (clean_sid.lower(), "stu-101")
+                if str(e.get("student_id", "")).strip().lower() == clean_sid.lower()
             ]
 
         qdrant_points = qs.upsert_student_unified_knowledge(
             student_id=clean_sid,
-            full_name=payload.full_name or "Aarav Sharma",
-            skills=skills_to_embed or ["Python", "SQL", "FastAPI"],
+            full_name=payload.full_name or "Student",
+            skills=skills_to_embed,
             academic_records=payload.academic_records,
-            cgpa=payload.cgpa or 8.42,
+            cgpa=payload.cgpa or 0.0,
             github_url=payload.github_url,
             github_projects=payload.github_projects,
             resume_text=payload.resume_text,
@@ -313,10 +313,10 @@ async def sync_knowledge_base(payload: SyncKnowledgeBasePayload):
         qs = get_qdrant_service()
         points_count = qs.upsert_student_unified_knowledge(
             student_id=clean_sid,
-            full_name=payload.full_name or "Aarav Sharma",
-            skills=payload.skills or ["Python", "SQL", "FastAPI", "PostgreSQL"],
+            full_name=payload.full_name or "Student",
+            skills=payload.skills or [],
             academic_records=payload.academic_records,
-            cgpa=payload.cgpa or 8.42,
+            cgpa=payload.cgpa or 0.0,
             github_url=payload.github_url,
             github_projects=payload.github_projects,
             resume_text=payload.resume_text,
@@ -325,7 +325,7 @@ async def sync_knowledge_base(payload: SyncKnowledgeBasePayload):
             "status": "SYNCED",
             "student_id": clean_sid,
             "points_count": points_count,
-            "collection": "campusbridge_resumes",
+            "collection": "student_knowledge_base",
             "message": f"Successfully vectorized {points_count} points into Qdrant personal knowledge base for '{clean_sid}'.",
         }
     except Exception as e:

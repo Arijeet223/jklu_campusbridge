@@ -62,6 +62,10 @@ class StudentProfile(Base, TimestampMixin):
     readiness_index: Mapped[float] = mapped_column(Float, default=50.0, nullable=False)
     sprint_mode_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     github_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    sms_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    telegram_chat_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    telegram_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     institution_id: Mapped[str] = mapped_column(String(64), default="inst-nitk-001", nullable=False)
     visibility_state: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict, nullable=False)
     academic_records: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
@@ -70,6 +74,7 @@ class StudentProfile(Base, TimestampMixin):
     github_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     resume_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     academic_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    selected_drives: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
 
     # Relationships
     evidence: Mapped[List[SkillEvidence]] = relationship(
@@ -99,6 +104,13 @@ class StudentProfile(Base, TimestampMixin):
             "readiness_index": float(self.readiness_index),
             "sprint_mode_active": bool(self.sprint_mode_active),
             "github_url": self.github_url or "",
+            "phone_number": self.phone_number or (self.visibility_state or {}).get("phone_number") or "",
+            "sms_notifications_enabled": bool(self.sms_notifications_enabled or (self.visibility_state or {}).get("sms_notifications_enabled", False)),
+            "telegram_chat_id": self.telegram_chat_id or (self.visibility_state or {}).get("telegram_chat_id") or (self.visibility_state or {}).get("telegram_id") or "",
+            "telegram_notifications_enabled": bool(self.telegram_notifications_enabled or (self.visibility_state or {}).get("telegram_notifications_enabled", (self.visibility_state or {}).get("allow_telegram_notifications", False))),
+            "telegram_id": self.telegram_chat_id or (self.visibility_state or {}).get("telegram_id") or "",
+            "allow_telegram_notifications": bool(self.telegram_notifications_enabled or (self.visibility_state or {}).get("allow_telegram_notifications", False)),
+            "bio": (self.visibility_state or {}).get("bio") or "",
             "institution_id": self.institution_id,
             "visibility_state": self.visibility_state or {},
             "academic_records": self.academic_records if isinstance(self.academic_records, list) else [],
@@ -107,6 +119,7 @@ class StudentProfile(Base, TimestampMixin):
             "github_verified": bool(self.github_verified),
             "resume_verified": bool(self.resume_verified),
             "academic_verified": bool(self.academic_verified),
+            "selected_drives": self.selected_drives if isinstance(self.selected_drives, list) else (self.visibility_state or {}).get("selected_drives", []),
         }
 
 
@@ -342,6 +355,9 @@ class OpportunityJD(Base, TimestampMixin):
     preferred_skills_json: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
     approved_by_officer: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="APPROVED", nullable=False)
+    announcement_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    external_link: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    resources: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
 
     # Relationship
     applications: Mapped[List[Application]] = relationship(
@@ -362,6 +378,9 @@ class OpportunityJD(Base, TimestampMixin):
             "preferred_skills_json": self.preferred_skills_json if isinstance(self.preferred_skills_json, list) else [],
             "approved_by_officer": bool(self.approved_by_officer),
             "status": self.status,
+            "announcement_text": self.announcement_text or "",
+            "external_link": self.external_link or "",
+            "resources": self.resources if isinstance(self.resources, list) else [],
         }
 
 
@@ -547,3 +566,44 @@ class EmailDraft(Base, TimestampMixin):
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 11. Notifications (Dual-Channel & In-App Alerts)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class Notification(Base, TimestampMixin):
+    """Institutional in-app notifications for placement alerts, gates, and skill verifications."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"notif-{uuid.uuid4().hex[:10]}")
+    user_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tag: Mapped[Optional[str]] = mapped_column(String(64), default="Job Drive", nullable=True)
+    link: Mapped[Optional[str]] = mapped_column(String(255), default="/student/matches", nullable=True)
+
+    # Relationship
+    student: Mapped[Optional[StudentProfile]] = relationship("StudentProfile")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "title": self.title,
+            "message": self.message,
+            "description": self.message,
+            "is_read": bool(self.is_read),
+            "unread": not bool(self.is_read),
+            "tag": self.tag or "Job Drive",
+            "tagColor": "bg-primary-container text-on-primary-container",
+            "link": self.link or "/student/matches",
+            "href": self.link or "/student/matches",
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "time": "Just now",
+        }
+

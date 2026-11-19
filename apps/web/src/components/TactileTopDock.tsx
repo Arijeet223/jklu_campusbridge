@@ -28,6 +28,7 @@ export default function TactileTopDock({
 
   const navLinks = [
     { label: 'Studio', href: '/student/dashboard', icon: 'dashboard' },
+    { label: 'Settings & Ingest', href: '/student/settings', icon: 'settings' },
     { label: 'What-If Sandbox', href: '/student/what-if-sandbox', icon: 'science' },
     { label: 'Practice Arena', href: '/student/arena', icon: 'swords' },
     { label: 'Applications', href: '/student/applications', icon: 'view_kanban' },

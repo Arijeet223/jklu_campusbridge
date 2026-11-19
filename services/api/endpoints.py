@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 import math
+import os
 import re
 import time
 import uuid
@@ -18,7 +19,7 @@ from copy import deepcopy
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -410,9 +411,18 @@ async def get_student_profile(
                 db_student = await db_get_student_by_email(session, student_id)
             if db_student:
                 db_ev = await db_get_student_evidence(session, db_student.student_id)
+                stu_dict = db_student.to_dict()
+                try:
+                    store = get_excel_store()
+                    xl_row = next((s for s in store.get_sheet(SHEET_STUDENTS) if str(s.get("student_id", "")).strip().lower() == db_student.student_id.lower()), {})
+                    for fld in ("github_url", "telegram_id", "allow_telegram_notifications", "bio"):
+                        if xl_row.get(fld) is not None and not stu_dict.get(fld):
+                            stu_dict[fld] = xl_row[fld]
+                except Exception:
+                    pass
                 return {
                     "status": "SUCCESS",
-                    "student": db_student.to_dict(),
+                    "student": stu_dict,
                     "evidence_count": len(db_ev),
                     "needs_onboarding": len(db_ev) == 0,
                     "readiness_index": int(db_student.readiness_index or 0),
@@ -451,15 +461,143 @@ async def get_student_profile(
     }
 
 
+class StudentSettingsUpdatePayload(BaseModel):
+    full_name: Optional[str] = None
+    roll_no: Optional[str] = None
+    github_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    sms_notifications_enabled: Optional[bool] = None
+    telegram_id: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+    telegram_notifications_enabled: Optional[bool] = None
+    allow_telegram_notifications: Optional[bool] = None
+    bio: Optional[str] = None
+    program: Optional[str] = None
+    cohort_year: Optional[int] = None
+    target_roles: Optional[list[str]] = None
+    cgpa: Optional[float] = None
+
+
+@router.put("/students/{student_id}")
+@router.post("/students/{student_id}/settings")
+async def update_student_settings_endpoint(
+    student_id: str,
+    payload: StudentSettingsUpdatePayload,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Updates student profile fields (Name, Roll No, GitHub URL, Telegram ID) in PostgreSQL & Excel, and triggers unified Qdrant sync."""
+    clean_sid = student_id.strip()
+    updates: dict[str, Any] = {}
+    if payload.full_name is not None:
+        updates["full_name"] = payload.full_name.strip()
+    if payload.roll_no is not None:
+        updates["roll_no"] = payload.roll_no.strip()
+    if payload.github_url is not None:
+        updates["github_url"] = payload.github_url.strip()
+    if payload.phone_number is not None:
+        updates["phone_number"] = payload.phone_number.strip()
+    if payload.sms_notifications_enabled is not None:
+        updates["sms_notifications_enabled"] = bool(payload.sms_notifications_enabled)
+    # Support both telegram_chat_id and telegram_id interchangeably
+    tg_val = payload.telegram_chat_id if payload.telegram_chat_id is not None else payload.telegram_id
+    if tg_val is not None:
+        updates["telegram_id"] = tg_val.strip()
+        updates["telegram_chat_id"] = tg_val.strip()
+    tg_toggle = payload.telegram_notifications_enabled if payload.telegram_notifications_enabled is not None else payload.allow_telegram_notifications
+    if tg_toggle is not None:
+        updates["allow_telegram_notifications"] = bool(tg_toggle)
+        updates["telegram_notifications_enabled"] = bool(tg_toggle)
+    if payload.bio is not None:
+        updates["bio"] = payload.bio.strip()
+    if payload.program is not None:
+        updates["program"] = payload.program.strip()
+    if payload.cohort_year is not None:
+        updates["cohort_year"] = int(payload.cohort_year)
+    if payload.target_roles is not None:
+        updates["target_roles"] = payload.target_roles
+    if payload.cgpa is not None:
+        updates["cgpa"] = float(payload.cgpa)
+
+    # 1. Update Async PostgreSQL session
+    if _is_valid_db_session(session):
+        try:
+            db_stu = await db_get_student(session, clean_sid)
+            if db_stu:
+                curr_vis = dict(db_stu.visibility_state or {})
+                if tg_val is not None:
+                    curr_vis["telegram_id"] = tg_val.strip()
+                    curr_vis["telegram_chat_id"] = tg_val.strip()
+                if tg_toggle is not None:
+                    curr_vis["allow_telegram_notifications"] = bool(tg_toggle)
+                    curr_vis["telegram_notifications_enabled"] = bool(tg_toggle)
+                if payload.phone_number is not None:
+                    curr_vis["phone_number"] = payload.phone_number.strip()
+                if payload.sms_notifications_enabled is not None:
+                    curr_vis["sms_notifications_enabled"] = bool(payload.sms_notifications_enabled)
+                if payload.bio is not None:
+                    curr_vis["bio"] = payload.bio.strip()
+                updates["visibility_state"] = curr_vis
+                if payload.phone_number is not None:
+                    db_stu.phone_number = payload.phone_number.strip()
+                if payload.sms_notifications_enabled is not None:
+                    db_stu.sms_notifications_enabled = bool(payload.sms_notifications_enabled)
+                if tg_val is not None:
+                    db_stu.telegram_chat_id = tg_val.strip()
+                if tg_toggle is not None:
+                    db_stu.telegram_notifications_enabled = bool(tg_toggle)
+
+            await db_update_student(session, clean_sid, updates)
+            await session.commit()
+        except Exception as e:
+            logger.warning("Failed updating student '%s' in PostgreSQL: %s", clean_sid, e)
+
+    # 2. Update Excel sheet
+    store = get_excel_store()
+    store.update_row(SHEET_STUDENTS, key_col="student_id", key_val=clean_sid, updates=updates)
+
+    # 3. Trigger unified Qdrant vector sync
+    try:
+        from rag.qdrant_service import get_qdrant_service
+        qs = get_qdrant_service()
+        ev_rows = store.get_sheet(SHEET_EVIDENCE)
+        confirmed_skills = [
+            str(e.get("skill_name", "")).strip()
+            for e in ev_rows
+            if str(e.get("student_id", "")).strip().lower() == clean_sid.lower()
+            and "CONFIRMED" in str(e.get("tier") or e.get("evidence_status") or "")
+        ]
+        stu_row = next((s for s in store.get_sheet(SHEET_STUDENTS) if str(s.get("student_id", "")).strip().lower() == clean_sid.lower()), {})
+        records_val = stu_row.get("academic_records")
+        if isinstance(records_val, str):
+            try:
+                records_val = json.loads(records_val)
+            except Exception:
+                records_val = []
+
+        qs.upsert_student_unified_knowledge(
+            student_id=clean_sid,
+            full_name=updates.get("full_name") or stu_row.get("full_name") or "Student",
+            skills=confirmed_skills,
+            academic_records=records_val or [],
+            cgpa=updates.get("cgpa") or stu_row.get("cgpa") or 8.0,
+            github_url=updates.get("github_url") or stu_row.get("github_url"),
+        )
+    except Exception as qe:
+        logger.warning("Background Qdrant sync notice: %s", qe)
+
+    return {
+        "status": "SUCCESS",
+        "student_id": clean_sid,
+        "updates": updates,
+        "message": "Student settings updated and synchronized to Unified Knowledge Base.",
+    }
+
+
 class EvidenceDict(dict):
     """Dictionary subclass providing backwards-compatible model attribute access in direct test suites."""
     @property
     def evidence_status(self):
         t = str(self.get("evidence_status") or self.get("tier") or "")
-        if "DOUBT" in t:
-            return EvidenceStatus.DOUBT_GHOST
-        if "EXTRACTED" in t:
-            return EvidenceStatus.EXTRACTED
         if "CONFIRMED" in t:
             return EvidenceStatus.STUDENT_CONFIRMED
         if "VERIFIED" in t:
@@ -470,11 +608,8 @@ class EvidenceDict(dict):
 def _format_evidence_item(e: dict[str, Any]) -> dict[str, Any]:
     tier_str = str(e.get("tier") or e.get("evidence_status") or "1_EXTRACTED_UNCONFIRMED")
     
-    # Map tier to status
-    if "DOUBT" in tier_str or tier_str == "DOUBT_GHOST":
-        ev_status = "DOUBT_GHOST"
-        mult = 0.0
-    elif "INSTITUTION" in tier_str:
+    # Map tier to status - ghost cards act as the sole provisional representation
+    if "INSTITUTION" in tier_str:
         ev_status = "INSTITUTION_VERIFIED"
         mult = 1.0
     elif "ASSESSMENT" in tier_str or "VERIFIED" in tier_str:
@@ -496,7 +631,7 @@ def _format_evidence_item(e: dict[str, Any]) -> dict[str, Any]:
     cat = str(e.get("category") or "Technical Skills")
     src_doc = str(e.get("source_doc") or e.get("sourceDocumentId") or "Resume.pdf")
     src_span = str(e.get("source_span_text") or e.get("source_span") or e.get("sourceSpan") or f"{src_doc} • {cat}")
-    conf = float(e.get("confidence") or (0.0 if ev_status == "DOUBT_GHOST" else 0.92))
+    conf = float(e.get("confidence") or 0.92)
 
     return {
         "id": ev_id,
@@ -559,12 +694,12 @@ async def add_custom_student_skill(
     req: CustomSkillPayload,
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, Any]:
-    """Adds a manually reported skill assigned the DOUBT_GHOST state (0.0x multiplier, no evidence)."""
+    """Adds a manually reported skill assigned the standard provisional Ghost Card state (0.5x multiplier)."""
     skill_name = req.skill_name.strip()
     if not skill_name:
         raise HTTPException(status_code=400, detail="Skill name cannot be empty.")
 
-    ev_id = f"ev-doubt-{student_id.lower()}-{int(time.time()*1000)}-{uuid.uuid4().hex[:4]}"
+    ev_id = f"ev-ghost-{student_id.lower()}-{int(time.time()*1000)}-{uuid.uuid4().hex[:4]}"
     now_iso = datetime.now(timezone.utc).isoformat()
 
     ev_dict = {
@@ -575,15 +710,15 @@ async def add_custom_student_skill(
         "name": skill_name,
         "category": req.category or "Technical Skills",
         "proficiency": req.proficiency or "Intermediate",
-        "tier": "0_DOUBT_GHOST",
-        "multiplier": 0.0,
-        "evidence_status": "DOUBT_GHOST",
-        "evidenceStatus": "DOUBT_GHOST",
+        "tier": "1_EXTRACTED_UNCONFIRMED",
+        "multiplier": 0.5,
+        "evidence_status": "EXTRACTED",
+        "evidenceStatus": "EXTRACTED",
         "source_doc": "Manual Student Claim",
         "sourceDocumentId": "doc_manual_claim",
-        "source_span_text": "Self-reported by student (No document evidence)",
-        "sourceSpan": "Self-reported by student (No document evidence)",
-        "confidence": 0.0,
+        "source_span_text": "Provisional skill claim (Self-reported)",
+        "sourceSpan": "Provisional skill claim (Self-reported)",
+        "confidence": 0.85,
         "verified_by": None,
         "created_at": now_iso,
     }
@@ -597,11 +732,11 @@ async def add_custom_student_skill(
                 "student_id": student_id,
                 "skill_name": skill_name,
                 "category": req.category,
-                "tier": "0_DOUBT_GHOST",
-                "multiplier": 0.0,
+                "tier": "1_EXTRACTED_UNCONFIRMED",
+                "multiplier": 0.5,
                 "source_doc": "Manual Student Claim",
-                "source_span_text": "Self-reported by student (No document evidence)",
-                "confidence": 0.0,
+                "source_span_text": "Provisional skill claim (Self-reported)",
+                "confidence": 0.85,
             })
             await session.commit()
         except Exception as e:
@@ -615,12 +750,12 @@ async def add_custom_student_skill(
         "skill_name": skill_name,
         "category": req.category,
         "proficiency": req.proficiency,
-        "tier": "0_DOUBT_GHOST",
-        "tier_multiplier": 0.0,
-        "evidence_status": "DOUBT_GHOST",
+        "tier": "1_EXTRACTED_UNCONFIRMED",
+        "tier_multiplier": 0.5,
+        "evidence_status": "EXTRACTED",
         "source_doc": "Manual Student Claim",
-        "source_span": "Self-reported by student (No document evidence)",
-        "confidence": 0.0,
+        "source_span": "Provisional skill claim (Self-reported)",
+        "confidence": 0.85,
         "verified_by": None,
     })
 
@@ -658,7 +793,7 @@ async def faculty_verify_skill(
     evidence_id: str,
     session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, Any]:
-    """Upgrades a DOUBT_GHOST or unconfirmed skill into INSTITUTION_VERIFIED (1.0x Solid Token)."""
+    """Upgrades an unconfirmed Ghost Card into INSTITUTION_VERIFIED (1.0x Solid Token)."""
     now_iso = datetime.now(timezone.utc).isoformat()
     if _is_valid_db_session(session):
         try:
@@ -739,6 +874,7 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
 
     stu_cgpa = float(matched_student.get("cgpa", 8.42))
     stu_backlogs = int(matched_student.get("active_backlogs", 0))
+    selected_drives = store.get_student_selected_drives(str(matched_student.get("student_id", student_id)))
 
     # Resolve student's evidence records
     student_evidence = [
@@ -963,6 +1099,10 @@ async def get_live_job_matches(student_id: str = "STU-101") -> list[dict[str, An
             "eligibilityStatus": eligibility_status,
             "failedPreference": failed_preference,
             "missingSkills": missing_mandatory,
+            "announcement_text": str(j.get("announcement_text", "") or ""),
+            "external_link": str(j.get("external_link", "") or ""),
+            "resources": j.get("resources", []) if isinstance(j.get("resources"), list) else [],
+            "is_selected": job_id in selected_drives,
             "factorBreakdown": [
                 {"id": f"fb_1_{job_id}", "label": "Required Skills", "weight": 0.35, "score": round(mand_avg * 100), "color": "bg-[#6D3B56]"},
                 {"id": f"fb_2_{job_id}", "label": "Projects & Evidence", "weight": 0.20, "score": round(pref_avg * 100), "color": "bg-[#0F766E]"},
@@ -1448,25 +1588,27 @@ async def complete_onboarding(request: OnboardingCompleteRequest) -> dict[str, A
     cloud_regex = re.compile(r"\b(docker|kubernetes|aws|gcp|azure|linux|ci\/cd|terraform|nginx)\b", re.I)
     ai_regex = re.compile(r"\b(machine learning|deep learning|pytorch|tensorflow|rag|qdrant|pandas|numpy|nlp|llm)\b", re.I)
 
-    sql_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if sql_regex.search(s.name) or sql_regex.search(s.category or "")]
-    dsa_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if dsa_regex.search(s.name) or dsa_regex.search(s.category or "")]
-    backend_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if backend_regex.search(s.name) or backend_regex.search(s.category or "")]
-    cloud_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if cloud_regex.search(s.name) or cloud_regex.search(s.category or "")]
-    ai_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if ai_regex.search(s.name) or ai_regex.search(s.category or "")]
-    soft_scores = [_prof_val(s.proficiency) for s in request.confirmed_skills if s.is_soft_skill or "soft" in (s.category or "").lower()]
+    # Strict assertion: Filter exclusively confirmed/solid skills from student record (Zero mock data allowed)
+    solid_confirmed_skills = [
+        s for s in (request.confirmed_skills or [])
+        if s.name and not s.name.lower().startswith("mock") and not str(getattr(s, "id", "")).startswith("mock-")
+        and (str(getattr(s, "evidence_status", "")) in ("STUDENT_CONFIRMED", "INSTITUTION_VERIFIED", "ASSESSMENT_VERIFIED", "ARTIFACT_LINKED")
+             or getattr(s, "is_confirmed", False) is True)
+    ]
 
-    dim_sql = max(sql_scores) if sql_scores else 48
-    dim_dsa = max(dsa_scores) if dsa_scores else 60
-    dim_backend = max(backend_scores) if backend_scores else 55
-    dim_cloud = max(cloud_scores) if cloud_scores else 50
-    dim_ai = max(ai_scores) if ai_scores else 50
-    dim_soft = max(soft_scores) if soft_scores else 70
+    sql_scores = [_prof_val(s.proficiency) for s in solid_confirmed_skills if sql_regex.search(s.name) or sql_regex.search(s.category or "")]
+    dsa_scores = [_prof_val(s.proficiency) for s in solid_confirmed_skills if dsa_regex.search(s.name) or dsa_regex.search(s.category or "")]
+    backend_scores = [_prof_val(s.proficiency) for s in solid_confirmed_skills if backend_regex.search(s.name) or backend_regex.search(s.category or "")]
+    cloud_scores = [_prof_val(s.proficiency) for s in solid_confirmed_skills if cloud_regex.search(s.name) or cloud_regex.search(s.category or "")]
+    ai_scores = [_prof_val(s.proficiency) for s in solid_confirmed_skills if ai_regex.search(s.name) or ai_regex.search(s.category or "")]
+    soft_scores = [_prof_val(s.proficiency) for s in solid_confirmed_skills if s.is_soft_skill or "soft" in (s.category or "").lower()]
 
-    # Breadth bonus for multiple technologies in dimension
-    dim_sql = min(98, dim_sql + min(8, max(0, len(sql_scores) - 1) * 3))
-    dim_dsa = min(98, dim_dsa + min(8, max(0, len(dsa_scores) - 1) * 3))
-    dim_backend = min(98, dim_backend + min(8, max(0, len(backend_scores) - 1) * 3))
-    dim_cloud = min(98, dim_cloud + min(8, max(0, len(cloud_scores) - 1) * 3))
+    dim_sql = min(98, max(sql_scores) + min(8, max(0, len(sql_scores) - 1) * 3)) if sql_scores else 0
+    dim_dsa = min(98, max(dsa_scores) + min(8, max(0, len(dsa_scores) - 1) * 3)) if dsa_scores else 0
+    dim_backend = min(98, max(backend_scores) + min(8, max(0, len(backend_scores) - 1) * 3)) if backend_scores else 0
+    dim_cloud = min(98, max(cloud_scores) + min(8, max(0, len(cloud_scores) - 1) * 3)) if cloud_scores else 0
+    dim_ai = min(98, max(ai_scores)) if ai_scores else 0
+    dim_soft = min(98, max(soft_scores)) if soft_scores else 0
 
     # Overall weighted readiness index
     weights = [
@@ -3570,6 +3712,838 @@ async def run_ai_pantheon_self_test() -> dict[str, Any]:
         "total_latency_ms": round(sum(r["latency_ms"] for r in results), 2),
         "cores": results,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Notifications API (Real In-App Alerts, Zero Mock Data)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class NotificationTestDispatchRequest(BaseModel):
+    student_id: str = "STU-101"
+    title: str = "Test Placement Alert"
+    message: str = "This is a live test notification from CampusBridge AI."
+    tag: str = "Job Drive"
+    link: str = "/student/matches"
+
+
+@router.get("/notifications/mine")
+async def get_my_notifications(
+    student_id: Optional[str] = Query(None),
+    limit: int = Query(50),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Retrieve real in-app notifications for the active student. Zero mock data."""
+    sid = (student_id or "STU-101").strip()
+    notifications = []
+
+    # 1. Attempt read from PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import get_user_notifications
+            db_notifs = await get_user_notifications(session, sid, limit=limit)
+            if db_notifs:
+                notifications = [n.to_dict() for n in db_notifs]
+        except Exception as e:
+            logger.debug("PostgreSQL notification query note: %s", e)
+
+    # 2. If PostgreSQL returned empty or is not connected, retrieve from Excel store
+    if not notifications:
+        try:
+            store = get_excel_store()
+            notifications = store.get_notifications(sid, limit=limit)
+        except Exception as e:
+            logger.debug("Excel notification query note: %s", e)
+
+    unread_count = sum(1 for n in notifications if not n.get("is_read"))
+
+    return {
+        "status": "SUCCESS",
+        "student_id": sid,
+        "notifications": notifications,
+        "total_count": len(notifications),
+        "unread_count": unread_count,
+    }
+
+
+@router.post("/notifications/{notification_id}/read")
+@router.patch("/notifications/{notification_id}/read")
+@router.put("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Mark a notification as read in both PostgreSQL and Excel store."""
+    nid = notification_id.strip()
+
+    # 1. Update in PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import mark_notification_as_read
+            await mark_notification_as_read(session, nid)
+            await session.commit()
+        except Exception as e:
+            logger.debug("PostgreSQL mark read note: %s", e)
+
+    # 2. Update in Excel store
+    try:
+        store = get_excel_store()
+        store.mark_notification_as_read(nid)
+    except Exception as e:
+        logger.debug("Excel store mark read note: %s", e)
+
+    return {
+        "status": "SUCCESS",
+        "id": nid,
+        "is_read": True,
+    }
+
+
+@router.post("/notifications/read-all")
+async def mark_all_notifications_read(
+    student_id: Optional[str] = Query("STU-101"),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Mark all unread notifications for a student as read."""
+    sid = (student_id or "STU-101").strip()
+    marked_count = 0
+
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import mark_all_notifications_as_read
+            marked_count = await mark_all_notifications_as_read(session, sid)
+            await session.commit()
+        except Exception as e:
+            logger.debug("PostgreSQL mark all read note: %s", e)
+
+    try:
+        store = get_excel_store()
+        excel_count = store.mark_all_notifications_as_read(sid)
+        if marked_count == 0:
+            marked_count = excel_count
+    except Exception as e:
+        logger.debug("Excel mark all read note: %s", e)
+
+    return {
+        "status": "SUCCESS",
+        "student_id": sid,
+        "marked_count": marked_count,
+    }
+
+
+@router.post("/notifications/test-dispatch")
+async def test_dispatch_notification(
+    req: NotificationTestDispatchRequest,
+) -> dict[str, Any]:
+    """Direct test endpoint for dual-channel & in-app notification dispatch."""
+    from services.notifications import get_notification_dispatcher
+    dispatcher = get_notification_dispatcher()
+    result = await dispatcher.dispatch_to_student(
+        student_id=req.student_id,
+        title=req.title,
+        message=req.message,
+        tag=req.tag,
+        link=req.link,
+    )
+    return {
+        "status": "SUCCESS",
+        "dispatch_result": result,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Placement Drives Management (Full CRUD for Faculty & TPO)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class JobCreateUpdatePayload(BaseModel):
+    company_name: Optional[str] = None
+    role_title: Optional[str] = None
+    ctc_band: Optional[str] = None
+    deadline_hours: Optional[int] = None
+    min_cgpa: Optional[float] = None
+    max_backlogs: Optional[int] = None
+    allowed_branches: Optional[list[str]] = None
+    mandatory_skills_json: Optional[list[str]] = None
+    preferred_skills_json: Optional[list[str]] = None
+    approved_by_officer: Optional[bool] = None
+    status: Optional[str] = None
+    announcement_text: Optional[str] = None
+    external_link: Optional[str] = None
+    resources: Optional[list[Any]] = None
+
+
+@router.get("/jobs")
+async def list_all_placement_drives(
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Synchronous retrieval of all active placement drives from PostgreSQL & Excel."""
+    jobs_list = []
+
+    # 1. Primary: PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import list_jobs as db_list_jobs
+            db_jobs = await db_list_jobs(session, approved_only=False)
+            if db_jobs:
+                jobs_list = [j.to_dict() for j in db_jobs]
+        except Exception as e:
+            logger.debug("PostgreSQL jobs listing note: %s", e)
+
+    # 2. Secondary: Excel store
+    store = get_excel_store()
+    excel_jobs = store.get_sheet(SHEET_JOBS)
+    
+    # 3. Tertiary: In-memory Faculty managed JDs
+    faculty_jds = []
+    try:
+        from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+        for fid, fval in FACULTY_MANAGED_JDS.items():
+            faculty_jds.append({
+                "job_id": fval.get("job_id", fid),
+                "company_name": fval.get("company_name", ""),
+                "role_title": fval.get("role_title", ""),
+                "ctc_band": fval.get("ctc_band", "18-24 LPA"),
+                "deadline_hours": int(fval.get("deadline_hours", 48) or 48),
+                "min_cgpa": float(fval.get("min_cgpa", 7.0) or 7.0),
+                "max_backlogs": int(fval.get("max_backlogs", 0) or 0),
+                "allowed_branches": fval.get("allowed_branches", ["B.Tech CSE", "B.Tech IT"]),
+                "mandatory_skills_json": fval.get("mandatory_skills", ["Python", "SQL"]),
+                "preferred_skills_json": fval.get("preferred_skills", ["Docker"]),
+                "status": fval.get("status", "APPROVED"),
+                "approved_by_officer": True,
+                "announcement_text": fval.get("announcement_text", ""),
+                "external_link": fval.get("external_link", ""),
+                "resources": fval.get("resources", []),
+            })
+    except Exception:
+        pass
+
+    # Merge unique by job_id
+    combined = []
+    seen = set()
+    for j in jobs_list + excel_jobs + faculty_jds:
+        jid = str(j.get("job_id", "")).strip()
+        if jid and jid not in seen:
+            seen.add(jid)
+            # Ensure skills are lists
+            mand = j.get("mandatory_skills_json", [])
+            pref = j.get("preferred_skills_json", [])
+            if isinstance(mand, str):
+                try: mand = json.loads(mand)
+                except Exception: mand = []
+            if isinstance(pref, str):
+                try: pref = json.loads(pref)
+                except Exception: pref = []
+            branches = j.get("allowed_branches", [])
+            if isinstance(branches, str):
+                try: branches = json.loads(branches)
+                except Exception: branches = ["B.Tech CSE", "B.Tech IT"]
+
+            combined.append({
+                "job_id": jid,
+                "company_name": str(j.get("company_name", "")),
+                "role_title": str(j.get("role_title", "")),
+                "ctc_band": str(j.get("ctc_band", "18-24 LPA")),
+                "deadline_hours": int(j.get("deadline_hours", 48) or 48),
+                "min_cgpa": float(j.get("min_cgpa", 7.0) or 7.0),
+                "max_backlogs": int(j.get("max_backlogs", 0) or 0),
+                "allowed_branches": branches,
+                "mandatory_skills_json": mand,
+                "preferred_skills_json": pref,
+                "approved_by_officer": bool(j.get("approved_by_officer", True)),
+                "status": str(j.get("status", "APPROVED")),
+                "announcement_text": str(j.get("announcement_text", "") or ""),
+                "external_link": str(j.get("external_link", "") or ""),
+                "resources": j.get("resources", []) if isinstance(j.get("resources"), list) else [],
+                "created_at": str(j.get("created_at", "")),
+            })
+
+    return {
+        "status": "SUCCESS",
+        "jobs": combined,
+        "total": len(combined),
+    }
+
+
+@router.get("/jobs/{job_id}")
+async def get_single_placement_drive(
+    job_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Retrieve details for a single placement drive."""
+    clean_id = job_id.strip()
+
+    # 1. PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import get_job as db_get_job
+            job = await db_get_job(session, clean_id)
+            if job:
+                return {"status": "SUCCESS", "job": job.to_dict()}
+        except Exception:
+            pass
+
+    # 2. Excel store
+    store = get_excel_store()
+    row = store.get_row(SHEET_JOBS, "job_id", clean_id)
+    if row:
+        return {"status": "SUCCESS", "job": row}
+
+    # 3. In-memory
+    try:
+        from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+        if clean_id in FACULTY_MANAGED_JDS:
+            return {"status": "SUCCESS", "job": FACULTY_MANAGED_JDS[clean_id]}
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=404, detail=f"Placement drive '{job_id}' not found.")
+
+
+@router.post("/jobs")
+async def create_placement_drive(
+    payload: JobCreateUpdatePayload,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Create a new placement drive."""
+    jid = f"jd-{uuid.uuid4().hex[:8]}"
+    data = payload.model_dump(exclude_unset=True)
+    data["job_id"] = jid
+
+    # 1. PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import create_job as db_create_job
+            created = await db_create_job(session, data)
+            await session.commit()
+            data = created.to_dict()
+        except Exception as e:
+            logger.debug("PostgreSQL create job note: %s", e)
+
+    # 2. Excel store
+    store = get_excel_store()
+    store.insert_row(SHEET_JOBS, data)
+
+    # 3. In-memory store
+    try:
+        from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+        FACULTY_MANAGED_JDS[jid] = data
+    except Exception:
+        pass
+
+    return {
+        "status": "SUCCESS",
+        "job": data,
+        "message": f"Placement drive for {payload.company_name} created successfully.",
+    }
+
+
+@router.put("/jobs/{job_id}")
+async def update_placement_drive(
+    job_id: str,
+    payload: JobCreateUpdatePayload,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Full Edit functionality for placement drive fields, announcement text & resource links."""
+    clean_id = job_id.strip()
+    updates = payload.model_dump(exclude_unset=True)
+
+    # 1. Update in PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import update_job as db_update_job
+            updated = await db_update_job(session, clean_id, updates)
+            await session.commit()
+        except Exception as e:
+            logger.debug("PostgreSQL update job note: %s", e)
+
+    # 2. Update in Excel store
+    store = get_excel_store()
+    store.update_row(SHEET_JOBS, "job_id", clean_id, updates)
+
+    # 3. Update in in-memory store
+    try:
+        from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+        if clean_id in FACULTY_MANAGED_JDS:
+            FACULTY_MANAGED_JDS[clean_id].update(updates)
+    except Exception:
+        pass
+
+    # Retrieve updated row
+    updated_row = store.get_row(SHEET_JOBS, "job_id", clean_id) or updates
+
+    return {
+        "status": "SUCCESS",
+        "job_id": clean_id,
+        "job": updated_row,
+        "message": f"Placement drive '{clean_id}' updated successfully.",
+    }
+
+
+@router.delete("/jobs/{job_id}")
+async def delete_placement_drive(
+    job_id: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Permanently delete a placement drive."""
+    clean_id = job_id.strip()
+
+    # 1. Delete in PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import delete_job as db_delete_job
+            await db_delete_job(session, clean_id)
+            await session.commit()
+        except Exception as e:
+            logger.debug("PostgreSQL delete job note: %s", e)
+
+    # 2. Delete in Excel store
+    store = get_excel_store()
+    store.delete_row(SHEET_JOBS, "job_id", clean_id)
+
+    # 3. Delete in in-memory store
+    try:
+        from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+        if clean_id in FACULTY_MANAGED_JDS:
+            del FACULTY_MANAGED_JDS[clean_id]
+    except Exception:
+        pass
+
+    return {
+        "status": "SUCCESS",
+        "job_id": clean_id,
+        "deleted": True,
+        "message": f"Placement drive '{clean_id}' deleted successfully.",
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Synchronous Student Job Selection & Resource Access
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.post("/student/drives/{job_id}/select")
+async def toggle_student_drive_selection(
+    job_id: str,
+    student_id: Optional[str] = Query("STU-101"),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Synchronously select / join or unselect a placement drive for the active student."""
+    sid = (student_id or "STU-101").strip()
+    jid = job_id.strip()
+
+    result = {}
+
+    # 1. PostgreSQL
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import select_student_drive as db_select_drive
+            res = await db_select_drive(session, sid, jid)
+            await session.commit()
+            result = res
+        except Exception as e:
+            logger.debug("PostgreSQL select drive note: %s", e)
+
+    # 2. Excel store
+    store = get_excel_store()
+    excel_res = store.select_student_drive(sid, jid)
+    if not result:
+        result = excel_res
+
+    # 3. Synchronize Selected Placement Drive & Gaps into Student's Qdrant Knowledge Base
+    is_now_selected = result.get("is_selected", True)
+    try:
+        from rag.qdrant_service import get_qdrant_service, STUDENT_KNOWLEDGE_BASE_COLLECTION
+        from qdrant_client.http import models as qmodels
+        import uuid
+
+        qs = get_qdrant_service()
+        job_row = store.get_row(SHEET_JOBS, "job_id", jid) or {}
+        comp_name = job_row.get("company_name", "Target Company")
+        role_title = job_row.get("role_title", "Software Engineer")
+        mand_skills = job_row.get("mandatory_skills_json", "[]")
+        pref_skills = job_row.get("preferred_skills_json", "[]")
+        if isinstance(mand_skills, str):
+            try:
+                mand_skills = json.loads(mand_skills)
+            except Exception:
+                mand_skills = [s.strip() for s in mand_skills.split(",") if s.strip()]
+        if isinstance(pref_skills, str):
+            try:
+                pref_skills = json.loads(pref_skills)
+            except Exception:
+                pref_skills = [s.strip() for s in pref_skills.split(",") if s.strip()]
+
+        ev_rows = store.get_sheet(SHEET_EVIDENCE)
+        student_skills = [
+            str(e.get("skill_name", "")).strip()
+            for e in ev_rows
+            if str(e.get("student_id", "")).strip().lower() == sid.lower()
+            and "CONFIRMED" in str(e.get("tier") or e.get("evidence_status") or "")
+        ]
+        stu_skills_lower = {s.lower() for s in student_skills}
+
+        matched = [s for s in mand_skills if s.lower() in stu_skills_lower]
+        missing_gaps = [s for s in mand_skills if s.lower() not in stu_skills_lower]
+        pref_matched = [s for s in pref_skills if s.lower() in stu_skills_lower]
+
+        total_req = max(1, len(mand_skills))
+        fit_percentage = round((len(matched) / total_req) * 100)
+
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"campusbridge:{sid}:drive:{jid}"))
+
+        if is_now_selected:
+            drive_text = (
+                f"Selected Placement Drive Target for {sid}:\n"
+                f"Company: {comp_name}\n"
+                f"Role: {role_title}\n"
+                f"CTC Band: {job_row.get('ctc_band', 'Competitive')}\n"
+                f"Deadline Window: {job_row.get('deadline_hours', 48)} Hours\n"
+                f"Mandatory Technical Stack: {', '.join(mand_skills) if mand_skills else 'General SWE'}\n"
+                f"Student Fit Alignment: {fit_percentage}% ({len(matched)}/{total_req} mandatory skills covered)\n"
+                f"Student Matched Skills: {', '.join(matched) if matched else 'None currently locked'}\n"
+                f"Critical Skill Gaps to Close: {', '.join(missing_gaps) if missing_gaps else 'None! Ready for technical rounds'}\n"
+                f"Preferred Skills: {', '.join(pref_matched) if pref_matched else 'In progress'}\n"
+                f"72-Hour Sprint Plan Strategy: Target high-yield practice for {', '.join(missing_gaps[:3]) if missing_gaps else 'System Design and Concurrency'}.\n"
+                f"Announcement / Notes: {job_row.get('announcement_text') or 'Official Campus Hiring Process Active.'}\n"
+            )
+            vec = qs.embedder.embed_text(drive_text)
+            pt = qmodels.PointStruct(
+                id=point_id,
+                vector=vec,
+                payload={
+                    "student_id": sid,
+                    "student_user_id": sid,
+                    "job_id": jid,
+                    "company_name": comp_name,
+                    "role_title": role_title,
+                    "document_name": f"Selected Placement: {comp_name} ({role_title})",
+                    "section_path": "Selected Opportunities & 72h Sprint Plan",
+                    "content": drive_text,
+                    "fit_percentage": fit_percentage,
+                    "missing_gaps": missing_gaps,
+                    "matched_skills": matched,
+                    "is_active_target": True,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                },
+            )
+            for col in [STUDENT_KNOWLEDGE_BASE_COLLECTION, qs.collection_name]:
+                try:
+                    qs.client.upsert(collection_name=col, points=[pt])
+                except Exception:
+                    pass
+            logger.info("Synchronized selected drive '%s' into student '%s' knowledge base.", jid, sid)
+        else:
+            for col in [STUDENT_KNOWLEDGE_BASE_COLLECTION, qs.collection_name]:
+                try:
+                    qs.client.delete(collection_name=col, points_selector=qmodels.PointIdsList(points=[point_id]))
+                except Exception:
+                    pass
+            logger.info("Removed drive '%s' from student '%s' knowledge base.", jid, sid)
+    except Exception as qe:
+        logger.warning("Selected drive Qdrant sync notice: %s", qe)
+
+    return {
+        "status": "SUCCESS",
+        "student_id": sid,
+        "job_id": jid,
+        "is_selected": result.get("is_selected", True),
+        "selected_drives": result.get("selected_drives", [jid]),
+    }
+
+
+@router.get("/student/drives/selected")
+async def get_student_selected_drives(
+    student_id: Optional[str] = Query("STU-101"),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Retrieve all placement drive IDs and full job objects selected by the student."""
+    sid = (student_id or "STU-101").strip()
+    selected_ids = []
+
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import get_student_selected_drives as db_get_selected
+            selected_ids = await db_get_selected(session, sid)
+        except Exception as e:
+            logger.debug("PostgreSQL get selected drives note: %s", e)
+
+    store = get_excel_store()
+    if not selected_ids:
+        selected_ids = store.get_student_selected_drives(sid)
+
+    # Resolve full job objects
+    all_jobs_res = await list_all_placement_drives(session)
+    all_jobs = all_jobs_res.get("jobs", [])
+    
+    selected_jobs = [j for j in all_jobs if str(j.get("job_id", "")).strip() in selected_ids]
+
+    return {
+        "status": "SUCCESS",
+        "student_id": sid,
+        "selected_drive_ids": selected_ids,
+        "selected_jobs": selected_jobs,
+        "count": len(selected_jobs),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Skill-Gap Curated 72-Hour Sprint Plan Generator (Qwen 2.5)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.post("/sprint/generate/{job_id}")
+async def generate_curated_sprint_plan(
+    job_id: str,
+    student_id: Optional[str] = Query("STU-101"),
+    session: AsyncSession = Depends(get_async_session),
+) -> dict[str, Any]:
+    """Generates an hour-by-hour 72-Hour Sprint Plan curated strictly against the student's skill gaps.
+    
+    1. Fetches selected Job Description's required skills & criteria from PostgreSQL.
+    2. Fetches student's verified skills & academic standing.
+    3. Prompts Qwen 2.5: First identify the exact skill gap, and ONLY THEN generate
+       a high-yield 72h plan specifically targeting those gaps.
+    """
+    clean_jid = job_id.strip()
+    sid = (student_id or "STU-101").strip()
+
+    # 1. Fetch Target Job
+    store = get_excel_store()
+    job_row = None
+
+    if _is_valid_db_session(session):
+        try:
+            from backend.db.crud import get_job as db_get_job
+            db_j = await db_get_job(session, clean_jid)
+            if db_j:
+                job_row = db_j.to_dict()
+        except Exception:
+            pass
+
+    if not job_row:
+        job_row = store.get_row(SHEET_JOBS, "job_id", clean_jid)
+
+    if not job_row:
+        try:
+            from backend.routers.jd_upload import FACULTY_MANAGED_JDS
+            if clean_jid in FACULTY_MANAGED_JDS:
+                job_row = FACULTY_MANAGED_JDS[clean_jid]
+        except Exception:
+            pass
+
+    if not job_row:
+        # Default placeholder to prevent hard crash if ID was dynamic
+        job_row = {
+            "job_id": clean_jid,
+            "company_name": "Target Recruiter",
+            "role_title": "Software Development Engineer",
+            "min_cgpa": 7.5,
+            "ctc_band": "₹18–24 LPA",
+            "mandatory_skills_json": ["Python", "Data Structures", "SQL"],
+            "preferred_skills_json": ["Docker", "Distributed Systems"],
+        }
+
+    company = str(job_row.get("company_name", "Target Recruiter"))
+    role = str(job_row.get("role_title", "Software Engineer"))
+    min_cgpa = float(job_row.get("min_cgpa", 7.5) or 7.5)
+    ctc = str(job_row.get("ctc_band", "Competitive"))
+
+    mand_skills = job_row.get("mandatory_skills_json", [])
+    if isinstance(mand_skills, str):
+        try: mand_skills = json.loads(mand_skills)
+        except Exception: mand_skills = ["Python", "SQL"]
+    pref_skills = job_row.get("preferred_skills_json", [])
+    if isinstance(pref_skills, str):
+        try: pref_skills = json.loads(pref_skills)
+        except Exception: pref_skills = ["Docker"]
+
+    # 2. Fetch Student Profile & Verified Skills
+    evidence_rows = store.get_sheet(SHEET_EVIDENCE)
+    student_evidence = [
+        e for e in evidence_rows
+        if str(e.get("student_id", "")).strip().lower() == sid.lower()
+        and "CONFIRMED" in str(e.get("tier") or e.get("evidence_status") or "")
+    ]
+    verified_skill_names = [str(e.get("skill_name", "")).strip() for e in student_evidence]
+
+    student_row = store.get_row(SHEET_STUDENTS, "student_id", sid) or {}
+    stu_cgpa = float(student_row.get("cgpa", 8.42) or 8.42)
+
+    # 3. Calculate Deterministic Gaps
+    verified_lower = {s.lower() for s in verified_skill_names}
+    missing_mandatory = []
+    for m in mand_skills:
+        m_low = m.lower()
+        if not any(m_low in v or v in m_low for v in verified_lower):
+            missing_mandatory.append(m)
+
+    missing_preferred = []
+    for p in pref_skills:
+        p_low = p.lower()
+        if not any(p_low in v or v in p_low for v in verified_lower):
+            missing_preferred.append(p)
+
+    skill_gaps = []
+    for m in missing_mandatory:
+        skill_gaps.append({
+            "skill": m,
+            "category": "Mandatory Core Gate",
+            "severity": "CRITICAL_DEFICIT",
+            "impact": "Disqualification Risk if unaddressed within 48h",
+        })
+    for p in missing_preferred:
+        skill_gaps.append({
+            "skill": p,
+            "category": "Preferred Factor",
+            "severity": "ALIGNMENT_GAP",
+            "impact": "Fit score deduction (-8% to -15%)",
+        })
+
+    # If student possesses all skills, create master refinement gap
+    if not skill_gaps:
+        skill_gaps.append({
+            "skill": f"{mand_skills[0] if mand_skills else 'System Design'} Architecture Hardening",
+            "category": "Advanced Verification",
+            "severity": "DEFENSE_READINESS",
+            "impact": "120s Arena Micro-Defense speed & sub-second latency optimization",
+        })
+
+    # 4. Invoke Qwen 2.5 to generate the curated 72-Hour Sprint Plan
+    prompt = (
+        "You are the CampusBridge AI Executive Placement Sprint Director.\n"
+        "Generate a strict, high-yield, hour-by-hour 72-Hour Sprint Plan for a student targeting an active placement drive.\n\n"
+        f"COMPANY: {company}\n"
+        f"ROLE: {role} (Package: {ctc})\n"
+        f"MIN CGPA: {min_cgpa} (Student CGPA: {stu_cgpa})\n"
+        f"MANDATORY SKILLS REQUIRED: {', '.join(mand_skills)}\n"
+        f"PREFERRED SKILLS: {', '.join(pref_skills)}\n"
+        f"STUDENT'S CURRENT VERIFIED SKILLS: {', '.join(verified_skill_names) if verified_skill_names else 'None verified yet'}\n"
+        f"IDENTIFIED SKILL DEFICITS: {', '.join([g['skill'] for g in skill_gaps])}\n\n"
+        "STRICT INSTRUCTIONS:\n"
+        "1. Do NOT generate a generic sprint plan. Focus exclusively on closing the IDENTIFIED SKILL DEFICITS above.\n"
+        "2. Break down the 72 hours into 3 exact chronological phases:\n"
+        "   - hours_0_24: Foundation & Core Deficit Closure (remedying missing mandatory skills)\n"
+        "   - hours_25_48: Deep Hard-Skill Implementation, Architecture & Practice Arena Quests\n"
+        "   - hours_49_72: High-Pressure 120s Micro-Defense Drills, Mock Voice Defense & Interview Execution\n"
+        "3. Output ONLY a valid JSON object matching this schema:\n"
+        "{\n"
+        '  "executive_summary": "Short 2-sentence summary of sprint strategy",\n'
+        '  "hours_0_24": [\n'
+        '    {"hour_span": "00:00 - 08:00", "task": "...", "target_gap": "...", "deliverable": "..."}\n'
+        '  ],\n'
+        '  "hours_25_48": [\n'
+        '    {"hour_span": "24:00 - 32:00", "task": "...", "target_gap": "...", "deliverable": "..."}\n'
+        '  ],\n'
+        '  "hours_49_72": [\n'
+        '    {"hour_span": "48:00 - 56:00", "task": "...", "target_gap": "...", "deliverable": "..."}\n'
+        '  ]\n'
+        "}\n"
+    )
+
+    ollama_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
+    ai_generated = None
+
+    try:
+        import requests
+        resp = requests.post(
+            f"{ollama_url}/api/generate",
+            json={
+                "model": os.getenv("OLLAMA_MODEL", "qwen2.5:7b"),
+                "prompt": prompt,
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0.2, "num_predict": 1024},
+            },
+            timeout=18.0,
+        )
+        if resp.status_code == 200:
+            raw_text = resp.json().get("response", "{}")
+            ai_generated = json.loads(raw_text)
+    except Exception as e:
+        logger.warning("Ollama Qwen 2.5 unavailable for sprint generation (%s); activating deterministic synthesizer.", e)
+
+    # 5. Deterministic High-Yield Fallback Synthesizer if Ollama is offline
+    if not ai_generated or not ai_generated.get("hours_0_24"):
+        primary_gap = skill_gaps[0]["skill"] if skill_gaps else "Distributed Systems"
+        secondary_gap = skill_gaps[1]["skill"] if len(skill_gaps) > 1 else (mand_skills[0] if mand_skills else "SQL")
+
+        ai_generated = {
+            "executive_summary": f"Targeted 72-Hour Rapid Ramp Plan for {company} ({role}). Focuses exclusively on eliminating verified deficits in {primary_gap} and {secondary_gap} before the 48h campus cutoff.",
+            "hours_0_24": [
+                {
+                    "hour_span": "00:00 - 08:00",
+                    "task": f"Foundational Deficit Closure: Core {primary_gap} Syntax, Semantics & Memory Model",
+                    "target_gap": primary_gap,
+                    "deliverable": f"Working repo template with unit tests demonstrating mastery of {primary_gap} patterns.",
+                },
+                {
+                    "hour_span": "08:00 - 16:00",
+                    "task": f"Algorithmic Data Structures in {primary_gap}: Hash Maps, Priority Queues & Graph Traversals",
+                    "target_gap": primary_gap,
+                    "deliverable": "Solve 4 targeted medium-difficulty problems in the CampusBridge Practice Arena.",
+                },
+                {
+                    "hour_span": "16:00 - 24:00",
+                    "task": f"Bridge Secondary Deficit: {secondary_gap} Production Configurations & Schemas",
+                    "target_gap": secondary_gap,
+                    "deliverable": f"Deterministic execution script verifying zero-latency interaction with {secondary_gap}.",
+                },
+            ],
+            "hours_25_48": [
+                {
+                    "hour_span": "24:00 - 32:00",
+                    "task": f"High-Throughput Microservice Architecture implementing {primary_gap} + {secondary_gap}",
+                    "target_gap": f"{primary_gap} & {secondary_gap}",
+                    "deliverable": f"Dockerized REST/gRPC backend benchmarked with k6 at >500 req/sec.",
+                },
+                {
+                    "hour_span": "32:00 - 40:00",
+                    "task": f"Database Windowing & Complex Aggregations for {company} Interview Questions",
+                    "target_gap": "SQL & Analytical Queries",
+                    "deliverable": "Execute 6 SQL challenges in the SQL Arena matching Recruiter difficulty.",
+                },
+                {
+                    "hour_span": "40:00 - 48:00",
+                    "task": f"Resiliency Testing: Circuit Breakers, Retry Policies & Dead-Letter Queues in {primary_gap}",
+                    "target_gap": "Production Reliability",
+                    "deliverable": "Push commits to GitHub with automated CI/CD pipeline verifying zero unhandled exceptions.",
+                },
+            ],
+            "hours_49_72": [
+                {
+                    "hour_span": "48:00 - 56:00",
+                    "task": "A.T.H.E.N.A. 120s Arena Micro-Defense Drill 1: Concurrency & Race Conditions",
+                    "target_gap": "Micro-Defense Verification",
+                    "deliverable": "Attain >85% rubric evaluation on 120s live technical code defense (+12 fit pts).",
+                },
+                {
+                    "hour_span": "56:00 - 64:00",
+                    "task": f"J.A.R.V.I.S. AI Voice Agent Mock Interview: Deep-Dive into {company} System Architecture",
+                    "target_gap": "Recruiter Technical Screening",
+                    "deliverable": "Complete 15-minute simulated live technical interview session with audio transcription.",
+                },
+                {
+                    "hour_span": "64:00 - 72:00",
+                    "task": "Final Portfolio Lock & Recruiter Submission Seal",
+                    "target_gap": "Placement Gate Lock",
+                    "deliverable": f"Submit verified application for {company} — {role} with 1.0x Solid Token backing.",
+                },
+            ],
+        }
+
+    return {
+        "status": "SUCCESS",
+        "job_id": clean_jid,
+        "company": company,
+        "role_title": role,
+        "min_cgpa": min_cgpa,
+        "student_cgpa": stu_cgpa,
+        "ctc_band": ctc,
+        "skill_gaps": skill_gaps,
+        "verified_skills_count": len(verified_skill_names),
+        "sprint_plan": ai_generated,
+        "engine": "Qwen 2.5 + Deterministic Skill-Gap Correlator",
+    }
+
+
 
 
 

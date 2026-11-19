@@ -22,6 +22,7 @@ import {
   Clock,
   ArrowRight,
   Send,
+  ExternalLink,
 } from 'lucide-react'
 
 // Default rich 72-Hour Sprint Drives for JKLU Students
@@ -108,6 +109,7 @@ export default function StudentMatchesPage() {
   const [loading, setLoading] = useState(false)
   const [studentId, setStudentId] = useState('STU-101')
   const [appliedJobs, setAppliedJobs] = useState<Record<string, boolean>>({})
+  const [selectedDrives, setSelectedDrives] = useState<string[]>([])
 
   // Gamification States
   const [studentXp, setStudentXp] = useState(1450)
@@ -135,7 +137,55 @@ export default function StudentMatchesPage() {
     const activeId = user?.id || 'STU-101'
     setStudentId(activeId)
     fetchLiveMatches(activeId)
+    fetchSelectedDrives(activeId)
   }, [])
+
+  const fetchSelectedDrives = async (sid: string) => {
+    try {
+      const res = await fetch(`/api/student/drives/selected?student_id=${encodeURIComponent(sid)}`, {
+        headers: { Accept: 'application/json' },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.selected_drives)) {
+          setSelectedDrives(data.selected_drives)
+        }
+      }
+    } catch {}
+  }
+
+  const handleToggleSelectDrive = async (jobId: string, company: string, role: string) => {
+    try {
+      const res = await fetch(
+        `/api/student/drives/${encodeURIComponent(jobId)}/select?student_id=${encodeURIComponent(studentId)}`,
+        {
+          method: 'POST',
+          headers: { Accept: 'application/json' },
+        }
+      )
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.selected_drives)) {
+          setSelectedDrives(data.selected_drives)
+        } else {
+          setSelectedDrives((prev) =>
+            prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
+          )
+        }
+        const isNowSelected = data.is_selected ?? !selectedDrives.includes(jobId)
+        if (isNowSelected) {
+          setSprintNotice(`🎯 Joined "${company} — ${role}"! 72-Hour Sprint Plan unlocked in your sidebar.`)
+        } else {
+          setSprintNotice(`Deselected "${company} — ${role}" from your sprint targets.`)
+        }
+        setTimeout(() => setSprintNotice(null), 4000)
+      }
+    } catch (err: any) {
+      setSelectedDrives((prev) =>
+        prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
+      )
+    }
+  }
 
   const fetchLiveMatches = async (idToFetch?: string) => {
     const targetId = idToFetch || studentId || 'STU-101'
@@ -144,6 +194,10 @@ export default function StudentMatchesPage() {
       const data = await fetchLiveJobMatches(targetId)
       if (Array.isArray(data) && data.length > 0) {
         setMatches(data)
+        const initiallySelected = data.filter((m: any) => m.is_selected).map((m: any) => m.id)
+        if (initiallySelected.length > 0) {
+          setSelectedDrives((prev) => Array.from(new Set([...prev, ...initiallySelected])))
+        }
       } else {
         setMatches(DEFAULT_SPRINT_DRIVES)
       }
@@ -404,6 +458,21 @@ export default function StudentMatchesPage() {
 
               return (
                 <div key={match.id} className="relative">
+                  {/* Faculty Announcement Banner (if shared) */}
+                  {Boolean((match as any).announcement_text) && (
+                    <div className="mb-2.5 p-3.5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-950 flex items-start gap-2.5 shadow-2xs">
+                      <span className="material-symbols-outlined text-amber-700 text-base mt-0.5 shrink-0">campaign</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-mono text-3xs font-extrabold tracking-wider uppercase text-amber-800 block">
+                          Faculty Placement Notice
+                        </span>
+                        <p className="text-xs text-amber-900 mt-0.5 leading-snug font-medium">
+                          {(match as any).announcement_text}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <MatchCard
                     id={match.id}
                     jobTitle={match.jobTitle}
@@ -423,8 +492,8 @@ export default function StudentMatchesPage() {
                     }}
                   />
 
-                  {/* Fast-Track Apply Bar */}
-                  <div className="mt-2 flex items-center justify-between px-6 py-3 bg-surface-container-low rounded-2xl border border-outline-variant/60 flex-wrap gap-3">
+                  {/* Synchronous Actions & Placement Drive Selector Bar */}
+                  <div className="mt-2 flex items-center justify-between px-6 py-3.5 bg-surface-container-low rounded-2xl border border-outline-variant/60 flex-wrap gap-3">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-sm text-tertiary">verified_user</span>
                       <span className="text-xs text-on-surface font-semibold">
@@ -432,28 +501,77 @@ export default function StudentMatchesPage() {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Clickable Faculty Shared Link / Form */}
+                      {Boolean((match as any).external_link) && (
+                        <a
+                          href={
+                            (match as any).external_link.startsWith('http')
+                              ? (match as any).external_link
+                              : `https://${(match as any).external_link}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white border border-[#DE95BE] text-[#6D3B56] hover:bg-[#FAF8F5] transition-all shadow-2xs"
+                          title="Open official registration or documentation link"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Drive Link &amp; Docs</span>
+                        </a>
+                      )}
+
+                      {/* Explicit Drive Selection / 72h Sprint Toggle */}
+                      {selectedDrives.includes(match.id) ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSelectDrive(match.id, match.company, match.jobTitle)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-400 shadow-2xs hover:bg-emerald-200 transition-all cursor-pointer"
+                            title="Click to remove from selected sprint drives"
+                          >
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                            <span>✓ Drive Selected</span>
+                          </button>
+                          <Link
+                            href={`/student/sprint-plan?jobId=${match.id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-[#6D3B56] text-white hover:brightness-110 shadow-2xs transition-all"
+                          >
+                            <Zap className="h-3.5 w-3.5 text-amber-300" />
+                            <span>Sprint Plan →</span>
+                          </Link>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSelectDrive(match.id, match.company, match.jobTitle)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white border border-outline-variant text-on-surface hover:border-[#6D3B56] hover:text-[#6D3B56] transition-all shadow-2xs cursor-pointer"
+                        >
+                          <Zap className="h-3.5 w-3.5 text-secondary" />
+                          <span>+ Select / Join Drive</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleOpenSource('doc_resume_v3')}
-                        className="text-xs font-bold text-secondary px-3 py-1.5 rounded-full hover:bg-secondary-container/40 transition-colors"
+                        className="text-xs font-bold text-secondary px-2.5 py-1.5 rounded-full hover:bg-secondary-container/40 transition-colors"
                       >
-                        Inspect Evidence Spans
+                        Evidence Spans
                       </button>
 
                       {isApplied ? (
                         <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-tertiary-container text-on-tertiary-container border border-tertiary-fixed-dim">
                           <CheckCircle2 className="h-4 w-4 text-tertiary" />
-                          <span>Applied to 72h Drive ✓</span>
+                          <span>Applied ✓</span>
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleFastTrackApply(match.id, match.company)}
-                          className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full text-xs font-bold bg-primary text-on-primary border border-on-primary-fixed-variant shadow-[0_3px_0_#320e26] active:translate-y-[2px] transition-all hover:brightness-105 cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold bg-primary text-on-primary border border-on-primary-fixed-variant shadow-[0_3px_0_#320e26] active:translate-y-[2px] transition-all hover:brightness-105 cursor-pointer"
                         >
                           <Send className="h-3.5 w-3.5" />
-                          <span>Fast-Track 72h Apply (+300 XP)</span>
+                          <span>Fast-Track (+300 XP)</span>
                         </button>
                       )}
                     </div>

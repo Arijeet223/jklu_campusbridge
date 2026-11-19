@@ -208,6 +208,20 @@ async def confirm_grades_endpoint(payload: ConfirmGradesPayload) -> dict[str, An
     except Exception as e:
         logger.debug(f"PostgreSQL store update skipped: {e}")
 
+    # Step C: Sync confirmed academic records to Qdrant personal knowledge base
+    try:
+        from rag.qdrant_service import get_qdrant_service
+        qs = get_qdrant_service()
+        qs.upsert_student_unified_knowledge(
+            student_id=student_id,
+            full_name="Aarav Sharma",
+            skills=[],
+            academic_records=records_dict,
+            cgpa=perf["gpa"],
+        )
+    except Exception as e:
+        logger.warning(f"Qdrant academic knowledge base sync notice: {e}")
+
     return {
         "status": "CONFIRMED",
         "student_id": student_id,

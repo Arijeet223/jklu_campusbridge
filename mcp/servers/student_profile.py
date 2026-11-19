@@ -145,6 +145,58 @@ class StudentProfileServer(BaseMCPServer):
             )
         )
 
+        # Tool 4: query_student_context
+        self.register_tool(
+            ToolDefinition(
+                name="query_student_context",
+                description="Query the student's personal Qdrant knowledge base for verified skills, transcripts, coursework, and GitHub telemetry.",
+                input_schema={
+                    "type": "object",
+                    "required": ["query"],
+                    "properties": {
+                        "query": {"type": "string", "description": "Semantic query text to search student knowledge base."},
+                        "top_k": {"type": "integer", "description": "Max results to return.", "default": 4},
+                    },
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "student_id": {"type": "string"},
+                        "results": {"type": "array"},
+                        "count": {"type": "integer"},
+                    },
+                },
+                required_roles=["STUDENT", "FACULTY", "ADMIN"],
+                read_only=True,
+                rate_limit_per_minute=60,
+                timeout_seconds=5.0,
+                handler=self._handle_query_student_context,
+            )
+        )
+
+    def _handle_query_student_context(self, args: dict[str, Any], context: SecurityContext) -> dict[str, Any]:
+        """Fetch verified student context from Qdrant with actor_id enforcement."""
+        query = str(args.get("query", "")).strip()
+        top_k = int(args.get("top_k", 4))
+        target_student_id = str(context.actor_id or "STU-101").strip()
+
+        try:
+            from rag.qdrant_service import get_qdrant_service
+            qs = get_qdrant_service()
+            hits = qs.query_student_context(student_id=target_student_id, query=query, top_k=top_k)
+            return {
+                "student_id": target_student_id,
+                "results": hits,
+                "count": len(hits),
+            }
+        except Exception as e:
+            return {
+                "student_id": target_student_id,
+                "results": [],
+                "count": 0,
+                "error": str(e),
+            }
+
     def _handle_get_my_profile(self, args: dict[str, Any], context: SecurityContext) -> dict[str, Any]:
         student_id = context.actor_id if context.actor_role == "STUDENT" else _PRIYA_ID
         entry = _STUDENTS_BY_ID.get(student_id)

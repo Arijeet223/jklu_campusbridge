@@ -28,6 +28,7 @@ logger = logging.getLogger("campusbridge.qdrant")
 # Default collection name for student technical resumes
 DEFAULT_COLLECTION = os.getenv("QDRANT_COLLECTION", "campusbridge_resumes")
 ACTIVE_PLACEMENTS_COLLECTION = os.getenv("QDRANT_PLACEMENTS_COLLECTION", "active_placements")
+STUDENT_KNOWLEDGE_BASE_COLLECTION = os.getenv("QDRANT_STUDENT_KB_COLLECTION", "student_knowledge_base")
 LOCAL_STORAGE_PATH = os.getenv("QDRANT_STORAGE_PATH", "data/qdrant_storage")
 
 
@@ -88,6 +89,7 @@ class QdrantService:
         # Provision collection on startup
         self.ensure_collection()
         self.ensure_collection(ACTIVE_PLACEMENTS_COLLECTION)
+        self.ensure_collection(STUDENT_KNOWLEDGE_BASE_COLLECTION)
         self.seed_default_active_placements_if_empty()
 
     def ensure_collection(self, collection_name: str | None = None) -> bool:
@@ -187,11 +189,17 @@ class QdrantService:
 
         if points:
             try:
+                self.ensure_collection(self.collection_name)
                 self.client.upsert(
                     collection_name=self.collection_name,
                     points=points,
                 )
-                logger.info(f"Upserted {len(points)} points into Qdrant collection '{self.collection_name}' for {clean_student_id}.")
+                self.ensure_collection(STUDENT_KNOWLEDGE_BASE_COLLECTION)
+                self.client.upsert(
+                    collection_name=STUDENT_KNOWLEDGE_BASE_COLLECTION,
+                    points=points,
+                )
+                logger.info(f"Upserted {len(points)} points into Qdrant collection '{self.collection_name}' & '{STUDENT_KNOWLEDGE_BASE_COLLECTION}' for {clean_student_id}.")
                 return len(points)
             except Exception as e:
                 logger.error(f"Failed to upsert points to Qdrant: {e}")
@@ -547,16 +555,76 @@ class QdrantService:
 
         if points:
             try:
+                self.ensure_collection(STUDENT_KNOWLEDGE_BASE_COLLECTION)
                 self.client.upsert(
-                    collection_name=self.collection_name,
+                    collection_name=STUDENT_KNOWLEDGE_BASE_COLLECTION,
                     points=points,
                 )
+                if self.collection_name != STUDENT_KNOWLEDGE_BASE_COLLECTION:
+                    try:
+                        self.client.upsert(
+                            collection_name=self.collection_name,
+                            points=points,
+                        )
+                    except Exception:
+                        pass
                 logger.info(f"Upserted {len(points)} unified student knowledge vectors into Qdrant for '{clean_sid}'.")
                 return len(points)
             except Exception as e:
                 logger.error(f"Failed upserting unified student knowledge to Qdrant: {e}")
                 return 0
         return 0
+
+    def query_student_context(
+        self,
+        student_id: str,
+        query: str,
+        top_k: int = 5,
+    ) -> list[dict[str, Any]]:
+        """Strictly query student's private knowledge base filtered by student_id to prevent cross-tenant leaks."""
+        clean_sid = str(student_id).strip()
+        if not clean_sid:
+            return []
+        try:
+            vec = self.embedder.embed_text(query)
+            must_filter = models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="student_id",
+                        match=models.MatchValue(value=clean_sid),
+                    )
+                ]
+            )
+            hits = []
+            for col in [STUDENT_KNOWLEDGE_BASE_COLLECTION, self.collection_name]:
+                try:
+                    res = self.client.search(
+                        collection_name=col,
+                        query_vector=vec,
+                        query_filter=must_filter,
+                        limit=top_k,
+                    )
+                    if res:
+                        hits = res
+                        break
+                except Exception:
+                    continue
+
+            return [
+                {
+                    "id": str(h.id),
+                    "score": round(float(h.score), 4),
+                    "document_name": h.payload.get("document_name", "Student Record"),
+                    "section_path": h.payload.get("section_path", "Context"),
+                    "content": h.payload.get("content", ""),
+                    "student_id": h.payload.get("student_id", clean_sid),
+                    "created_at": h.payload.get("created_at"),
+                }
+                for h in hits
+            ]
+        except Exception as e:
+            logger.error(f"Error querying student context for '{clean_sid}': {e}")
+            return []
 
     def query_student_profile(
         self,
@@ -565,6 +633,9 @@ class QdrantService:
         top_k: int = 4,
     ) -> list[dict[str, Any]]:
         """Query student's private knowledge base in Qdrant with mandatory student_id pre-filter."""
+        ctx = self.query_student_context(student_id=student_id, query=query, top_k=top_k)
+        if ctx:
+            return ctx
         return self.search_chunks(
             query_text=query,
             student_id=student_id,

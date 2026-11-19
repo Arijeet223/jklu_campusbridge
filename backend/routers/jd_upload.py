@@ -14,7 +14,7 @@ import time
 from typing import Any, Optional
 
 import requests
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel
 
 logger = logging.getLogger("campusbridge.jd_upload")
@@ -281,7 +281,7 @@ FACULTY_MANAGED_JDS: dict[str, dict[str, Any]] = {
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post("/upload")
-async def upload_jd(req: JDUploadRequest):
+async def upload_jd(req: JDUploadRequest, background_tasks: BackgroundTasks):
     """Faculty uploads a JD → extracts skills using Qwen 2.5 → upserts chunks to Qdrant."""
     job_id = req.job_id or f"jd-{uuid.uuid4().hex[:8]}"
     logger.info(f"--> [FACULTY_JD_UPLOAD] Company: '{req.company_name}', Role: '{req.role_title}', JobID: '{job_id}'")
@@ -378,6 +378,22 @@ async def upload_jd(req: JDUploadRequest):
     except Exception:
         pass
 
+    # 6. Automated Trigger on JD Upload: Broadcast dual-channel & in-app alerts to students
+    try:
+        from services.notifications import get_notification_dispatcher
+        dispatcher = get_notification_dispatcher()
+        background_tasks.add_task(
+            dispatcher.broadcast_new_jd_alert,
+            company_name=req.company_name,
+            role_title=req.role_title,
+            min_cgpa=min_cgpa,
+            ctc_band=req.ctc_band,
+            job_id=job_id,
+        )
+        logger.info(f"[FACULTY_JD_BROADCAST] Scheduled background notification broadcast for {req.company_name} ({req.role_title})")
+    except Exception as e:
+        logger.warning(f"[FACULTY_JD_BROADCAST_WARN] Could not schedule notification broadcast: {e}")
+
     return {
         "status": "SUCCESS",
         "job_id": job_id,
@@ -426,6 +442,22 @@ async def update_job_criteria(req: UpdateCriteriaRequest):
             job["status"] = req.status
 
     logger.info(f"[FACULTY_CRITERIA_UPDATED] Job: {req.job_id}, Mandatory: {req.mandatory_skills}, Preferred: {req.preferred_skills}")
+    # 6. Automated Trigger on JD Upload: Broadcast dual-channel & in-app alerts to students
+    try:
+        from services.notifications import get_notification_dispatcher
+        dispatcher = get_notification_dispatcher()
+        background_tasks.add_task(
+            dispatcher.broadcast_new_jd_alert,
+            company_name=req.company_name,
+            role_title=req.role_title,
+            min_cgpa=min_cgpa,
+            ctc_band=req.ctc_band,
+            job_id=job_id,
+        )
+        logger.info(f"[FACULTY_JD_BROADCAST] Scheduled background notification broadcast for {req.company_name} ({req.role_title})")
+    except Exception as e:
+        logger.warning(f"[FACULTY_JD_BROADCAST_WARN] Could not schedule notification broadcast: {e}")
+
     return {
         "status": "SUCCESS",
         "message": "Faculty criteria preferences saved.",

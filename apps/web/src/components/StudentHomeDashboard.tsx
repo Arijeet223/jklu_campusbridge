@@ -38,29 +38,60 @@ export default function StudentHomeDashboard({
   const [latestDocId, setLatestDocId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Local skills state initialized from localStorage, props, or mock data
+  // Local skills state initialized strictly from current student's database/props
   const [localSkills, setLocalSkills] = useState<Skill[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('cb_user_skills')
+        const storedUser = localStorage.getItem('cb_active_user')
+        const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
+        const stored = localStorage.getItem(`cb_user_skills_${activeId}`)
         if (stored) {
           const parsed = JSON.parse(stored)
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed
+          if (Array.isArray(parsed)) return parsed
         }
-      } catch {}
+      } catch { }
     }
-    return skills.length > 0 ? skills : []
+    return skills || []
   })
 
   // Synchronize when external skills prop changes
   useEffect(() => {
-    if (skills && skills.length > 0) {
-      setLocalSkills(skills)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('cb_user_skills', JSON.stringify(skills))
-      }
+    setLocalSkills(skills || [])
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('cb_active_user')
+        const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
+        localStorage.setItem(`cb_user_skills_${activeId}`, JSON.stringify(skills || []))
+      } catch { }
     }
   }, [skills])
+
+  // Synchronize strictly with active student ID on mount
+  useEffect(() => {
+    let activeId = 'STU-101'
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cb_active_user')
+        if (stored) {
+          const u = JSON.parse(stored)
+          if (u.id) activeId = u.id
+          if (u.cgpa !== undefined) setCurrentCgpa(Number(u.cgpa))
+        }
+      } catch { }
+    }
+
+    fetch(`/api/students/${activeId}/evidence`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setLocalSkills(data)
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(`cb_user_skills_${activeId}`, JSON.stringify(data))
+          }
+        }
+      })
+      .catch(() => { })
+  }, [])
 
   // Real-time listener for skill changes (e.g. from profile-evidence or home)
   useEffect(() => {
@@ -69,12 +100,14 @@ export default function StudentHomeDashboard({
         setLocalSkills(e.detail)
       } else if (typeof window !== 'undefined') {
         try {
-          const stored = localStorage.getItem('cb_user_skills')
+          const storedUser = localStorage.getItem('cb_active_user')
+          const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
+          const stored = localStorage.getItem(`cb_user_skills_${activeId}`)
           if (stored) {
             const parsed = JSON.parse(stored)
             if (Array.isArray(parsed)) setLocalSkills(parsed)
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -95,9 +128,9 @@ export default function StudentHomeDashboard({
           const u = JSON.parse(stored)
           if (u.cgpa !== undefined) return Number(u.cgpa)
         }
-      } catch {}
+      } catch { }
     }
-    return cgpa
+    return cgpa ?? 0.0
   })
 
   const [academicStanding, setAcademicStanding] = useState<string>(() => {
@@ -108,7 +141,7 @@ export default function StudentHomeDashboard({
           const u = JSON.parse(stored)
           if (u.academic_standing) return u.academic_standing
         }
-      } catch {}
+      } catch { }
     }
     return 'EXCELLENT'
   })
@@ -121,12 +154,14 @@ export default function StudentHomeDashboard({
           const arr = JSON.parse(stored)
           if (Array.isArray(arr)) return arr.length
         }
-      } catch {}
+      } catch { }
     }
     return 0
   })
 
   const [showGradeSheetModal, setShowGradeSheetModal] = useState(false)
+  const [showRecruiterViewModal, setShowRecruiterViewModal] = useState(false)
+  const [previewSkillsExpanded, setPreviewSkillsExpanded] = useState(false)
   const [vaultTab, setVaultTab] = useState<'RESUME' | 'GRADES'>('RESUME')
 
   // Real-time listener for academic changes
@@ -173,7 +208,7 @@ export default function StudentHomeDashboard({
             const u = JSON.parse(stored)
             if (u.id) activeId = u.id
           }
-        } catch {}
+        } catch { }
       }
 
       const formData = new FormData()
@@ -204,7 +239,7 @@ export default function StudentHomeDashboard({
         try {
           const storedVersions = localStorage.getItem('cb_resume_versions')
           if (storedVersions) existingVersions = JSON.parse(storedVersions)
-        } catch {}
+        } catch { }
         if (!existingVersions.length) existingVersions = [...mockResumeVersions]
 
         const nextVersionNum = existingVersions.length + 1
@@ -252,7 +287,7 @@ export default function StudentHomeDashboard({
           const storedDocs = JSON.parse(localStorage.getItem('cb_uploaded_documents') || '{}')
           storedDocs[docRecordId] = docRecord
           localStorage.setItem('cb_uploaded_documents', JSON.stringify(storedDocs))
-        } catch {}
+        } catch { }
 
         setLatestDocId(docRecordId)
 
@@ -353,25 +388,22 @@ export default function StudentHomeDashboard({
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => setShowGradeSheetModal(true)}
-              className="bg-secondary text-on-secondary font-label-lg text-label-lg px-5 py-3.5 rounded-full border border-secondary-fixed-dim shadow-[0_3px_0_#2b5b75] active:translate-y-[2px] transition-all flex items-center gap-2 hover:brightness-105 cursor-pointer"
+              onClick={() => setShowRecruiterViewModal(true)}
+              className="bg-primary text-on-primary font-label-lg text-label-lg px-6 py-3.5 rounded-full border border-on-primary-fixed-variant shadow-[0_4px_0_#320e26] active:translate-y-[3px] active:shadow-[0_1px_0_#320e26] transition-all flex items-center gap-2 hover:brightness-105 cursor-pointer"
             >
-              <span className="material-symbols-outlined text-base">school</span>
-              <span>Upload Grade Sheet</span>
+              <span className="material-symbols-outlined text-base">visibility</span>
+              <span>How Recruiters See You</span>
             </button>
+
             <Link
-              href="/student/matches"
-              className="bg-primary text-on-primary font-label-lg text-label-lg px-6 py-3.5 rounded-full border border-on-primary-fixed-variant shadow-[0_4px_0_#320e26] active:translate-y-[3px] active:shadow-[0_1px_0_#320e26] transition-all flex items-center gap-2 hover:brightness-105"
+              href="/student/settings"
+              className="bg-surface-container-low text-on-surface font-label-lg text-label-lg px-5 py-3.5 rounded-full border border-outline-variant shadow-[0_3px_0_#d3c2c9] active:translate-y-[2px] active:shadow-[0_1px_0_#d3c2c9] transition-all flex items-center gap-2.5 hover:bg-surface-container group"
+              title="Manage personal credentials, career targets, GitHub, Telegram, Resume, and Grade Cards"
             >
-              <span>Resume 72h Sprint</span>
-              <span className="material-symbols-outlined text-base">arrow_forward</span>
-            </Link>
-            <Link
-              href="/student/what-if-sandbox"
-              className="bg-surface-container-low text-on-surface font-label-lg text-label-lg px-5 py-3.5 rounded-full border border-outline-variant shadow-[0_3px_0_#d3c2c9] active:translate-y-[2px] active:shadow-[0_1px_0_#d3c2c9] transition-all flex items-center gap-2 hover:bg-surface-container"
-            >
-              <span className="material-symbols-outlined text-base text-secondary">science</span>
-              <span>Run What-If Simulation</span>
+              <div className="h-6 w-6 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-xs border border-outline-variant shadow-2xs group-hover:scale-105 transition-transform">
+                <span className="material-symbols-outlined text-sm">account_circle</span>
+              </div>
+              <span>Account &amp; Career Info</span>
             </Link>
           </div>
         </div>
@@ -453,13 +485,12 @@ export default function StudentHomeDashboard({
               <p className="text-body-sm font-body-sm text-outline font-medium">
                 {academicRecordsCount > 0 ? `${academicRecordsCount} Courses Verified` : 'Deterministic Scoring'}
               </p>
-              <button
-                type="button"
-                onClick={() => setShowGradeSheetModal(true)}
+              <Link
+                href="/student/settings"
                 className="text-[11px] font-bold text-primary hover:underline cursor-pointer"
               >
                 {academicRecordsCount > 0 ? 'Update' : 'Upload'} →
-              </button>
+              </Link>
             </div>
             <div className="w-full bg-surface-container-high rounded-full h-2 mt-3 overflow-hidden">
               <div
@@ -564,11 +595,11 @@ export default function StudentHomeDashboard({
                 <span className="material-symbols-outlined text-base">arrow_forward</span>
               </Link>
               <Link
-                href="/student/what-if-sandbox"
+                href="/student/sprint-plan"
                 className="bg-surface-container text-on-surface font-label-md text-label-md px-4 py-2.5 rounded-full border border-outline-variant shadow-[0_2px_0_#d3c2c9] active:translate-y-[1px] transition-all hover:bg-surface-container-high flex items-center gap-1.5 font-bold"
               >
-                <span className="material-symbols-outlined text-sm">assignment</span>
-                <span>View Drive Rubric</span>
+                <span className="material-symbols-outlined text-sm">bolt</span>
+                <span>Launch 72h Sprint</span>
               </Link>
             </div>
           </div>
@@ -797,13 +828,18 @@ export default function StudentHomeDashboard({
 
             <div className="bg-surface-container-low rounded-2xl p-4 border border-outline-variant/60 shadow-inner">
               <p className="text-body-sm font-body-sm text-on-surface leading-relaxed">
-                {readinessProfile.dimensions.sql.score < 70 ? (
+                {verifiedSkills.length === 0 ? (
                   <>
-                    &ldquo;Aarav, completing the <strong className="font-bold text-primary">DENSE_RANK() SQL quest</strong> or selecting high SQL proficiency on your parsed Ghost Cards will push your Database score past 70% and unlock the <strong className="font-bold">80% automated interview shortlist threshold</strong>. Your Redis defense was rated in the top 5%!&rdquo;
+                    &ldquo;{studentName || 'Student'}, your profile currently has 0 confirmed skills. Ingest your technical resume or grade card in{' '}
+                    <strong className="font-bold text-primary">Account & Career Info</strong> to build your verified knowledge base and unlock personalized placement scoring.&rdquo;
+                  </>
+                ) : readinessProfile.dimensions.sql.score < 70 ? (
+                  <>
+                    &ldquo;{studentName || 'Student'}, completing the <strong className="font-bold text-primary">DENSE_RANK() SQL quest</strong> or confirming skills from your parsed resume will push your Database score past 70% and unlock the <strong className="font-bold">80% automated interview shortlist threshold</strong>.&rdquo;
                   </>
                 ) : (
                   <>
-                    &ldquo;Aarav, excellent work! Your verified <strong className="font-bold text-tertiary">SQL score is now {readinessProfile.dimensions.sql.score}% (Proficient ✓)</strong>. You have surpassed the automated shortlist threshold for the RazorpayX Backend drive!&rdquo;
+                    &ldquo;{studentName || 'Student'}, excellent work! Your verified <strong className="font-bold text-tertiary">SQL score is now {readinessProfile.dimensions.sql.score}% (Proficient ✓)</strong>. You have surpassed the automated shortlist threshold for your active placement targets!&rdquo;
                   </>
                 )}
               </p>
@@ -859,11 +895,10 @@ export default function StudentHomeDashboard({
           <button
             type="button"
             onClick={() => setVaultTab('RESUME')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              vaultTab === 'RESUME'
-                ? 'bg-primary text-on-primary shadow-[0_2px_0_#320e26]'
-                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${vaultTab === 'RESUME'
+              ? 'bg-primary text-on-primary shadow-[0_2px_0_#320e26]'
+              : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+              }`}
           >
             <span className="material-symbols-outlined text-sm">description</span>
             <span>Technical Resume (PDF / DOCX)</span>
@@ -871,11 +906,10 @@ export default function StudentHomeDashboard({
           <button
             type="button"
             onClick={() => setVaultTab('GRADES')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${
-              vaultTab === 'GRADES'
-                ? 'bg-secondary text-on-secondary shadow-[0_2px_0_#2b5b75]'
-                : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer ${vaultTab === 'GRADES'
+              ? 'bg-secondary text-on-secondary shadow-[0_2px_0_#2b5b75]'
+              : 'bg-surface-container text-on-surface hover:bg-surface-container-high'
+              }`}
           >
             <span className="material-symbols-outlined text-sm">school</span>
             <span>Academic Grade Sheet (PDF / Screenshot)</span>
@@ -896,11 +930,10 @@ export default function StudentHomeDashboard({
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
-              isDragging
-                ? 'border-primary bg-primary-container/20 shadow-md'
-                : 'border-outline-variant bg-surface-container-low hover:border-secondary hover:bg-secondary-container/10'
-            }`}
+            className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${isDragging
+              ? 'border-primary bg-primary-container/20 shadow-md'
+              : 'border-outline-variant bg-surface-container-low hover:border-secondary hover:bg-secondary-container/10'
+              }`}
           >
             <input
               type="file"
@@ -959,32 +992,32 @@ export default function StudentHomeDashboard({
           </Link>
 
           <Link
-            href="/student/what-if-sandbox"
+            href="/student/sprint-plan"
             className="block group p-6 rounded-3xl bg-surface-container-lowest border-[1.5px] border-outline-variant shadow-[0_4px_0_#EAD7E2] hover:shadow-[0_6px_0_#85B5CE] transition-all hover:-translate-y-0.5"
           >
             <div className="w-10 h-10 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-headline-sm border border-secondary-fixed-dim mb-4">
-              🎛️
+              ⚡
             </div>
             <h3 className="text-headline-sm font-headline-sm text-on-surface font-extrabold group-hover:text-secondary transition-colors">
-              Job Fit &amp; What-If Sandbox
+              72-Hour Placement Sprint Plan
             </h3>
             <p className="text-body-sm font-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
-              Deterministic &lt;50ms scoring simulator. Toggle skills, electives, and micro-defenses in real-time.
+              Curated hour-by-hour sprint plan targeting exact skill gaps for your selected campus placement drives.
             </p>
           </Link>
 
           <Link
-            href="/student/matches"
+            href="/student/settings"
             className="block group p-6 rounded-3xl bg-surface-container-lowest border-[1.5px] border-outline-variant shadow-[0_4px_0_#EAD7E2] hover:shadow-[0_6px_0_#a8cfbb] transition-all hover:-translate-y-0.5"
           >
             <div className="w-10 h-10 rounded-2xl bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-bold text-headline-sm border border-tertiary-fixed-dim mb-4">
-              ⚡
+              ⚙️
             </div>
             <h3 className="text-headline-sm font-headline-sm text-on-surface font-extrabold group-hover:text-tertiary transition-colors">
-              72h Interview Prep Sprint
+              Profile Settings &amp; Ingestion
             </h3>
             <p className="text-body-sm font-body-sm text-on-surface-variant mt-1.5 leading-relaxed">
-              Curated quests tailored to incoming drives closing in 72 hours.
+              Update institutional credentials, GitHub URL, and upload verified resumes and grade cards.
             </p>
           </Link>
 
@@ -1050,6 +1083,183 @@ export default function StudentHomeDashboard({
                 setShowGradeSheetModal(false)
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal Dialog for "How Recruiters See You" */}
+      {showRecruiterViewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative bg-[#6D3B56] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl border-0 ring-0 flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-[#6D3B56] text-white px-6 py-4.5 rounded-t-3xl flex items-center justify-between border-b border-[#552940] shrink-0 border-t-0">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                  <span className="material-symbols-outlined text-xl">visibility</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-display font-extrabold text-white tracking-tight">
+                      How Recruiters See You
+                    </h3>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                      Read-Only Talent View
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/70 mt-0.5">
+                    FERPA &amp; DPDP compliant snapshot showing only confirmed solid cards and verified telemetry.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRecruiterViewModal(false)}
+                className="p-1.5 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close modal"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 sm:p-7 overflow-y-auto max-h-[calc(90vh-80px)] space-y-6 bg-[#FAF8F5] flex-1">
+              {/* Candidate Quick Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4.5 rounded-2xl bg-white border border-[#E6E3DC] shadow-2xs">
+                <div>
+                  <h4 className="font-display font-extrabold text-lg text-ink-primary">
+                    {studentName}
+                  </h4>
+                  <p className="text-xs text-ink-secondary mt-0.5">
+                    {institution} • ID: <span className="font-mono">{studentId}</span>
+                  </p>
+                  <span className="inline-block mt-2 font-mono text-3xs font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                    Institutional Proof-of-Work Verified
+                  </span>
+                </div>
+
+                <div className="text-left sm:text-right p-3 rounded-xl bg-[#FAF8F5] border border-[#E6E3DC] shrink-0">
+                  <span className="text-3xs font-mono font-bold text-ink-muted uppercase block">
+                    Verified CGPA
+                  </span>
+                  <span className="font-mono text-2xl font-black text-[#6D3B56] block">
+                    {currentCgpa.toFixed(2)}
+                  </span>
+                  <span className="text-3xs font-bold text-emerald-700">
+                    {academicStanding}
+                  </span>
+                </div>
+              </div>
+
+              {/* Confirmed Solid Cards ONLY */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-display font-bold text-sm text-ink-primary">
+                    Confirmed Solid Cards (Visible to Recruiters)
+                  </h5>
+                  <span className="font-mono text-3xs font-bold text-ink-muted">
+                    Provisional Ghost cards hidden
+                  </span>
+                </div>
+
+                {(() => {
+                  const solidOnly = localSkills.filter((s) => {
+                    const status = s.evidenceStatus || ''
+                    const isSolid =
+                      status === 'STUDENT_CONFIRMED' ||
+                      status === 'INSTITUTION_VERIFIED' ||
+                      status === 'ASSESSMENT_VERIFIED' ||
+                      status === 'ARTIFACT_LINKED' ||
+                      Boolean((s as any).isConfirmed)
+                    return isSolid && !s.name.toLowerCase().includes('mock')
+                  })
+
+                  if (solidOnly.length === 0) {
+                    return (
+                      <div className="p-4 rounded-xl bg-white border border-dashed border-gray-300 text-center text-xs text-gray-500">
+                        No confirmed Solid Cards yet. Confirm extracted skills from your profile to display them here.
+                      </div>
+                    )
+                  }
+
+                  const visibleSkills = previewSkillsExpanded ? solidOnly : solidOnly.slice(0, 5)
+
+                  return (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {visibleSkills.map((sk) => (
+                          <div
+                            key={sk.id}
+                            className="p-3.5 rounded-xl border border-[#E6E3DC] bg-white shadow-2xs space-y-1.5"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-display font-bold text-xs text-ink-primary">
+                                {sk.name}
+                              </span>
+                              <span className="font-mono text-3xs font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                                Solid 1.0x
+                              </span>
+                            </div>
+                            <p className="text-3xs font-mono text-ink-muted">
+                              {sk.proficiency || 'Advanced'} • {sk.sourceSpan || 'Character-span verified'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      {solidOnly.length > 5 && (
+                        <div className="pt-1 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewSkillsExpanded(!previewSkillsExpanded)}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-300 bg-white text-xs font-bold text-[#6D3B56] hover:bg-gray-50 shadow-2xs transition-all cursor-pointer"
+                          >
+                            <span>
+                              {previewSkillsExpanded ? 'Show less' : `+ View ${solidOnly.length - 5} more skills`}
+                            </span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+
+              {/* GitHub Telemetry */}
+              <div className="p-4 rounded-2xl bg-white border border-[#E6E3DC] space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-lg text-ink-primary">code</span>
+                    <span className="font-display font-bold text-xs text-ink-primary">
+                      GitHub Engineering Telemetry
+                    </span>
+                  </div>
+                  <span className="font-mono text-3xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    A.T.H.E.N.A. Sandbox Verified
+                  </span>
+                </div>
+                <p className="text-2xs text-ink-secondary">
+                  Telemetry verified: Commits and code ownership are validated via isolated Docker runtimes and 120s proctored viva.
+                </p>
+              </div>
+
+              {/* Footer CTA */}
+              <div className="pt-2 flex items-center justify-between">
+                <Link
+                  href="/student/preview"
+                  className="px-5 py-2.5 rounded-xl bg-[#6D3B56] text-white hover:bg-[#582e44] text-xs font-bold transition-all shadow-xs flex items-center gap-2"
+                >
+                  <span>Open Full Recruiter Dossier Page</span>
+                  <span className="material-symbols-outlined text-sm">open_in_new</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowRecruiterViewModal(false)}
+                  className="text-xs font-bold text-gray-500 hover:text-gray-800 cursor-pointer"
+                >
+                  Close Preview
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

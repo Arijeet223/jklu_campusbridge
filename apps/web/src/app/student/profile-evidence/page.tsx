@@ -32,7 +32,7 @@ export default function ProfileEvidencePage() {
 
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterType, setFilterType] = useState<'ALL' | 'UNCONFIRMED' | 'VERIFIED' | 'DOUBT'>('ALL')
+  const [filterType, setFilterType] = useState<'ALL' | 'UNCONFIRMED' | 'VERIFIED'>('ALL')
   const [actionNotice, setActionNotice] = useState<string | null>(null)
 
   // Add Custom Skill Modal State
@@ -148,7 +148,7 @@ export default function ProfileEvidencePage() {
     setTimeout(() => setActionNotice(null), 3000)
   }
 
-  // Handle Add Custom Skill (Doubt Ghost Card)
+  // Handle Add Custom Skill (Provisional Ghost Card)
   const handleAddCustomSkillSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = customSkillName.trim()
@@ -168,17 +168,17 @@ export default function ProfileEvidencePage() {
 
     const user = getActiveUser()
     const studentId = user?.id || 'STU-101'
-    const newId = `ev-doubt-${studentId.toLowerCase()}-${Date.now()}`
+    const newId = `ev-ghost-${studentId.toLowerCase()}-${Date.now()}`
 
     const newSkill: Skill = {
       id: newId,
       name: trimmed,
       category: customSkillCategory,
       proficiency: customSkillProficiency,
-      evidenceStatus: 'DOUBT_GHOST',
+      evidenceStatus: 'EXTRACTED',
       sourceDocumentId: 'doc_manual_claim',
-      sourceSpan: 'Manual Student Claim (No Evidence)',
-      confidence: 0.0,
+      sourceSpan: 'Manual Student Claim (Provisional Ghost)',
+      confidence: 0.85,
     }
 
     try {
@@ -197,7 +197,7 @@ export default function ProfileEvidencePage() {
     }
 
     setActionNotice(
-      `Added "${trimmed}" as a Doubt Ghost Card! Awaiting faculty endorsement or certificate evidence.`
+      `Added "${trimmed}" as a Ghost Card ready for confirmation!`
     )
     setTimeout(() => setActionNotice(null), 5000)
 
@@ -206,17 +206,15 @@ export default function ProfileEvidencePage() {
     setIsSubmittingCustomSkill(false)
   }
 
-  const unconfirmedCount = skills.filter((s) => s.evidenceStatus === 'EXTRACTED').length
+  const unconfirmedCount = skills.filter((s) => s.evidenceStatus === 'EXTRACTED' || (s.evidenceStatus as string) === 'DOUBT_GHOST').length
   const solidCount = skills.filter(
-    (s) => s.evidenceStatus !== 'EXTRACTED' && s.evidenceStatus !== 'DOUBT_GHOST'
+    (s) => s.evidenceStatus !== 'EXTRACTED' && (s.evidenceStatus as string) !== 'DOUBT_GHOST'
   ).length
-  const doubtCount = skills.filter((s) => s.evidenceStatus === 'DOUBT_GHOST').length
 
   const filteredSkills = skills.filter((s) => {
-    if (filterType === 'UNCONFIRMED') return s.evidenceStatus === 'EXTRACTED'
+    if (filterType === 'UNCONFIRMED') return s.evidenceStatus === 'EXTRACTED' || (s.evidenceStatus as string) === 'DOUBT_GHOST'
     if (filterType === 'VERIFIED')
-      return s.evidenceStatus !== 'EXTRACTED' && s.evidenceStatus !== 'DOUBT_GHOST'
-    if (filterType === 'DOUBT') return s.evidenceStatus === 'DOUBT_GHOST'
+      return s.evidenceStatus !== 'EXTRACTED' && (s.evidenceStatus as string) !== 'DOUBT_GHOST'
     return true
   })
 
@@ -239,29 +237,23 @@ export default function ProfileEvidencePage() {
                 Ghost-to-Solid Career Skill Map
               </h1>
               <p className="text-body-md font-body-md text-on-surface-variant">
-                Every AI-proposed skill claim is grounded in verifiable resume char spans. Confirm provisional Ghost Cards, inspect evidence, or report custom skills as Doubt Ghost Cards.
+                Every AI-proposed skill claim is grounded in verifiable resume char spans. Confirm provisional Ghost Cards, inspect evidence, or report custom skills to your profile ledger.
               </p>
             </div>
 
             {/* Quick Metrics Bento */}
             <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
-              <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl p-3.5 shadow-[0_3px_0_#EAD7E2] text-center min-w-[95px]">
+              <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl p-3.5 shadow-[0_3px_0_#EAD7E2] text-center min-w-[110px]">
                 <span className="font-extrabold text-2xl text-primary">{unconfirmedCount}</span>
                 <p className="text-[10px] font-bold text-outline uppercase mt-0.5">Ghost Cards</p>
               </div>
 
-              <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl p-3.5 shadow-[0_3px_0_#A8CFBB] text-center min-w-[95px]">
+              <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl p-3.5 shadow-[0_3px_0_#A8CFBB] text-center min-w-[110px]">
                 <span className="font-extrabold text-2xl text-tertiary">{solidCount}</span>
                 <p className="text-[10px] font-bold text-tertiary uppercase mt-0.5">Solid Tokens</p>
               </div>
 
-              {/* Doubt Ghost Cards Metric */}
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-3.5 shadow-[0_3px_0_#F59E0B] text-center min-w-[95px]">
-                <span className="font-extrabold text-2xl text-amber-800">{doubtCount}</span>
-                <p className="text-[10px] font-bold text-amber-700 uppercase mt-0.5">Doubt Ghosts</p>
-              </div>
-
-              <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl p-3.5 shadow-[0_3px_0_#85B5CE] text-center min-w-[95px]">
+              <div className="bg-surface-container-lowest border-2 border-outline-variant rounded-2xl p-3.5 shadow-[0_3px_0_#85B5CE] text-center min-w-[110px]">
                 <span className="font-extrabold text-2xl text-secondary">{readiness.overallReadiness}%</span>
                 <p className="text-[10px] font-bold text-secondary uppercase mt-0.5">Overall Fit</p>
               </div>
@@ -303,18 +295,6 @@ export default function ProfileEvidencePage() {
                 }`}
               >
                 Ghost Cards ({unconfirmedCount})
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterType('DOUBT')}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  filterType === 'DOUBT'
-                    ? 'bg-amber-600 text-white shadow-[0_2px_0_#B45309]'
-                    : 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
-                }`}
-              >
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span>Doubt Ghosts ({doubtCount})</span>
               </button>
             </div>
 
@@ -369,7 +349,7 @@ export default function ProfileEvidencePage() {
                 proficiency={sk.proficiency || 'Intermediate'}
                 sourcePage={sk.sourcePage ? `p.${sk.sourcePage}` : 'p.1'}
                 sourceSection={sk.category || 'Technical Skills'}
-                confidence={sk.confidence ?? (sk.evidenceStatus === 'DOUBT_GHOST' ? 0 : 0.94)}
+                confidence={sk.confidence ?? 0.94}
                 evidenceStatus={sk.evidenceStatus}
                 onConfirm={() => handleConfirm(sk.id)}
                 onReject={() => handleReject(sk.id)}
@@ -384,18 +364,14 @@ export default function ProfileEvidencePage() {
               <ShieldAlert className="h-6 w-6" />
             </div>
             <h3 className="font-display font-bold text-base text-on-surface">
-              {filterType === 'DOUBT'
-                ? 'No Doubt Ghost Cards'
-                : filterType === 'UNCONFIRMED'
+              {filterType === 'UNCONFIRMED'
                 ? 'No Unconfirmed Ghost Cards'
                 : filterType === 'VERIFIED'
                 ? 'No Solid Tokens Verified Yet'
                 : 'No Skills in Profile Ledger'}
             </h3>
             <p className="text-xs text-outline max-w-md mx-auto">
-              {filterType === 'DOUBT'
-                ? 'Any skills you add manually without resume or grade card evidence will appear here.'
-                : 'Upload your technical resume or click "Add Custom Skill" to add verified or provisional capabilities.'}
+              Upload your technical resume or click &quot;Add Custom Skill&quot; to add verified or provisional capabilities.
             </p>
             <button
               type="button"
@@ -413,16 +389,16 @@ export default function ProfileEvidencePage() {
       </div>
 
       {/* ========================================================= */}
-      {/* 3. ADD CUSTOM SKILL MODAL (DOUBT GHOST CARD)              */}
+      {/* 3. ADD CUSTOM SKILL MODAL                                 */}
       {/* ========================================================= */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border-2 border-[#E6E3DC] shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold uppercase tracking-wider mb-1">
-                  <AlertTriangle className="h-3 w-3 text-amber-700" />
-                  <span>Doubt Ghost Card Generation</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary-container text-on-primary-container border border-outline-variant text-[10px] font-bold uppercase tracking-wider mb-1">
+                  <Sparkles className="h-3 w-3 text-[#6D3B56]" />
+                  <span>Provisional Ghost Card</span>
                 </div>
                 <h3 className="font-display font-extrabold text-base text-gray-900">
                   Add Custom Skill
@@ -437,14 +413,14 @@ export default function ProfileEvidencePage() {
               </button>
             </div>
 
-            {/* Caution Explainer Callout */}
-            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold">
-                <HelpCircle className="h-4 w-4 text-amber-700 shrink-0" />
-                <span>Evidence Requirement Notice</span>
+            {/* Explainer Callout */}
+            <div className="p-3.5 rounded-2xl bg-[#FBF9F7] border border-[#E6E3DC] text-xs text-on-surface-variant space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-on-surface">
+                <Sparkles className="h-4 w-4 text-[#6D3B56] shrink-0" />
+                <span>Ghost Card Generation</span>
               </div>
-              <p className="text-[11px] text-amber-800 leading-relaxed">
-                Because this skill is self-reported and lacks document provenance from your resume or transcripts, it enters as a <strong>Doubt Ghost Card (0.0x)</strong>. It will only solidify if verified by a faculty mentor or confirmed via future certificate upload.
+              <p className="text-[11px] text-outline leading-relaxed">
+                This skill will enter your ledger as a provisional <strong>0.5x Ghost Card</strong>. You can confirm it anytime to solidify it for your recruiter profile.
               </p>
             </div>
 
@@ -525,7 +501,7 @@ export default function ProfileEvidencePage() {
                   ) : (
                     <>
                       <Plus className="h-3.5 w-3.5" />
-                      <span>Add as Doubt Ghost Card</span>
+                      <span>Add Ghost Card</span>
                     </>
                   )}
                 </button>

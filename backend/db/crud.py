@@ -25,6 +25,7 @@ from backend.db.models import (
     SQLPracticeProblem,
     StaffUser,
     StudentProfile,
+    Notification,
 )
 
 
@@ -416,10 +417,102 @@ async def create_job(session: AsyncSession, data: dict[str, Any]) -> Opportunity
         preferred_skills_json=data.get("preferred_skills_json", []),
         approved_by_officer=bool(data.get("approved_by_officer", True)),
         status=data.get("status", "APPROVED"),
+        announcement_text=data.get("announcement_text", ""),
+        external_link=data.get("external_link", ""),
+        resources=data.get("resources", []),
     )
     session.add(job)
     await session.flush()
     return job
+
+
+async def update_job(session: AsyncSession, job_id: str, data: dict[str, Any]) -> Optional[OpportunityJD]:
+    """Full update for placement drive details and attached resources."""
+    job = await get_job(session, job_id)
+    if not job:
+        return None
+
+    if "company_name" in data and data["company_name"]:
+        job.company_name = data["company_name"]
+    if "role_title" in data and data["role_title"]:
+        job.role_title = data["role_title"]
+    if "ctc_band" in data and data["ctc_band"]:
+        job.ctc_band = data["ctc_band"]
+    if "deadline_hours" in data:
+        job.deadline_hours = int(data["deadline_hours"])
+    if "min_cgpa" in data:
+        job.min_cgpa = float(data["min_cgpa"])
+    if "max_backlogs" in data:
+        job.max_backlogs = int(data["max_backlogs"])
+    if "allowed_branches" in data:
+        job.allowed_branches = data["allowed_branches"]
+    if "mandatory_skills_json" in data:
+        job.mandatory_skills_json = data["mandatory_skills_json"]
+    if "preferred_skills_json" in data:
+        job.preferred_skills_json = data["preferred_skills_json"]
+    if "status" in data and data["status"]:
+        job.status = data["status"]
+    if "approved_by_officer" in data:
+        job.approved_by_officer = bool(data["approved_by_officer"])
+    if "announcement_text" in data:
+        job.announcement_text = data["announcement_text"]
+    if "external_link" in data:
+        job.external_link = data["external_link"]
+    if "resources" in data:
+        job.resources = data["resources"]
+
+    job.updated_at = datetime.now(timezone.utc)
+    await session.flush()
+    return job
+
+
+async def delete_job(session: AsyncSession, job_id: str) -> bool:
+    """Permanently delete a placement drive from the database."""
+    job = await get_job(session, job_id)
+    if not job:
+        return False
+    await session.delete(job)
+    await session.flush()
+    return True
+
+
+async def select_student_drive(session: AsyncSession, student_id: str, job_id: str) -> dict[str, Any]:
+    """Toggle a student's selected drive in PostgreSQL."""
+    student = await get_student(session, student_id)
+    if not student:
+        return {"student_id": student_id, "job_id": job_id, "is_selected": False, "selected_drives": []}
+
+    current_drives = list(student.selected_drives or [])
+    if not current_drives and student.visibility_state:
+        current_drives = list(student.visibility_state.get("selected_drives", []))
+
+    if job_id in current_drives:
+        current_drives.remove(job_id)
+        is_selected = False
+    else:
+        current_drives.append(job_id)
+        is_selected = True
+
+    student.selected_drives = current_drives
+    curr_vis = dict(student.visibility_state or {})
+    curr_vis["selected_drives"] = current_drives
+    student.visibility_state = curr_vis
+    student.updated_at = datetime.now(timezone.utc)
+    await session.flush()
+    return {"student_id": student_id, "job_id": job_id, "is_selected": is_selected, "selected_drives": current_drives}
+
+
+async def get_student_selected_drives(session: AsyncSession, student_id: str) -> list[str]:
+    """Retrieve list of drive IDs selected by a student."""
+    student = await get_student(session, student_id)
+    if not student:
+        return []
+    if student.selected_drives:
+        return list(student.selected_drives)
+    if student.visibility_state and "selected_drives" in student.visibility_state:
+        return list(student.visibility_state.get("selected_drives", []))
+    return []
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -605,3 +698,63 @@ async def list_email_drafts(session: AsyncSession, student_id: str) -> list:
     stmt = select(EmailDraft).where(EmailDraft.student_id == student_id).order_by(desc(EmailDraft.created_at))
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 11. Notifications CRUD
+# ═══════════════════════════════════════════════════════════════════════════
+
+async def create_notification(session: AsyncSession, data: dict[str, Any]) -> Notification:
+    """Create a new institutional in-app notification."""
+    notif = Notification(
+        id=data.get("id") or f"notif-{uuid.uuid4().hex[:10]}",
+        user_id=data["user_id"],
+        title=data["title"],
+        message=data["message"],
+        is_read=bool(data.get("is_read", False)),
+        tag=data.get("tag", "Job Drive"),
+        link=data.get("link", "/student/matches"),
+    )
+    session.add(notif)
+    await session.flush()
+    return notif
+
+
+async def get_user_notifications(
+    session: AsyncSession, user_id: str, limit: int = 50
+) -> List[Notification]:
+    """Retrieve notifications for a student, ordered by created_at desc."""
+    stmt = (
+        select(Notification)
+        .where(Notification.user_id == user_id)
+        .order_by(desc(Notification.created_at))
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def mark_notification_as_read(
+    session: AsyncSession, notification_id: str
+) -> Optional[Notification]:
+    """Mark a single notification as read."""
+    stmt = select(Notification).where(Notification.id == notification_id)
+    result = await session.execute(stmt)
+    notif = result.scalar_one_or_none()
+    if notif:
+        notif.is_read = True
+        await session.flush()
+    return notif
+
+
+async def mark_all_notifications_as_read(session: AsyncSession, user_id: str) -> int:
+    """Mark all unread notifications for a user as read."""
+    stmt = (
+        update(Notification)
+        .where(Notification.user_id == user_id, Notification.is_read == False)
+        .values(is_read=True)
+    )
+    result = await session.execute(stmt)
+    await session.flush()
+    return result.rowcount
+

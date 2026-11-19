@@ -35,8 +35,25 @@ export function computeReadinessProfile(
   cgpa: number = 8.42,
   completedQuests: string[] = []
 ): ReadinessProfile {
-  // Normalize skills
-  const safeSkills = Array.isArray(skills) ? skills : []
+  // ── STRICT ASSERTION: Filter exclusively confirmed/solid skills ─────────
+  // Rejects all mock data arrays and unconfirmed provisional ghost cards
+  const solidSkills = (Array.isArray(skills) ? skills : []).filter((s) => {
+    if (!s || !s.name) return false
+    const nameLower = s.name.toLowerCase()
+    // Strict assertion: Reject placeholder and mock skills
+    if (s.id?.startsWith('mock-') || nameLower.includes('dummy') || nameLower.includes('mock')) {
+      console.warn(`[ReadinessAssertion] Excluded mock/placeholder skill: ${s.name}`)
+      return false
+    }
+    // Strict assertion: Only confirmed solid tokens contribute to Readiness Score
+    const isSolid =
+      s.evidenceStatus === 'STUDENT_CONFIRMED' ||
+      s.evidenceStatus === 'INSTITUTION_VERIFIED' ||
+      s.evidenceStatus === 'ASSESSMENT_VERIFIED' ||
+      s.evidenceStatus === 'ARTIFACT_LINKED' ||
+      (s as any).isConfirmed === true
+    return isSolid
+  })
 
   // 1. Helper to score a skill based on its proficiency and provenance tier
   const getSkillStrength = (s: Skill): number => {
@@ -48,11 +65,11 @@ export function computeReadinessProfile(
     else if (prof === 'expert') base = 96
 
     // Multiplier based on verification provenance
-    let tierMultiplier = 0.90 // Ghost / Extracted
-    if (s.evidenceStatus === 'DOUBT_GHOST') tierMultiplier = 0.0 // Doubt Ghost has zero evidence
-    else if (s.evidenceStatus === 'STUDENT_CONFIRMED') tierMultiplier = 0.95
+    let tierMultiplier = 0.0
+    if (s.evidenceStatus === 'STUDENT_CONFIRMED') tierMultiplier = 0.95
     else if (s.evidenceStatus === 'ARTIFACT_LINKED') tierMultiplier = 0.97
     else if (s.evidenceStatus === 'ASSESSMENT_VERIFIED' || s.evidenceStatus === 'INSTITUTION_VERIFIED') tierMultiplier = 1.0
+    else if ((s as any).isConfirmed) tierMultiplier = 0.95
 
     return Math.round(base * tierMultiplier)
   }
@@ -61,17 +78,14 @@ export function computeReadinessProfile(
   // 1. DIMENSION: Database & SQL Windowing
   // ─────────────────────────────────────────────────────────────
   const sqlRegex = /\b(sql|postgresql|postgres|mysql|sqlite|database|indexing|cte|dense_rank|window|acid|query optimization)\b/i
-  const sqlSkills = safeSkills.filter((s) => sqlRegex.test(s.name) || sqlRegex.test(s.category || ''))
+  const sqlSkills = solidSkills.filter((s) => sqlRegex.test(s.name) || sqlRegex.test(s.category || ''))
 
-  let sqlScore = 52
+  let sqlScore = 0
   let sqlAttention = true
 
   if (sqlSkills.length > 0) {
-    // Take the best matching SQL skill
     const bestSql = sqlSkills.reduce((best, cur) => (getSkillStrength(cur) > getSkillStrength(best) ? cur : best), sqlSkills[0])
     const strength = getSkillStrength(bestSql)
-    
-    // Additional breadth bonus if multiple database technologies exist
     const breadthBonus = Math.min(8, (sqlSkills.length - 1) * 4)
     sqlScore = Math.min(98, strength + breadthBonus)
   }
@@ -84,7 +98,7 @@ export function computeReadinessProfile(
     id: 'sql',
     label: '3. Database & SQL Windowing',
     score: sqlScore,
-    statusLabel: sqlScore >= 70 ? `${sqlScore}% (Proficient ✓)` : `${sqlScore}% (Attention Needed!)`,
+    statusLabel: sqlScore >= 70 ? `${sqlScore}% (Proficient ✓)` : sqlScore > 0 ? `${sqlScore}% (Attention Needed!)` : '0% (No Verified Evidence)',
     statusColor: sqlScore >= 70 ? 'text-tertiary' : 'text-error',
     barColor: sqlScore >= 70 ? 'bg-tertiary' : 'bg-error',
     isAttentionNeeded: sqlAttention,
@@ -95,9 +109,9 @@ export function computeReadinessProfile(
   // 2. DIMENSION: DSA & Problem Solving
   // ─────────────────────────────────────────────────────────────
   const dsaRegex = /\b(python|c\+\+|cpp|java|golang|go|rust|algorithms|data structures|dsa|dynamic programming|sliding window|trees|graphs|binary search)\b/i
-  const dsaSkills = safeSkills.filter((s) => dsaRegex.test(s.name) || (s.category || '').toLowerCase().includes('algorithm'))
+  const dsaSkills = solidSkills.filter((s) => dsaRegex.test(s.name) || (s.category || '').toLowerCase().includes('algorithm'))
 
-  let dsaScore = 65
+  let dsaScore = 0
   if (dsaSkills.length > 0) {
     const strengths = dsaSkills.map(getSkillStrength)
     const maxStrength = Math.max(...strengths)
@@ -109,7 +123,7 @@ export function computeReadinessProfile(
     id: 'dsa',
     label: '1. DSA & Problem Solving',
     score: dsaScore,
-    statusLabel: `${dsaScore}%`,
+    statusLabel: dsaScore > 0 ? `${dsaScore}%` : '0% (No Verified Evidence)',
     statusColor: 'text-primary',
     barColor: 'bg-primary',
     isAttentionNeeded: dsaScore < 65,
@@ -120,9 +134,9 @@ export function computeReadinessProfile(
   // 3. DIMENSION: System Design & Concurrency
   // ─────────────────────────────────────────────────────────────
   const sysRegex = /\b(system design|microservices|distributed|redis|kafka|docker|kubernetes|fastapi|concurrency|multithreading|load balancer|caching)\b/i
-  const sysSkills = safeSkills.filter((s) => sysRegex.test(s.name) || sysRegex.test(s.category || ''))
+  const sysSkills = solidSkills.filter((s) => sysRegex.test(s.name) || sysRegex.test(s.category || ''))
 
-  let sysScore = 62
+  let sysScore = 0
   if (sysSkills.length > 0) {
     const strengths = sysSkills.map(getSkillStrength)
     const maxStrength = Math.max(...strengths)
@@ -134,7 +148,7 @@ export function computeReadinessProfile(
     id: 'sys',
     label: '2. System Design & Concurrency',
     score: sysScore,
-    statusLabel: `${sysScore}%`,
+    statusLabel: sysScore > 0 ? `${sysScore}%` : '0% (No Verified Evidence)',
     statusColor: 'text-secondary',
     barColor: 'bg-secondary',
     isAttentionNeeded: sysScore < 65,
@@ -144,35 +158,38 @@ export function computeReadinessProfile(
   // ─────────────────────────────────────────────────────────────
   // 4. DIMENSION: Live Code Defense (120s)
   // ─────────────────────────────────────────────────────────────
-  const verifiedCount = safeSkills.filter(
+  const verifiedCount = solidSkills.filter(
     (s) => s.evidenceStatus === 'ASSESSMENT_VERIFIED' || s.evidenceStatus === 'INSTITUTION_VERIFIED'
   ).length
-  const confirmedCount = safeSkills.filter((s) => s.evidenceStatus === 'STUDENT_CONFIRMED').length
-  
-  // Base defense score from live assessment proofs
-  let defenseScore = Math.min(96, Math.max(70, 72 + verifiedCount * 6 + confirmedCount * 3))
+  const confirmedCount = solidSkills.filter((s) => s.evidenceStatus === 'STUDENT_CONFIRMED' || (s as any).isConfirmed).length
+
+  let defenseScore = 0
+  if (verifiedCount > 0 || confirmedCount > 0) {
+    defenseScore = Math.min(96, Math.max(50, 60 + verifiedCount * 8 + confirmedCount * 4))
+  }
 
   const defenseMetric: DimensionMetric = {
     id: 'defense',
     label: '4. Live Code Defense (120s)',
     score: defenseScore,
-    statusLabel: `${defenseScore}%`,
+    statusLabel: defenseScore > 0 ? `${defenseScore}%` : '0% (Requires Verification)',
     statusColor: 'text-tertiary',
     barColor: 'bg-tertiary',
-    isAttentionNeeded: false,
+    isAttentionNeeded: defenseScore < 60,
     matchedSkills: [],
   }
 
   // ─────────────────────────────────────────────────────────────
   // 5. DIMENSION: Coursework & CGPA
   // ─────────────────────────────────────────────────────────────
-  const cgpaScore = Math.min(99, Math.max(50, Math.round((cgpa / 10) * 100)))
+  const validCgpa = Math.max(0.0, Math.min(10.0, Number(cgpa) || 0.0))
+  const cgpaScore = validCgpa > 0 ? Math.min(99, Math.round((validCgpa / 10) * 100)) : 0
 
   const cgpaMetric: DimensionMetric = {
     id: 'cgpa',
     label: '5. Coursework & CGPA',
     score: cgpaScore,
-    statusLabel: `${cgpaScore}%`,
+    statusLabel: cgpaScore > 0 ? `${cgpaScore}% (CGPA: ${validCgpa.toFixed(2)})` : '0% (Pending Transcripts)',
     statusColor: 'text-secondary',
     barColor: 'bg-secondary',
     isAttentionNeeded: cgpaScore < 60,
@@ -182,15 +199,17 @@ export function computeReadinessProfile(
   // ─────────────────────────────────────────────────────────────
   // 6. DIMENSION: Provenance & Portfolio Proofs
   // ─────────────────────────────────────────────────────────────
-  const totalSkills = safeSkills.length || 1
-  const solidTokensCount = safeSkills.filter((s) => s.evidenceStatus !== 'EXTRACTED').length
-  const provenanceScore = Math.min(95, Math.max(55, Math.round((solidTokensCount / totalSkills) * 50) + 45))
+  let provenanceScore = 0
+  if (solidSkills.length > 0) {
+    const institutionVerifiedCount = solidSkills.filter((s) => s.evidenceStatus === 'INSTITUTION_VERIFIED').length
+    provenanceScore = Math.min(98, Math.max(45, Math.round((solidSkills.length / Math.max(1, skills.length)) * 60) + institutionVerifiedCount * 8 + 30))
+  }
 
   const provenanceMetric: DimensionMetric = {
     id: 'provenance',
     label: '6. Provenance & Portfolio Proofs',
     score: provenanceScore,
-    statusLabel: `${provenanceScore}%`,
+    statusLabel: provenanceScore > 0 ? `${provenanceScore}%` : '0% (No Provenance)',
     statusColor: 'text-primary',
     barColor: 'bg-primary',
     isAttentionNeeded: provenanceScore < 50,

@@ -17,6 +17,15 @@ import {
   ShieldAlert,
   Inbox,
   Sparkles,
+  Edit3,
+  Trash2,
+  Plus,
+  X,
+  Building,
+  Save,
+  AlertCircle,
+  Zap,
+  Check,
 } from 'lucide-react'
 import { mockFacultyAdvisees } from '@/lib/mock-data'
 import type { FacultyAdvisee } from '@/lib/types'
@@ -26,7 +35,7 @@ import JDIngestionStudio from './JDIngestionStudio'
 import CohortLiquiditySimulator from './CohortLiquiditySimulator'
 import ExceptionQueueView from './ExceptionQueueView'
 
-export type FacultyTab = 'ADVISEES' | 'INGESTION' | 'SIMULATOR' | 'EXCEPTIONS'
+export type FacultyTab = 'ADVISEES' | 'INGESTION' | 'SIMULATOR' | 'EXCEPTIONS' | 'DRIVES'
 
 interface FacultyMentorViewProps {
   onOpenSourceDoc?: (docId: string) => void
@@ -42,6 +51,151 @@ export default function FacultyMentorView({
   const [searchQuery, setSearchQuery] = useState('')
   const [endorseNotice, setEndorseNotice] = useState<string | null>(null)
   const [selectedResumeStudent, setSelectedResumeStudent] = useState<FacultyAdvisee | null>(null)
+
+  // ── Placements & Drives Live CRUD State ──────────────────────────────
+  const [drives, setDrives] = useState<any[]>([])
+  const [loadingDrives, setLoadingDrives] = useState(false)
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false)
+  const [editingDriveId, setEditingDriveId] = useState<string | null>(null)
+  const [driveFormTitle, setDriveFormTitle] = useState('')
+  const [driveFormCompany, setDriveFormCompany] = useState('')
+  const [driveFormCtc, setDriveFormCtc] = useState('22 LPA')
+  const [driveFormMinCgpa, setDriveFormMinCgpa] = useState<number>(7.5)
+  const [driveFormBranches, setDriveFormBranches] = useState('CSE, IT, ECE')
+  const [driveFormMandatorySkills, setDriveFormMandatorySkills] = useState('SQL, Python, Docker')
+  const [driveFormPreferredSkills, setDriveFormPreferredSkills] = useState('Redis, Kubernetes')
+  const [driveFormAnnouncement, setDriveFormAnnouncement] = useState('')
+  const [driveFormExternalLink, setDriveFormExternalLink] = useState('')
+  const [isSavingDrive, setIsSavingDrive] = useState(false)
+  const [driveNotice, setDriveNotice] = useState<string | null>(null)
+
+  const fetchDrives = async () => {
+    setLoadingDrives(true)
+    try {
+      const res = await fetch('/api/jobs', {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          setDrives(data)
+        } else if (Array.isArray(data.jobs)) {
+          setDrives(data.jobs)
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching drives:', err)
+    } finally {
+      setLoadingDrives(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'DRIVES') {
+      fetchDrives()
+    }
+  }, [activeTab])
+
+  const openCreateDriveModal = () => {
+    setEditingDriveId(null)
+    setDriveFormTitle('')
+    setDriveFormCompany('')
+    setDriveFormCtc('22 LPA')
+    setDriveFormMinCgpa(7.5)
+    setDriveFormBranches('CSE, IT, ECE')
+    setDriveFormMandatorySkills('Python, SQL, Microservices')
+    setDriveFormPreferredSkills('Redis, Docker')
+    setDriveFormAnnouncement('')
+    setDriveFormExternalLink('')
+    setIsDriveModalOpen(true)
+  }
+
+  const openEditDriveModal = (drive: any) => {
+    setEditingDriveId(drive.id || drive.job_id)
+    setDriveFormTitle(drive.role_title || drive.title || drive.jobTitle || '')
+    setDriveFormCompany(drive.company || '')
+    setDriveFormCtc(typeof drive.ctc_lpa === 'number' ? `${drive.ctc_lpa} LPA` : (drive.ctc_lpa || drive.compensationTarget || '22 LPA'))
+    setDriveFormMinCgpa(Number(drive.min_cgpa || 7.5))
+    setDriveFormBranches(Array.isArray(drive.allowed_branches) ? drive.allowed_branches.join(', ') : (drive.allowed_branches || 'CSE, IT'))
+    setDriveFormMandatorySkills(Array.isArray(drive.mandatory_skills) ? drive.mandatory_skills.join(', ') : (drive.mandatory_skills || ''))
+    setDriveFormPreferredSkills(Array.isArray(drive.preferred_skills) ? drive.preferred_skills.join(', ') : (drive.preferred_skills || ''))
+    setDriveFormAnnouncement(drive.announcement_text || '')
+    setDriveFormExternalLink(drive.external_link || '')
+    setIsDriveModalOpen(true)
+  }
+
+  const handleSaveDrive = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSavingDrive(true)
+    try {
+      const payload = {
+        role_title: driveFormTitle,
+        company: driveFormCompany,
+        ctc_lpa: parseFloat(driveFormCtc.replace(/[^0-9.]/g, '')) || 20.0,
+        min_cgpa: Number(driveFormMinCgpa),
+        allowed_branches: driveFormBranches.split(',').map((b) => b.trim()).filter(Boolean),
+        mandatory_skills: driveFormMandatorySkills.split(',').map((s) => s.trim()).filter(Boolean),
+        preferred_skills: driveFormPreferredSkills.split(',').map((s) => s.trim()).filter(Boolean),
+        announcement_text: driveFormAnnouncement.trim(),
+        external_link: driveFormExternalLink.trim(),
+      }
+
+      if (editingDriveId) {
+        const res = await fetch(`/api/jobs/${encodeURIComponent(editingDriveId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (res.ok) {
+          setDriveNotice(`✓ Successfully updated placement drive for ${driveFormCompany}!`)
+          setIsDriveModalOpen(false)
+          fetchDrives()
+        } else {
+          setDriveNotice('Error saving drive changes. Please retry.')
+        }
+      } else {
+        const res = await fetch('/api/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (res.ok) {
+          setDriveNotice(`✓ Created new placement drive for ${driveFormCompany}!`)
+          setIsDriveModalOpen(false)
+          fetchDrives()
+        } else {
+          setDriveNotice('Error creating drive. Please retry.')
+        }
+      }
+    } catch (err: any) {
+      setDriveNotice(`Error: ${err.message}`)
+    } finally {
+      setIsSavingDrive(false)
+      setTimeout(() => setDriveNotice(null), 4000)
+    }
+  }
+
+  const handleDeleteDrive = async (driveId: string, company: string) => {
+    if (!window.confirm(`Are you sure you want to delete the placement drive for ${company}?`)) {
+      return
+    }
+    try {
+      const res = await fetch(`/api/jobs/${encodeURIComponent(driveId)}`, {
+        method: 'DELETE',
+        headers: { Accept: 'application/json' },
+      })
+      if (res.ok) {
+        setDriveNotice(`✓ Deleted placement drive for ${company}`)
+        setDrives((prev) => prev.filter((d) => (d.id || d.job_id) !== driveId))
+      } else {
+        setDriveNotice('Could not delete drive. Please retry.')
+      }
+    } catch (err: any) {
+      setDriveNotice(`Error deleting drive: ${err.message}`)
+    }
+    setTimeout(() => setDriveNotice(null), 4000)
+  }
 
   useEffect(() => {
     try {
@@ -88,7 +242,7 @@ export default function FacultyMentorView({
         const storedSkills = JSON.parse(storedSkillsRaw)
         if (Array.isArray(storedSkills)) {
           const updatedSkills = storedSkills.map((sk: any) => {
-            if (sk.id === skillId || sk.evidenceStatus === 'DOUBT_GHOST') {
+            if (sk.id === skillId) {
               return {
                 ...sk,
                 evidenceStatus: 'INSTITUTION_VERIFIED',
@@ -212,6 +366,22 @@ export default function FacultyMentorView({
           >
             <ShieldAlert className="h-3.5 w-3.5" />
             <span>Exception Queue &amp; Appeals</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('DRIVES')}
+            className={`flex items-center gap-2 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'DRIVES'
+                ? 'bg-[#6D3B56] text-white shadow-xs'
+                : 'bg-[#FAF8F5] text-ink-secondary hover:bg-[#F1EFEA] hover:text-ink-primary'
+            }`}
+          >
+            <Briefcase className="h-3.5 w-3.5" />
+            <span>Placement Drives &amp; Links</span>
+            <span className="rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.2 text-[10px] font-mono">
+              Full CRUD
+            </span>
           </button>
         </div>
       </div>
@@ -376,6 +546,368 @@ export default function FacultyMentorView({
       {activeTab === 'EXCEPTIONS' && (
         <div className="space-y-4">
           <ExceptionQueueView onOpenSource={onOpenSourceDoc} />
+        </div>
+      )}
+
+      {/* Tab 5: Placement Drives & Resources (Full CRUD) */}
+      {activeTab === 'DRIVES' && (
+        <div className="space-y-6">
+          {driveNotice && (
+            <div className="flex items-center justify-between rounded-2xl border border-emerald-300 bg-emerald-50 p-3.5 text-xs text-emerald-800 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-600" />
+                <span>{driveNotice}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDriveNotice(null)}
+                className="text-xs font-bold text-emerald-800 hover:underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* Action Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border-2 border-[#E6E3DC] bg-white shadow-2xs">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-3xs font-mono font-bold border border-emerald-200 uppercase mb-1">
+                Synchronous Database Ledger
+              </div>
+              <h3 className="font-display font-extrabold text-base text-[#1B1C1B]">
+                Active Campus Placement Drives ({drives.length})
+              </h3>
+              <p className="text-xs text-[#817379]">
+                Full Faculty CRUD operations: Publish updates, attach registration links, announcements, and calibrate gates. Changes reflect synchronously across all student workspaces.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={fetchDrives}
+                disabled={loadingDrives}
+                className="px-3 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-bold text-[#1B1C1B] hover:bg-white transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <span className="material-symbols-outlined text-sm">refresh</span>
+                <span>Refresh</span>
+              </button>
+              <button
+                type="button"
+                onClick={openCreateDriveModal}
+                className="px-4 py-2 rounded-xl bg-[#6D3B56] hover:brightness-110 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs"
+              >
+                <Plus className="h-4 w-4" />
+                <span>+ Create Placement Drive</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Drives Structured List */}
+          {loadingDrives ? (
+            <div className="py-12 text-center text-xs font-bold text-[#817379]">
+              Loading active placement drives from database...
+            </div>
+          ) : drives.length === 0 ? (
+            <div className="p-8 rounded-2xl border-2 border-dashed border-[#E6E3DC] text-center text-xs text-[#817379] space-y-2">
+              <Building className="h-8 w-8 text-[#DE95BE] mx-auto" />
+              <p className="font-bold">No active placement drives found.</p>
+              <button
+                type="button"
+                onClick={openCreateDriveModal}
+                className="text-xs text-[#6D3B56] font-bold hover:underline"
+              >
+                Create the first campus drive →
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {drives.map((d) => {
+                const jid = d.id || d.job_id
+                const title = d.role_title || d.title || d.jobTitle || 'Software Engineer'
+                const company = d.company || 'Enterprise Partner'
+                const ctc = typeof d.ctc_lpa === 'number' ? `₹${d.ctc_lpa} LPA` : (d.ctc_lpa || d.compensationTarget || '₹18–24 LPA')
+                const minCgpa = d.min_cgpa || 7.0
+                const branches = Array.isArray(d.allowed_branches) ? d.allowed_branches : ['CSE', 'IT']
+                const mandatory = Array.isArray(d.mandatory_skills) ? d.mandatory_skills : []
+                const preferred = Array.isArray(d.preferred_skills) ? d.preferred_skills : []
+                const announcement = d.announcement_text || ''
+                const extLink = d.external_link || ''
+
+                return (
+                  <div
+                    key={jid}
+                    className="p-5 rounded-2xl border-2 border-[#E6E3DC] bg-white hover:border-[#DE95BE] transition-all shadow-2xs space-y-3.5"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-display font-extrabold text-base text-[#1B1C1B]">
+                            {company}
+                          </span>
+                          <span className="text-xs text-[#817379]">•</span>
+                          <span className="font-display font-bold text-sm text-[#6D3B56]">
+                            {title}
+                          </span>
+                          <span className="font-mono text-3xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300">
+                            {ctc}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-3xs font-mono text-[#817379] mt-1 flex-wrap">
+                          <span>Min CGPA: <strong>{minCgpa}</strong></span>
+                          <span>•</span>
+                          <span>Branches: <strong>{branches.join(', ')}</strong></span>
+                          <span>•</span>
+                          <span>ID: <code>{jid}</code></span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons: Edit & Delete */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => openEditDriveModal(d)}
+                          className="px-3 py-1.5 rounded-xl border border-[#DE95BE] bg-[#FAF8F5] hover:bg-white text-xs font-bold text-[#6D3B56] flex items-center gap-1 shadow-2xs cursor-pointer transition-all"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDrive(jid, company)}
+                          className="px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-xs font-bold text-red-700 flex items-center gap-1 shadow-2xs cursor-pointer transition-all"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Announcement Callout if present */}
+                    {announcement && (
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-xs flex items-start gap-2">
+                        <span className="material-symbols-outlined text-amber-700 text-sm mt-0.5">campaign</span>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-bold text-[11px] uppercase tracking-wider text-amber-800 block">Faculty Announcement:</span>
+                          <p className="mt-0.5 leading-snug">{announcement}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills & Shared Links Footer */}
+                    <div className="pt-2 border-t border-[#F1EFEA] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-3xs font-mono font-bold text-[#817379] uppercase">Mandatory:</span>
+                        {mandatory.slice(0, 4).map((s: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="font-mono text-3xs px-2 py-0.5 rounded-md bg-[#FAF8F5] border border-[#E6E3DC] text-[#4F4449]"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                        {preferred.slice(0, 2).map((s: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="font-mono text-3xs px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200 text-purple-700"
+                          >
+                            + {s}
+                          </span>
+                        ))}
+                      </div>
+
+                      {extLink && (
+                        <a
+                          href={extLink.startsWith('http') ? extLink : `https://${extLink}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-bold text-[#6D3B56] hover:underline flex items-center gap-1 shrink-0"
+                        >
+                          <span>Shared Resource / Link</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit / Create Drive Modal */}
+      {isDriveModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative bg-white rounded-3xl max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl border-2 border-[#E6E3DC] p-6 sm:p-8 space-y-5">
+            <div className="flex items-center justify-between border-b border-[#F1EFEA] pb-4">
+              <div>
+                <h3 className="font-display font-extrabold text-lg text-[#1B1C1B]">
+                  {editingDriveId ? 'Edit Placement Drive' : 'Create New Campus Drive'}
+                </h3>
+                <p className="text-xs text-[#817379]">
+                  Configures JD gates, salary, announcements, and external registration links.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDriveModalOpen(false)}
+                className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDrive} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    Company Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={driveFormCompany}
+                    onChange={(e) => setDriveFormCompany(e.target.value)}
+                    placeholder="e.g. RazorpayX, Atlassian, Microsoft"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    Role Title *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={driveFormTitle}
+                    onChange={(e) => setDriveFormTitle(e.target.value)}
+                    placeholder="e.g. Systems Engineer, SDE-1"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    CTC Band / LPA
+                  </label>
+                  <input
+                    type="text"
+                    value={driveFormCtc}
+                    onChange={(e) => setDriveFormCtc(e.target.value)}
+                    placeholder="e.g. 24 LPA"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    Min CGPA Cutoff
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="10"
+                    value={driveFormMinCgpa}
+                    onChange={(e) => setDriveFormMinCgpa(Number(e.target.value))}
+                    placeholder="7.5"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    Allowed Branches
+                  </label>
+                  <input
+                    type="text"
+                    value={driveFormBranches}
+                    onChange={(e) => setDriveFormBranches(e.target.value)}
+                    placeholder="CSE, IT, ECE"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    Mandatory Skills (Comma-Separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={driveFormMandatorySkills}
+                    onChange={(e) => setDriveFormMandatorySkills(e.target.value)}
+                    placeholder="SQL, Python, Docker"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                    Preferred Skills (Comma-Separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={driveFormPreferredSkills}
+                    onChange={(e) => setDriveFormPreferredSkills(e.target.value)}
+                    placeholder="Redis, Kubernetes, gRPC"
+                    className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Faculty Announcement Note */}
+              <div className="space-y-1">
+                <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                  Faculty Announcement / Notice (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  value={driveFormAnnouncement}
+                  onChange={(e) => setDriveFormAnnouncement(e.target.value)}
+                  placeholder="e.g., Online assessment scheduled for Saturday 10:00 AM. Bring verified 1.0x solid tokens."
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden"
+                />
+              </div>
+
+              {/* External Registration / Resource Link */}
+              <div className="space-y-1">
+                <label className="block text-3xs font-mono font-bold uppercase tracking-wider text-[#817379]">
+                  External Drive Link (Registration Form / Test Link / Resources)
+                </label>
+                <input
+                  type="text"
+                  value={driveFormExternalLink}
+                  onChange={(e) => setDriveFormExternalLink(e.target.value)}
+                  placeholder="https://forms.gle/... or https://atlassian.com/careers"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#E6E3DC] bg-[#FAF8F5] text-xs font-semibold text-[#1B1C1B] focus:border-[#6D3B56] focus:bg-white focus:outline-hidden font-mono"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#F1EFEA]">
+                <button
+                  type="button"
+                  onClick={() => setIsDriveModalOpen(false)}
+                  className="px-4 py-2 rounded-xl border border-[#E6E3DC] text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingDrive}
+                  className="px-5 py-2 rounded-xl bg-[#6D3B56] hover:brightness-110 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{isSavingDrive ? 'Saving...' : editingDriveId ? 'Save Changes' : 'Create Drive'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

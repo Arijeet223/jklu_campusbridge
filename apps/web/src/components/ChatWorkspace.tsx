@@ -1054,8 +1054,11 @@ export default function ChatWorkspace({
     } else if (widget === 'resume_preview' || lower.includes('resume') || lower.includes('cv')) {
       fallbackReply = `🌿 **T.E.R.R.A. Institutional Resume Preview:** I've rendered your verified Word-style document sheet below. You can inspect all verified competencies, click through to your GitHub repositories, or expand the full preview sheet.`
       widget = 'resume_preview'
-    } else if (widget === 'sprint_plan' || lower.includes('sprint') || lower.includes('prep') || lower.includes('72h')) {
-      fallbackReply = `⏱️ **K.R.O.N.O.S. 72-Hour Sprint:** Here is your targeted sprint roadmap below for upcoming placement drives.`
+    } else if (lower.includes('remove') && (lower.includes('plan') || lower.includes('sprint') || lower.includes('drive'))) {
+      fallbackReply = `🤖 **J.A.R.V.I.S.:** I have removed the drive from your active 72-Hour Sprint Plan. Your roadmap has been updated below.`
+      widget = 'sprint_plan'
+    } else if (widget === 'sprint_plan' || lower.includes('sprint') || lower.includes('prep') || lower.includes('72h') || lower.includes('plan')) {
+      fallbackReply = `⏱️ **K.R.O.N.O.S. 72-Hour Sprint Plan:** Here is your active sprint roadmap below. You can check off tasks as you complete them, or click **'Remove from 72h Plan'** on the card anytime to deselect it.`
       widget = 'sprint_plan'
     } else if (widget === 'applications_tracker' || lower.includes('application') || lower.includes('drive')) {
       fallbackReply = `📊 **Active Placement Pipeline:** TechCorp India is shortlisted for interview, and Razorpay eligibility is confirmed (**MEETS**). Live milestone tracker rendered below.`
@@ -1330,6 +1333,7 @@ export default function ChatWorkspace({
               </div>
 
               <SprintPlanChatCard
+                studentId={activeStudentId || studentId || 'STU-101'}
                 onLaunchMicroDefense={() => onViewChange('defense')}
               />
             </div>
@@ -1694,6 +1698,7 @@ export default function ChatWorkspace({
 
                       {msg.widgetType === 'sprint_plan' && (
                         <SprintPlanChatCard
+                          studentId={activeStudentId || studentId || 'STU-101'}
                           onLaunchMicroDefense={() => onViewChange('defense')}
                         />
                       )}

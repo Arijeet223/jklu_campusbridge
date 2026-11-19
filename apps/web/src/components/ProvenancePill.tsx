@@ -64,11 +64,11 @@ const tierConfig: Record<
     label: 'Expired',
   },
   DOUBT_GHOST: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-800',
-    border: 'border-amber-300',
-    icon: '⚠',
-    label: 'Doubt Ghost',
+    bg: 'bg-[#F5F3FF]',
+    text: 'text-[#6D28D9]',
+    border: 'border-[#DDD6FE]',
+    icon: '✨',
+    label: 'Ghost Card',
   },
 }
 

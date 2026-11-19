@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import type { EvidenceStatus, ProficiencyLevel } from '@/lib/types'
-import { AlertTriangle, HelpCircle, ShieldAlert, Check, X, FileText } from 'lucide-react'
+import { Check, X, FileText } from 'lucide-react'
 
 interface GhostCardProps {
   skillName: string
@@ -32,10 +32,8 @@ export default function GhostCard({
 }: GhostCardProps) {
   const [localStatus, setLocalStatus] = useState<EvidenceStatus>(evidenceStatus)
   const [isRejected, setIsRejected] = useState(false)
-  const [showDoubtTooltip, setShowDoubtTooltip] = useState(false)
 
-  const isDoubt = localStatus === 'DOUBT_GHOST'
-  const isGhost = localStatus === 'EXTRACTED'
+  const isGhost = localStatus === 'EXTRACTED' || (localStatus as string) === 'DOUBT_GHOST'
 
   const handleConfirm = () => {
     setLocalStatus('STUDENT_CONFIRMED')
@@ -58,9 +56,7 @@ export default function GhostCard({
   return (
     <div
       className={`rounded-3xl p-5 transition-all duration-200 relative ${
-        isDoubt
-          ? 'border-2 border-amber-300 bg-amber-50/60 shadow-[0_4px_0_#F59E0B]'
-          : isGhost
+        isGhost
           ? 'border-2 border-dashed border-primary-container bg-primary-container/15 shadow-[0_3px_0_#DE95BE]'
           : 'border-[1.5px] border-outline-variant bg-surface-container-lowest shadow-[0_4px_0_#EAD7E2]'
       }`}
@@ -69,26 +65,15 @@ export default function GhostCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h4 className="font-extrabold text-sm text-on-surface truncate max-w-[200px] sm:max-w-xs">{skillName}</h4>
-            {isDoubt ? (
-              <span
-                className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 shadow-2xs cursor-help"
-                title="Doubt Ghost Card: Added manually without document provenance."
-                onClick={() => setShowDoubtTooltip(!showDoubtTooltip)}
-              >
-                <AlertTriangle className="h-3 w-3 text-amber-600 shrink-0" />
-                <span>0.0x Doubt Ghost (No Evidence)</span>
-              </span>
-            ) : (
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                  isGhost
-                    ? 'bg-primary-container text-on-primary-container border border-outline-variant'
-                    : 'bg-tertiary-container text-on-tertiary-container border border-tertiary-fixed-dim'
-                }`}
-              >
-                {isGhost ? '0.5x Ghost' : '1.0x Solid'}
-              </span>
-            )}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                isGhost
+                  ? 'bg-primary-container text-on-primary-container border border-outline-variant'
+                  : 'bg-tertiary-container text-on-tertiary-container border border-tertiary-fixed-dim'
+              }`}
+            >
+              {isGhost ? '0.5x Ghost' : '1.0x Solid'}
+            </span>
           </div>
           <div className="flex items-center gap-2 mt-1 text-xs text-on-surface-variant font-medium flex-wrap">
             <span className="text-outline">Proficiency:</span>
@@ -98,9 +83,7 @@ export default function GhostCard({
                 value={proficiency}
                 onChange={(e) => onChangeProficiency(e.target.value as ProficiencyLevel)}
                 className={`text-xs font-bold rounded-lg px-2 py-0.5 border cursor-pointer transition-colors ${
-                  isDoubt
-                    ? 'bg-amber-100/80 text-amber-900 border-amber-300'
-                    : proficiency === 'Advanced' || proficiency === 'Expert'
+                  proficiency === 'Advanced' || proficiency === 'Expert'
                     ? 'bg-tertiary-container text-on-tertiary-container border-tertiary-fixed-dim'
                     : 'bg-surface-container-high text-on-surface border-outline-variant'
                 }`}
@@ -114,17 +97,12 @@ export default function GhostCard({
               <strong className="text-on-surface">{proficiency}</strong>
             )}
             <span className="text-outline">
-              • {isDoubt ? 'Confidence: 0% (Self-Reported)' : `Match Confidence: ${Math.round(confidence * 100)}%`}
+              • Match Confidence: {Math.round((confidence || 0.85) * 100)}%
             </span>
           </div>
         </div>
 
-        {isDoubt ? (
-          <div className="text-[10px] font-bold text-amber-800 bg-amber-200/60 px-2.5 py-1 rounded-full border border-amber-300/80 shrink-0 flex items-center gap-1">
-            <ShieldAlert className="h-3 w-3 text-amber-700" />
-            <span>Unverified</span>
-          </div>
-        ) : (
+        {onClickSource && (
           <button
             type="button"
             onClick={onClickSource}
@@ -136,44 +114,15 @@ export default function GhostCard({
         )}
       </div>
 
-      {/* Resolution Explainer Callout for Doubt Ghost Cards */}
-      {isDoubt && (
-        <div className="mt-3 p-2.5 rounded-xl bg-amber-100/70 border border-amber-300 text-[11px] text-amber-900 leading-snug flex items-start gap-2">
-          <HelpCircle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
-          <div>
-            <strong>Resolution Requirement:</strong> This Doubt Ghost Card can only be upgraded to a <strong>Solid Token</strong> if a Faculty member explicitly verifies it from their dashboard, or if you upload a relevant grade card or certificate as evidence.
-          </div>
-        </div>
-      )}
-
       <div className="mt-4 pt-3 border-t border-dashed border-outline-variant/60 flex items-center justify-between flex-wrap gap-2 text-xs">
         <span className="text-[11px] text-outline font-medium flex items-center gap-1 min-w-0 truncate">
           <span className="material-symbols-outlined text-sm shrink-0">description</span>
           <span className="truncate">
-            {isDoubt ? 'Manual Claim • No Document Evidence' : `${sourceSection} • ${sourcePage}`}
+            {sourceSection} • {sourcePage}
           </span>
         </span>
 
-        {isDoubt ? (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleReject}
-              className="text-[11px] text-amber-800 font-bold hover:text-rose-700 transition-colors px-2 py-1 flex items-center gap-0.5"
-              title="Remove this manually added skill claim"
-            >
-              <X className="h-3 w-3" />
-              <span>Dismiss</span>
-            </button>
-            <span
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-200/80 text-amber-950 font-bold text-[11px] border border-amber-300 shadow-2xs cursor-not-allowed"
-              title="Requires faculty verification or certificate evidence to upgrade to a Solid Token."
-            >
-              <AlertTriangle className="h-3 w-3 text-amber-700" />
-              <span>Pending Faculty / Certificate</span>
-            </span>
-          </div>
-        ) : isGhost ? (
+        {isGhost ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
