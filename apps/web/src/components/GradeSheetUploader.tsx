@@ -117,7 +117,7 @@ export default function GradeSheetUploader({
   const [setupImmutabilityToast, setSetupImmutabilityToast] = useState<string | null>(null)
 
   const triggerImmutabilityNotice = () => {
-    setSetupImmutabilityToast('After setting up, you can change your level with evidence in the profile section.')
+    setSetupImmutabilityToast('Verified grades are locked in your permanent profile. Any revisions require verification.')
     setTimeout(() => setSetupImmutabilityToast(null), 5000)
   }
 
@@ -277,7 +277,7 @@ export default function GradeSheetUploader({
   }
 
   const handleUpdateCard = (id: string, updates: Partial<GhostGradeCard>) => {
-    if (isSetupStage) {
+    if (hasConfirmed) {
       triggerImmutabilityNotice()
       return
     }
@@ -298,7 +298,7 @@ export default function GradeSheetUploader({
   }
 
   const handleDeleteCard = (id: string) => {
-    if (isSetupStage) {
+    if (hasConfirmed) {
       triggerImmutabilityNotice()
       return
     }
@@ -306,7 +306,7 @@ export default function GradeSheetUploader({
   }
 
   const handleAddSubject = () => {
-    if (isSetupStage) {
+    if (hasConfirmed) {
       triggerImmutabilityNotice()
       return
     }
@@ -321,6 +321,7 @@ export default function GradeSheetUploader({
       source_doc: selectedFile?.name || 'Manual Entry',
     }
     setGhostCards((prev) => [...prev, newCard])
+    setUploadError(null)
   }
 
   const handleConfirmGrades = async () => {
@@ -726,12 +727,12 @@ export default function GradeSheetUploader({
                         onChange={(e) =>
                           handleUpdateCard(card.id, { subject_name: e.target.value })
                         }
-                        onClick={isSetupStage ? triggerImmutabilityNotice : undefined}
-                        readOnly={isSetupStage || hasConfirmed}
+                        onClick={hasConfirmed ? triggerImmutabilityNotice : undefined}
+                        readOnly={hasConfirmed}
                         placeholder="Subject / Course Name..."
                         disabled={hasConfirmed}
                         className={`w-full text-sm font-bold text-ink-primary bg-transparent border-b border-[#E2DFD9] focus:border-[#6D3B56] focus:outline-hidden py-1 px-0 transition-colors ${
-                          isSetupStage ? 'cursor-not-allowed opacity-90' : ''
+                          hasConfirmed ? 'cursor-not-allowed opacity-90' : ''
                         }`}
                       />
                     </div>
@@ -739,9 +740,9 @@ export default function GradeSheetUploader({
                     {!hasConfirmed && (
                       <button
                         type="button"
-                        onClick={isSetupStage ? triggerImmutabilityNotice : () => handleDeleteCard(card.id)}
+                        onClick={() => handleDeleteCard(card.id)}
                         className="p-1.5 rounded-lg text-ink-muted hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title={isSetupStage ? 'Editing locked during setup' : 'Remove course'}
+                        title="Remove course"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -760,13 +761,13 @@ export default function GradeSheetUploader({
                         onChange={(e) =>
                           handleUpdateCard(card.id, { grade_or_marks: e.target.value })
                         }
-                        onClick={isSetupStage ? triggerImmutabilityNotice : undefined}
-                        disabled={hasConfirmed || isSetupStage}
+                        onClick={hasConfirmed ? triggerImmutabilityNotice : undefined}
+                        disabled={hasConfirmed}
                         className={`w-full py-2 px-3 rounded-xl border text-xs font-bold cursor-pointer transition-all ${
                           isFailed
                             ? 'bg-rose-50 border-rose-300 text-rose-800'
                             : 'bg-white border-[#E2DFD9] text-ink-primary focus:border-[#6D3B56] focus:outline-hidden'
-                        } ${isSetupStage ? 'cursor-not-allowed opacity-90' : ''}`}
+                        } ${hasConfirmed ? 'cursor-not-allowed opacity-90' : ''}`}
                       >
                         {GRADE_OPTIONS.map((opt) => (
                           <option key={opt.value} value={opt.value}>
@@ -786,10 +787,10 @@ export default function GradeSheetUploader({
                         onChange={(e) =>
                           handleUpdateCard(card.id, { credits: parseFloat(e.target.value) })
                         }
-                        onClick={isSetupStage ? triggerImmutabilityNotice : undefined}
-                        disabled={hasConfirmed || isSetupStage}
+                        onClick={hasConfirmed ? triggerImmutabilityNotice : undefined}
+                        disabled={hasConfirmed}
                         className={`w-full py-2 px-3 rounded-xl border border-[#E2DFD9] bg-white text-xs font-bold text-ink-primary focus:border-[#6D3B56] focus:outline-hidden cursor-pointer ${
-                          isSetupStage ? 'cursor-not-allowed opacity-90' : ''
+                          hasConfirmed ? 'cursor-not-allowed opacity-90' : ''
                         }`}
                       >
                         <option value={1.0}>1.0 Credit (Lab / Seminar)</option>

@@ -218,8 +218,48 @@ const DEMO_EVIDENCE: Record<string, any[]> = {
       sourceDocumentId: 'doc_resume_arijeet.pdf',
       sourceSpan: 'Containerization & Microservices',
     },
+    {
+      id: 'ev-128-5',
+      name: 'Redis',
+      skill_name: 'Redis',
+      category: 'Distributed Systems',
+      proficiency: 'Advanced',
+      evidenceStatus: 'ASSESSMENT_VERIFIED',
+      evidence_status: 'ASSESSMENT_VERIFIED',
+      tier: 'CONFIRMED_SOLID',
+      multiplier: 1.0,
+      confidence: 0.95,
+      sourceDocumentId: 'doc_resume_arijeet.pdf',
+      sourceSpan: 'FastAPI Redis Idempotency 120s Defense • 1.0x Solid Locked',
+    },
+  ],
+  'STU-115': [
+    { id: 'ev-115-1', name: 'SQL', skill_name: 'SQL', category: 'Databases', proficiency: 'Advanced', evidenceStatus: 'ASSESSMENT_VERIFIED', evidence_status: 'ASSESSMENT_VERIFIED', tier: 'CONFIRMED_SOLID', multiplier: 1.0, confidence: 0.98, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'PostgreSQL Indexing, CTEs & Window Functions Defense' },
+    { id: 'ev-115-2', name: 'PostgreSQL', skill_name: 'PostgreSQL', category: 'Databases', proficiency: 'Advanced', evidenceStatus: 'ASSESSMENT_VERIFIED', evidence_status: 'ASSESSMENT_VERIFIED', tier: 'CONFIRMED_SOLID', multiplier: 1.0, confidence: 0.97, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Relational Indexing, Partitioning & ACID Compliance' },
+    { id: 'ev-115-3', name: 'MySQL', skill_name: 'MySQL', category: 'Databases', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Database Schemas & Normalization' },
+    { id: 'ev-115-4', name: 'Redis', skill_name: 'Redis', category: 'Databases', proficiency: 'Advanced', evidenceStatus: 'ASSESSMENT_VERIFIED', evidence_status: 'ASSESSMENT_VERIFIED', tier: 'CONFIRMED_SOLID', multiplier: 1.0, confidence: 0.96, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Distributed Caching & In-Memory Key-Value Stores' },
+    { id: 'ev-115-5', name: 'MongoDB', skill_name: 'MongoDB', category: 'Databases', proficiency: 'Intermediate', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.94, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Document Stores & Aggregation Pipelines' },
+    { id: 'ev-115-6', name: 'Python', skill_name: 'Python', category: 'Languages', proficiency: 'Advanced', evidenceStatus: 'ASSESSMENT_VERIFIED', evidence_status: 'ASSESSMENT_VERIFIED', tier: 'CONFIRMED_SOLID', multiplier: 1.0, confidence: 0.98, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Core Python, Async Concurrency & Data Structures' },
+    { id: 'ev-115-7', name: 'Express.js', skill_name: 'Express.js', category: 'Backend', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'RESTful API Endpoints & Middleware Architecture' },
+    { id: 'ev-115-8', name: 'React', skill_name: 'React', category: 'Frontend', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'State Management, Hooks & Responsive UI' },
+    { id: 'ev-115-9', name: 'Tailwind CSS', skill_name: 'Tailwind CSS', category: 'Frontend', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Design Systems & Utility Styling' },
+    { id: 'ev-115-10', name: 'Linux', skill_name: 'Linux', category: 'DevOps', proficiency: 'Intermediate', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.94, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Shell Scripting & Server Administration' },
+    { id: 'ev-115-11', name: 'Machine Learning', skill_name: 'Machine Learning', category: 'AI / ML', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.96, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Supervised & Unsupervised Model Training' },
+    { id: 'ev-115-12', name: 'PyTorch', skill_name: 'PyTorch', category: 'AI / ML', proficiency: 'Advanced', evidenceStatus: 'ASSESSMENT_VERIFIED', evidence_status: 'ASSESSMENT_VERIFIED', tier: 'CONFIRMED_SOLID', multiplier: 1.0, confidence: 0.97, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Neural Networks & Deep Learning Architectures' },
+    { id: 'ev-115-13', name: 'Scikit-learn', skill_name: 'Scikit-learn', category: 'AI / ML', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Classification, Regression & Model Evaluation' },
+    { id: 'ev-115-14', name: 'Pandas', skill_name: 'Pandas', category: 'AI / ML', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Tabular Data Wrangling & Feature Engineering' },
+    { id: 'ev-115-15', name: 'LLMs & GenAI', skill_name: 'LLMs & GenAI', category: 'AI / ML', proficiency: 'Advanced', evidenceStatus: 'ASSESSMENT_VERIFIED', evidence_status: 'ASSESSMENT_VERIFIED', tier: 'CONFIRMED_SOLID', multiplier: 1.0, confidence: 0.97, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Prompt Engineering, RAG & Vector Embeddings' },
+    { id: 'ev-115-16', name: 'Natural Language Processing', skill_name: 'Natural Language Processing', category: 'AI / ML', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Tokenization, Transformers & Text Classification' },
+    { id: 'ev-115-17', name: 'Computer Vision', skill_name: 'Computer Vision', category: 'AI / ML', proficiency: 'Intermediate', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.93, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Convolutional Networks & Image Segmentation' },
+    { id: 'ev-115-18', name: 'Git & Version Control', skill_name: 'Git & Version Control', category: 'Tools', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.96, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Branching, PRs & Trunk-Based Development' },
+    { id: 'ev-115-19', name: 'Postman', skill_name: 'Postman', category: 'Tools', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'API Testing, Automated Collections & Mock Servers' },
+    { id: 'ev-115-20', name: 'Agile & Scrum', skill_name: 'Agile & Scrum', category: 'Soft Skills', proficiency: 'Advanced', evidenceStatus: 'STUDENT_CONFIRMED', evidence_status: 'STUDENT_CONFIRMED', tier: 'CONFIRMED_SOLID', multiplier: 0.95, confidence: 0.95, sourceDocumentId: 'doc_resume_devansh.pdf', sourceSpan: 'Sprint Planning & Standups' },
   ],
 }
+
+// Aliases for STU-115
+DEMO_EVIDENCE['STU-537'] = DEMO_EVIDENCE['STU-115']
+DEMO_EVIDENCE['STU-105'] = DEMO_EVIDENCE['STU-115']
 
 export async function GET(
   req: NextRequest,
@@ -248,6 +288,18 @@ export async function GET(
 
   // Fallback: If it's a known institutional demo profile, return verified demo credentials
   const normId = studentId.toUpperCase()
+  if (normId.includes('ARIJEET') || normId === 'STU-128') {
+    return NextResponse.json(DEMO_EVIDENCE['STU-128'])
+  }
+  if (normId.includes('DEVANSH') || normId === 'STU-115' || normId === 'STU-537' || normId === 'STU-105') {
+    return NextResponse.json(DEMO_EVIDENCE['STU-115'])
+  }
+  if (normId.includes('PRIYA') || normId === 'STU-102') {
+    return NextResponse.json(DEMO_EVIDENCE['STU-102'])
+  }
+  if (normId.includes('AARAV') || normId === 'STU-101') {
+    return NextResponse.json(DEMO_EVIDENCE['STU-101'])
+  }
   if (DEMO_EVIDENCE[normId]) {
     return NextResponse.json(DEMO_EVIDENCE[normId])
   }

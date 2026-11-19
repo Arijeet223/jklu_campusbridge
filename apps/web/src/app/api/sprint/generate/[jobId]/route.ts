@@ -23,7 +23,7 @@ export async function POST(
       {
         method: 'POST',
         headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(2000),
+        signal: AbortSignal.timeout(35000),
       }
     )
     if (res.ok) {

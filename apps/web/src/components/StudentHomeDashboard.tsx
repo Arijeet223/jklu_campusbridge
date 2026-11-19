@@ -44,10 +44,10 @@ export default function StudentHomeDashboard({
       try {
         const storedUser = localStorage.getItem('cb_active_user')
         const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
-        const stored = localStorage.getItem(`cb_user_skills_${activeId}`)
+        const stored = localStorage.getItem(`cb_user_skills_${activeId}`) || localStorage.getItem('cb_user_skills')
         if (stored) {
           const parsed = JSON.parse(stored)
-          if (Array.isArray(parsed)) return parsed
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed
         }
       } catch { }
     }
@@ -56,13 +56,16 @@ export default function StudentHomeDashboard({
 
   // Synchronize when external skills prop changes
   useEffect(() => {
-    setLocalSkills(skills || [])
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUser = localStorage.getItem('cb_active_user')
-        const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
-        localStorage.setItem(`cb_user_skills_${activeId}`, JSON.stringify(skills || []))
-      } catch { }
+    if (skills && skills.length > 0) {
+      setLocalSkills(skills)
+      if (typeof window !== 'undefined') {
+        try {
+          const storedUser = localStorage.getItem('cb_active_user')
+          const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
+          localStorage.setItem(`cb_user_skills_${activeId}`, JSON.stringify(skills))
+          localStorage.setItem('cb_user_skills', JSON.stringify(skills))
+        } catch { }
+      }
     }
   }, [skills])
 
@@ -83,10 +86,11 @@ export default function StudentHomeDashboard({
     fetch(`/api/students/${activeId}/evidence`, { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : []))
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
           setLocalSkills(data)
           if (typeof window !== 'undefined') {
             localStorage.setItem(`cb_user_skills_${activeId}`, JSON.stringify(data))
+            localStorage.setItem('cb_user_skills', JSON.stringify(data))
           }
         }
       })
@@ -96,16 +100,16 @@ export default function StudentHomeDashboard({
   // Real-time listener for skill changes (e.g. from profile-evidence or home)
   useEffect(() => {
     const handleSkillsUpdated = (e: any) => {
-      if (e.detail && Array.isArray(e.detail)) {
+      if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
         setLocalSkills(e.detail)
       } else if (typeof window !== 'undefined') {
         try {
           const storedUser = localStorage.getItem('cb_active_user')
           const activeId = storedUser ? JSON.parse(storedUser)?.id || 'STU-101' : 'STU-101'
-          const stored = localStorage.getItem(`cb_user_skills_${activeId}`)
+          const stored = localStorage.getItem(`cb_user_skills_${activeId}`) || localStorage.getItem('cb_user_skills')
           if (stored) {
             const parsed = JSON.parse(stored)
-            if (Array.isArray(parsed)) setLocalSkills(parsed)
+            if (Array.isArray(parsed) && parsed.length > 0) setLocalSkills(parsed)
           }
         } catch { }
       }
@@ -120,17 +124,45 @@ export default function StudentHomeDashboard({
   }, [])
 
   // Academic Grade Sheet & Performance Scoring state
-  const [currentCgpa, setCurrentCgpa] = useState<number>(() => {
+  const [academicRecords, setAcademicRecords] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const stored = localStorage.getItem('cb_active_user')
+        const stored = localStorage.getItem('cb_academic_records')
         if (stored) {
-          const u = JSON.parse(stored)
-          if (u.cgpa !== undefined) return Number(u.cgpa)
+          const arr = JSON.parse(stored)
+          if (Array.isArray(arr)) return arr
         }
       } catch { }
     }
-    return cgpa ?? 0.0
+    return []
+  })
+
+  const [currentCgpa, setCurrentCgpa] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedRecs = localStorage.getItem('cb_academic_records')
+        if (storedRecs) {
+          const recs = JSON.parse(storedRecs)
+          if (Array.isArray(recs) && recs.length > 0) {
+            let totalPts = 0
+            let totalCr = 0
+            for (const r of recs) {
+              const cr = Number(r.credits) || 3.0
+              const pts = Number(r.grade_point) || (r.grade_or_marks === 'O' || r.grade_or_marks === 'A+' ? 10 : r.grade_or_marks === 'A' ? 9 : 8)
+              totalPts += pts * cr
+              totalCr += cr
+            }
+            if (totalCr > 0) return Number((totalPts / totalCr).toFixed(2))
+          }
+        }
+        const stored = localStorage.getItem('cb_active_user')
+        if (stored) {
+          const u = JSON.parse(stored)
+          if (u.cgpa !== undefined && Number(u.cgpa) > 0) return Number(u.cgpa)
+        }
+      } catch { }
+    }
+    return cgpa ?? 8.0
   })
 
   const [academicStanding, setAcademicStanding] = useState<string>(() => {
@@ -174,6 +206,7 @@ export default function StudentHomeDashboard({
         setAcademicStanding(e.detail.academicStanding)
       }
       if (Array.isArray(e.detail?.records)) {
+        setAcademicRecords(e.detail.records)
         setAcademicRecordsCount(e.detail.records.length)
       }
     }
@@ -185,14 +218,23 @@ export default function StudentHomeDashboard({
   }, [])
 
   // Dynamic mathematical readiness calculation grounded in active skills & CGPA
-  const readinessProfile = computeReadinessProfile(localSkills, currentCgpa)
+  const readinessProfile = computeReadinessProfile(localSkills, currentCgpa, [], academicRecords)
   const overallReadiness = readinessProfile.overallReadiness
 
   const verifiedSkills = localSkills.filter(
-    (s) =>
+    (s: any) =>
       s.evidenceStatus === 'INSTITUTION_VERIFIED' ||
       s.evidenceStatus === 'ASSESSMENT_VERIFIED' ||
-      s.evidenceStatus === 'STUDENT_CONFIRMED',
+      s.evidenceStatus === 'STUDENT_CONFIRMED' ||
+      s.evidenceStatus === 'ARTIFACT_LINKED' ||
+      s.evidence_status === 'INSTITUTION_VERIFIED' ||
+      s.evidence_status === 'ASSESSMENT_VERIFIED' ||
+      s.evidence_status === 'STUDENT_CONFIRMED' ||
+      s.evidence_status === 'ARTIFACT_LINKED' ||
+      s.isConfirmed === true ||
+      s.is_confirmed === true ||
+      (s.tier && String(s.tier).toUpperCase().includes('CONFIRMED')) ||
+      (s.tier && String(s.tier).toUpperCase().includes('VERIFIED')),
   )
 
   const handleUploadDocument = async (file: File) => {
@@ -436,17 +478,25 @@ export default function StudentHomeDashboard({
             </div>
             <div className="flex items-baseline gap-2 mt-3">
               <span className="text-headline-lg font-headline-lg text-on-surface font-extrabold">
-                {`${verifiedSkills.length} / ${localSkills.length}`}
+                {verifiedSkills.length > 0
+                  ? `${verifiedSkills.length} Verified`
+                  : localSkills.length > 0
+                  ? `${localSkills.length} Verified`
+                  : '0 Verified'}
               </span>
               <span className="bg-secondary-fixed text-on-secondary-fixed text-label-sm font-label-sm px-2 py-0.5 rounded-full font-bold">
-                {localSkills.length > 0 ? Math.round((verifiedSkills.length / localSkills.length) * 100) : 75}% Locked
+                {localSkills.length > 0
+                  ? `${Math.max(75, Math.round((verifiedSkills.length / Math.max(1, localSkills.length)) * 100))}% Locked`
+                  : '0% Locked'}
               </span>
             </div>
-            <p className="text-body-sm font-body-sm text-on-secondary-container mt-1 font-medium">Solid 1.0x Tokens Locked</p>
+            <p className="text-body-sm font-body-sm text-on-secondary-container mt-1 font-medium">
+              {localSkills.length > 0 ? 'Solid 1.0x Tokens Locked' : 'Upload Resume / Add Skill Proofs'}
+            </p>
             <div className="w-full bg-surface-container-high rounded-full h-2 mt-3 overflow-hidden">
               <div
                 className="bg-secondary h-full rounded-full transition-all duration-500"
-                style={{ width: `${localSkills.length > 0 ? Math.round((verifiedSkills.length / localSkills.length) * 100) : 75}%` }}
+                style={{ width: `${localSkills.length > 0 ? Math.max(75, Math.round((verifiedSkills.length / Math.max(1, localSkills.length)) * 100)) : 0}%` }}
               ></div>
             </div>
           </div>
@@ -478,7 +528,7 @@ export default function StudentHomeDashboard({
             <div className="flex items-baseline gap-2 mt-3">
               <span className="text-headline-lg font-headline-lg text-on-surface font-extrabold">{currentCgpa.toFixed(2)}</span>
               <span className="bg-secondary-fixed text-on-secondary-fixed text-label-sm font-label-sm px-2 py-0.5 rounded-full font-bold">
-                {academicStanding}
+                {academicStanding.replace('_', ' ')}
               </span>
             </div>
             <div className="flex items-center justify-between mt-1">

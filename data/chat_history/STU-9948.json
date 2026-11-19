@@ -1,0 +1,89 @@
+[
+  {
+    "id": "msg-welcome",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey arijeet! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
+    "timestamp": "09:54",
+    "widgetType": "none",
+    "trace": {
+      "engine": {
+        "name": "J.A.R.V.I.S. Cognitive Router",
+        "model": "qwen2.5:7b",
+        "latency_ms": 8.5,
+        "degraded_mode": false
+      },
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Contextual Session Initialized",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 8.5
+    }
+  },
+  {
+    "id": "usr-1795081725466",
+    "sender": "user",
+    "text": "Find me a mentor from my enrolled seniors",
+    "timestamp": "09:48",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1795081725466",
+    "sender": "assistant",
+    "agentName": "🎓 J.A.R.V.I.S. Mentorship Registry",
+    "text": "🤖 **J.A.R.V.I.S.:** Querying our enrolled seniors registry under institutional DPDP privacy regulations...\n\n---\n\n🎓 **Enrolled Senior Mentors Available (2)**:\n\n• **Priya Nair** (B.Tech CSE (AI & DS) • Batch 2026)\n  - **Verified GPA:** `8.95` (Academic Records Verified)\n  - **Top Skills:** Python, Hybrid RAG & Vector Search\n  - **Contact:** ✉️ [priya.nair@university.edu.in](mailto:priya.nair@university.edu.in) • 📱 `+919876543210` • ✈️ [@priya_nair_ai](https://t.me/priya_nair_ai)\n\n• **Sneha Mukherjee** (B.Tech CSE • Batch 2026)\n  - **Verified GPA:** `9.2` (Academic Records Verified)\n  - **Top Skills:** Python, FastAPI, SQL, System Design\n  - **Contact:** ✉️ [sneha.mukherjee@university.edu.in](mailto:sneha.mukherjee@university.edu.in) • 📱 `+919876543211` • ✈️ [@sneha_cloud](https://t.me/sneha_cloud)\n\nFeel free to connect directly via email, phone, or Telegram for 1-on-1 guidance on placements and coursework!",
+    "timestamp": "09:48",
+    "widgetType": "mentor_list",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_2: SPECIALIST_AGENT_DELEGATION",
+      "delegated_agent": "Senior Mentorship Registry",
+      "engine": {
+        "name": "Multi-Agent Pantheon (Senior Mentorship Registry)",
+        "model": "qwen2.5:7b",
+        "latency_ms": 35,
+        "prompt_tokens": 43,
+        "completion_tokens": 106,
+        "total_tokens": 149,
+        "degraded_mode": false
+      },
+      "mcp_tools": [
+        {
+          "server": "student-profile",
+          "tool": "student-profile.find_senior_mentors",
+          "status": "ALLOWED",
+          "execution_time_ms": 1.2,
+          "summary": "Found 2 opted-in enrolled senior mentors"
+        }
+      ],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Verified Grounded",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 35
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1795082073430",
+    "sender": "user",
+    "text": "wjat are my skills",
+    "timestamp": "09:54",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1795082073430",
+    "sender": "assistant",
+    "agentName": "🌿 T.E.R.R.A.",
+    "text": "",
+    "timestamp": "09:54",
+    "widgetType": "none",
+    "isStreaming": true
+  }
+]

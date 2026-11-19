@@ -57,7 +57,8 @@ CORE DIRECTIVES:
 - Personal Knowledge Base Grounding: Seamlessly query the student's personal verified profile data from Qdrant using the query_student_context tool. Base all guidance on their actual confirmed skills, verified grades/courses, and GitHub telemetry.
 - Conversational Mentor Tone: Converse naturally about this data without acting like a search engine (e.g., talk like an encouraging, strategic senior mentor, not a database). Never dump raw database rows or JSON keys.
 - Actionable Practice Recommendations: Relate the student's coursework and verified project evidence to career opportunities and interview readiness, recommending concrete practice actions in the arena.
-- Action-Oriented: You have tools (e.g., query_student_context, query_active_placements, draft_professor_email). Invoke them seamlessly without reciting internal mechanics.
+- Action-Oriented: You have tools (e.g., query_student_context, query_active_placements, draft_professor_email, find_senior_mentors). Invoke them seamlessly without reciting internal mechanics.
+- Senior Mentorship Discovery (DPDP Guarded): When asked "find me a mentor", "who can help me with [skill]", or similar, invoke find_senior_mentors to retrieve enrolled seniors who explicitly enabled 'share_info_with_juniors'. Return their Name, Verified GPA/Grades, Top Skills, and Contact Info (Email, Phone, Telegram) so the junior can reach out personally. If no seniors have opted in yet, state that clearly without inventing dummy profiles.
 - FORBIDDEN BEHAVIORS: NEVER repeat canned greetings. NEVER append robotic feature menus (e.g., 'Would you like to check your sprint plan?'). Answer the prompt naturally, insightfully, and stop."""
 
 
@@ -139,6 +140,9 @@ def classify_intent(prompt: str, context: Optional[SecurityContext] = None) -> C
         "coding test", "take test",
         # Gap Analyzer
         "skill gap", "skill gaps", "what skills do i lack", "gap analysis", "deficits",
+        # Senior Mentorship Discovery (DPDP Guarded)
+        "mentor", "mentors", "find mentor", "find me a mentor", "senior mentor", "find senior",
+        "peer mentor", "who can help me with", "who can mentor", "find seniors", "senior students",
     ]
     if any(k in p_lower for k in specialist_keywords):
         return CognitiveIntent.SPECIALIST_AGENT_DELEGATION
@@ -674,6 +678,44 @@ class AgentOrchestrator:
                     {"server": "student-profile", "tool": "student-profile.list_evidence", "status": "ALLOWED", "execution_time_ms": 1.5, "summary": "Rendered verified competencies and repository links"},
                 ]
 
+            # Sub-Branch 2-Mentors: Peer/Senior Mentorship Discovery (Zero Mock Data)
+            elif any(k in p_lower for k in ["mentor", "mentors", "senior", "seniors", "who can help me", "who can mentor", "find senior"]):
+                delegated_agent = "Senior Mentorship Registry"
+                widget_type = "mentor_list"
+                handoff_announcement = (
+                    "🤖 **J.A.R.V.I.S.:** Querying our enrolled seniors registry under institutional DPDP privacy regulations..."
+                )
+                from mcp.servers.student_profile import StudentProfileServer
+                server = StudentProfileServer()
+                filter_term = None
+                for term in ["python", "sql", "ai", "ml", "fastapi", "react", "docker", "redis", "cse", "ece", "data science"]:
+                    if term in p_lower:
+                        filter_term = term
+                        break
+                mentor_res = server._handle_find_senior_mentors({"skill_or_branch": filter_term}, context=context)
+                avail_mentors = mentor_res.get("mentors", [])
+
+                if avail_mentors:
+                    lines = [f"🎓 **Enrolled Senior Mentors Available ({len(avail_mentors)})**:"]
+                    for m in avail_mentors:
+                        lines.append(
+                            f"• **{m['name']}** ({m['program']} • Batch {m['cohort_year']})\n"
+                            f"  - **Verified GPA:** `{m['cgpa']}` (Academic Records Verified)\n"
+                            f"  - **Top Skills:** {', '.join(m['top_skills'])}\n"
+                            f"  - **Contact:** ✉️ [{m['email']}](mailto:{m['email']}) • 📱 `{m['phone_number']}` • ✈️ [{m['telegram_id']}](https://t.me/{m['telegram_id'].replace('@', '')})"
+                        )
+                    specialist_body = "\n\n".join(lines) + "\n\nFeel free to connect directly via email, phone, or Telegram for 1-on-1 guidance on placements and coursework!"
+                else:
+                    specialist_body = (
+                        "ℹ️ **Senior Mentorship Discovery (DPDP Guarded):**\n\n"
+                        "No enrolled seniors have currently enabled **'Share your info with juniors'** in their Profile Settings.\n\n"
+                        "Under institutional DPDP Privacy-by-Default regulations, senior contact info and grades are never displayed without explicit student opt-in. "
+                        "Ask your seniors to toggle this option on in their Account Settings so their profile and verified GPA appear here!"
+                    )
+                trace_data["mcp_tools"] = [
+                    {"server": "student-profile", "tool": "student-profile.find_senior_mentors", "status": "ALLOWED", "execution_time_ms": 1.2, "summary": f"Found {len(avail_mentors)} opted-in enrolled senior mentors"},
+                ]
+
             # Sub-Branch 2A: 72-Hour Rapid Sprint & Trajectory (K.R.O.N.O.S. / Agent 5)
             elif any(k in p_lower for k in ["sprint", "72h", "72 hrs", "72-hr", "72hr", "72 hours", "roadmap", "plan", "trajectory", "prep"]) or any(k in p_lower for k in ["kronos", "k.r.o.n.o.s."]):
                 delegated_agent = "K.R.O.N.O.S."
@@ -847,6 +889,7 @@ class AgentOrchestrator:
                 "R.O.N.E.N.": "🛡️ R.O.N.E.N.",
                 "A.T.H.E.N.A.": "⚡ A.T.H.E.N.A.",
                 "K.R.O.N.O.S.": "⏱️ K.R.O.N.O.S.",
+                "Senior Mentorship Registry": "🎓 J.A.R.V.I.S. Mentorship Registry",
             }.get(delegated_agent, "🤖 J.A.R.V.I.S.")
 
             return {

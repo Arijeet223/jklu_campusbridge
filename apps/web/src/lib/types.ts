@@ -154,6 +154,7 @@ export type ChatWidgetType =
   | 'provenance_gallery'
   | 'applications_tracker'
   | 'resume_preview'
+  | 'mentor_list'
 
 export interface AITrace {
   engine: {

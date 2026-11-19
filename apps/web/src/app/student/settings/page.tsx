@@ -44,6 +44,7 @@ export default function StudentSettingsPage() {
   const [showTelegramHelper, setShowTelegramHelper] = useState(false)
   const [telegramId, setTelegramId] = useState('')
   const [allowTelegramNotifications, setAllowTelegramNotifications] = useState(true)
+  const [shareInfoWithJuniors, setShareInfoWithJuniors] = useState(false)
   const [bio, setBio] = useState('')
   const [program, setProgram] = useState('B.Tech Computer Science & Engineering')
   const [cohortYear, setCohortYear] = useState<number>(2026)
@@ -111,6 +112,12 @@ export default function StudentSettingsPage() {
           setAllowTelegramNotifications(Boolean(stu.visibility_state.allow_telegram_notifications))
         }
 
+        if (stu.share_info_with_juniors !== undefined) {
+          setShareInfoWithJuniors(Boolean(stu.share_info_with_juniors))
+        } else if (stu.visibility_state?.share_info_with_juniors !== undefined) {
+          setShareInfoWithJuniors(Boolean(stu.visibility_state.share_info_with_juniors))
+        }
+
         setBio(stu.bio || stu.visibility_state?.bio || '')
         setProgram(stu.program || 'B.Tech Computer Science & Engineering')
         setCohortYear(stu.cohort_year || 2026)
@@ -175,6 +182,7 @@ export default function StudentSettingsPage() {
         cohort_year: cohortYear,
         target_roles: targetRoles,
         cgpa: cgpa,
+        share_info_with_juniors: shareInfoWithJuniors,
       }
 
       const res = await fetch(`/api/students/${studentId}/settings`, {
@@ -206,6 +214,7 @@ export default function StudentSettingsPage() {
         parsed.cohort_year = cohortYear
         parsed.target_roles = targetRoles
         parsed.cgpa = cgpa
+        parsed.share_info_with_juniors = shareInfoWithJuniors
         localStorage.setItem('cb_active_user', JSON.stringify(parsed))
         window.dispatchEvent(new CustomEvent('cb_profile_updated', { detail: parsed }))
       } catch {}
@@ -715,6 +724,59 @@ export default function StudentSettingsPage() {
                           </span>
                           <span className="text-[11px] text-[#4F4449] block mt-0.5 leading-tight">
                             Live bot push alerts with role salary, eligibility gates, and 1-click sprint access directly in Telegram.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ═══════════════════════════════════════════════════════════ */}
+                  {/* PEER & SENIOR MENTORSHIP DISCOVERY (DPDP COMPLIANT) */}
+                  {/* ═══════════════════════════════════════════════════════════ */}
+                  <div className="pt-4 border-t border-[#F1EFEA] space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-lg bg-[#6D3B56]/10 text-[#6D3B56] flex items-center justify-center font-bold">
+                          <GraduationCap className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-display font-bold text-xs text-[#1B1C1B]">
+                            Peer &amp; Senior Mentorship Discovery
+                          </h4>
+                          <p className="text-3xs text-[#817379]">
+                            Opt-in peer network connecting verified seniors with upcoming batches under DPDP rules.
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-mono text-3xs font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                        DPDP Privacy-by-Default
+                      </span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl border border-[#E6E3DC] bg-[#FAF8F5] space-y-3">
+                      <div
+                        onClick={() => setShareInfoWithJuniors(!shareInfoWithJuniors)}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center gap-3 select-none ${
+                          shareInfoWithJuniors
+                            ? 'bg-purple-50/80 border-purple-200'
+                            : 'bg-white border-[#E6E3DC] opacity-75'
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors shrink-0 ${
+                            shareInfoWithJuniors
+                              ? 'bg-[#6D3B56] border-[#6D3B56] text-white'
+                              : 'bg-white border-gray-300'
+                          }`}
+                        >
+                          {shareInfoWithJuniors && <Check className="h-3.5 w-3.5 stroke-[3]" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="font-bold text-xs text-[#1B1C1B] block">
+                            Share your info with juniors
+                          </span>
+                          <span className="text-[11px] text-[#4F4449] block mt-0.5 leading-tight">
+                            Allow junior students to discover your verified GPA and contact info when looking for a mentor.
                           </span>
                         </div>
                       </div>

@@ -90,7 +90,28 @@ export default function StudentSprintPlanPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        const jobs = data.selected_jobs || []
+        let jobs = data.selected_jobs || []
+
+        // If a specific drive was requested in URL (e.g., from Live Opportunities card), ensure it's selected
+        if (requestedJobId && !jobs.some((j: any) => j.job_id === requestedJobId)) {
+          try {
+            await fetch(
+              `/api/student/drives/${encodeURIComponent(requestedJobId)}/select?student_id=${encodeURIComponent(sid)}`,
+              { method: 'POST' }
+            )
+            const retryRes = await fetch(
+              `/api/student/drives/selected?student_id=${encodeURIComponent(sid)}`,
+              { cache: 'no-store' }
+            )
+            if (retryRes.ok) {
+              const retryData = await retryRes.json()
+              if (retryData.selected_jobs?.length > 0) {
+                jobs = retryData.selected_jobs
+              }
+            }
+          } catch {}
+        }
+
         setSelectedJobs(jobs)
         if (jobs.length > 0) {
           const matchRequested = requestedJobId ? jobs.find((j: any) => j.job_id === requestedJobId) : null

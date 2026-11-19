@@ -26,15 +26,54 @@ def fallback_regex_grade_parser(text: str) -> list[dict[str, Any]]:
     """Deterministic regex fallback parser when LLM is unavailable.
     
     Parses common Indian university transcript & TCS iON portal tables:
+    - Card / Grid layouts (TCS iON, AKTU, VTU portals): [Code]-[Course Title] with Grade & Credit fields.
     - Pipe/tab delimited rows: e.g. "KCS501 | Machine Learning Foundations | 4.0 | A+ | 10.0"
     - Colon/dash formats: e.g. "Compiler Design: A+ (Credits: 4.0)"
     Returns empty list if no genuine courses are detected (no mock fallback).
     """
     records = []
-    lines = text.split("\n")
-
-    grade_token_regex = r"^(O|A\+|A|A-|B\+|B|B-|C\+|C|C-|P|D|F|PASS|FAIL|\d{1,3}(?:\.\d+)?%?)$"
     seen_subjects = set()
+
+    # Pattern A: TCS iON Portal Grid / Card format
+    # In TCS iON, cards have:
+    # Header: [Code]-[Course Title] e.g. 'cS1105-Design and Analysis of Algorithms'
+    # And corresponding 'Grade: B' and 'Subject Earned Credit Point: 4'
+    card_headers = re.findall(
+        r'([A-Za-z0-9]{3,10})\s*[-–—]\s*([A-Za-z\s&,/-]{4,60}?)(?=(?:\s*\||\n|$))',
+        text,
+    )
+    grades_matched = re.findall(r'Grade:\s*([A-Za-z0-9+-]+)', text)
+    credits_matched = re.findall(
+        r'(?:Subject Earned Credit Point|Earned Credit|Credits?):\s*(\d+(?:\.\d+)?)',
+        text,
+        re.I,
+    )
+
+    if card_headers and grades_matched and len(card_headers) == len(grades_matched):
+        for idx, (code, title) in enumerate(card_headers):
+            sub_title = title.strip()
+            grd = grades_matched[idx].strip().upper()
+            crd = 3.0
+            if idx < len(credits_matched):
+                try:
+                    crd = float(credits_matched[idx])
+                except (ValueError, TypeError):
+                    crd = 3.0
+
+            if len(sub_title) > 2 and sub_title.lower() not in seen_subjects:
+                seen_subjects.add(sub_title.lower())
+                records.append({
+                    "id": f"grade_{len(records) + 1}",
+                    "subject_name": sub_title,
+                    "grade_or_marks": grd,
+                    "credits": crd,
+                    "extraction_confidence": 0.90,
+                })
+
+    if records:
+        return records
+
+    lines = text.split("\n")
 
     # Ignore table header rows and portal metadata
     skip_header_regex = re.compile(
@@ -50,7 +89,7 @@ def fallback_regex_grade_parser(text: str) -> list[dict[str, Any]]:
         if skip_header_regex.search(line_clean) and ("grade" in line_clean.lower() or "credit" in line_clean.lower()):
             continue
 
-        # Check for pipe-separated table rows (common in TCS iON OCR output)
+        # Check for pipe-separated table rows (common in university OCR output)
         if "|" in line_clean:
             parts = [p.strip() for p in line_clean.split("|") if p.strip()]
             if len(parts) >= 2:
@@ -70,7 +109,6 @@ def fallback_regex_grade_parser(text: str) -> list[dict[str, Any]]:
                             found_credits = val
                     elif len(clean_p) > 3 and not re.match(r"^\d+(\.\d+)?$", clean_p) and not re.match(r"^(Pass|Fail|Audit|Regular)$", clean_p, re.I):
                         # Potential subject name or course code
-                        # If it has alphabetic course title (e.g. "Machine Learning Foundations")
                         if re.search(r"[A-Za-z]{3,}", clean_p) and not re.match(r"^[A-Z0-9]{3,8}$", clean_p):
                             found_subject = clean_p
                         elif not found_subject and re.search(r"[A-Za-z]{2,}", clean_p):
@@ -113,7 +151,7 @@ def fallback_regex_grade_parser(text: str) -> list[dict[str, Any]]:
     return records
 
 
-def extract_grades_with_qwen(raw_text: str, timeout_seconds: float = 25.0) -> tuple[list[dict[str, Any]], str, float]:
+def extract_grades_with_qwen(raw_text: str, timeout_seconds: float = 40.0) -> tuple[list[dict[str, Any]], str, float]:
     """Extract academic subjects, grades, and credits using Qwen 2.5 with strict anti-hallucination prompting.
 
     Returns:

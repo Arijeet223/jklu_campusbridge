@@ -75,6 +75,7 @@ class StudentProfile(Base, TimestampMixin):
     resume_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     academic_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     selected_drives: Mapped[list[Any]] = mapped_column(JsonType, default=list, nullable=False)
+    share_info_with_juniors: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     evidence: Mapped[List[SkillEvidence]] = relationship(
@@ -120,6 +121,10 @@ class StudentProfile(Base, TimestampMixin):
             "resume_verified": bool(self.resume_verified),
             "academic_verified": bool(self.academic_verified),
             "selected_drives": self.selected_drives if isinstance(self.selected_drives, list) else (self.visibility_state or {}).get("selected_drives", []),
+            "share_info_with_juniors": bool(
+                self.share_info_with_juniors
+                or (self.visibility_state or {}).get("share_info_with_juniors", False)
+            ),
         }
 
 

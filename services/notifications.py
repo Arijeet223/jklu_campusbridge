@@ -162,13 +162,14 @@ class TwilioSMSProvider(BaseNotificationProvider):
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TelegramProvider(BaseNotificationProvider):
-    """Dispatches real-time alerts via Telegram Bot API."""
+    """Dispatches real-time alerts via Telegram Bot API with rate limits and auto-retries."""
 
     def __init__(self) -> None:
-        self.bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+        from services.telegram_bot import CampusBridgeTelegramBot
+        self.bot = CampusBridgeTelegramBot()
 
     async def dispatch(self, recipient: str, message: str) -> Dict[str, Any]:
-        """Send Markdown formatted message to Telegram chat ID."""
+        """Send Markdown formatted message to Telegram chat ID adhering to rate limits."""
         chat_id = str(recipient).strip()
         if not chat_id:
             return {
@@ -178,7 +179,7 @@ class TelegramProvider(BaseNotificationProvider):
                 "status": "SKIPPED_EMPTY_CHAT_ID",
             }
 
-        if not self.bot_token:
+        if not self.bot.is_configured():
             logger.warning("[TELEGRAM_DISPATCH_WARN] TELEGRAM_BOT_TOKEN missing in environment.")
             return {
                 "channel": "telegram",
@@ -187,45 +188,25 @@ class TelegramProvider(BaseNotificationProvider):
                 "status": "SKIPPED_MISSING_TOKEN",
             }
 
-        api_url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
-        payload = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "Markdown",
-        }
-
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(api_url, json=payload)
-                if res.status_code == 200:
-                    data = res.json()
-                    logger.info(f"[TELEGRAM_DISPATCH_SUCCESS] Alert delivered to chat_id={chat_id}")
-                    return {
-                        "channel": "telegram",
-                        "recipient": chat_id,
-                        "success": True,
-                        "status": "DELIVERED",
-                        "message_id": data.get("result", {}).get("message_id"),
-                    }
-                else:
-                    logger.warning(
-                        f"[TELEGRAM_DISPATCH_API_ERROR] Status {res.status_code} for chat_id={chat_id}: {res.text}"
-                    )
-                    return {
-                        "channel": "telegram",
-                        "recipient": chat_id,
-                        "success": False,
-                        "status": f"TELEGRAM_HTTP_{res.status_code}",
-                        "error": res.text,
-                    }
-        except Exception as e:
-            logger.warning(f"[TELEGRAM_DISPATCH_EXCEPTION] Failed to send Telegram alert to {chat_id}: {e}")
+        res = await self.bot.send_message(chat_id, message, parse_mode="Markdown")
+        if res.get("ok"):
+            logger.info(f"[TELEGRAM_DISPATCH_SUCCESS] Alert delivered to chat_id={chat_id}")
+            return {
+                "channel": "telegram",
+                "recipient": chat_id,
+                "success": True,
+                "status": "DELIVERED",
+                "message_id": res.get("result", {}).get("message_id"),
+            }
+        else:
+            err = res.get("error", "Unknown dispatch failure")
+            logger.warning(f"[TELEGRAM_DISPATCH_API_ERROR] Failed for chat_id={chat_id}: {err}")
             return {
                 "channel": "telegram",
                 "recipient": chat_id,
                 "success": False,
-                "status": "NETWORK_EXCEPTION",
-                "error": str(e),
+                "status": f"TELEGRAM_ERROR_{res.get('status_code', 'API')}",
+                "error": err,
             }
 
 

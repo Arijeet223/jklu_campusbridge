@@ -479,8 +479,34 @@ async def delete_job(session: AsyncSession, job_id: str) -> bool:
 async def select_student_drive(session: AsyncSession, student_id: str, job_id: str) -> dict[str, Any]:
     """Toggle a student's selected drive in PostgreSQL."""
     student = await get_student(session, student_id)
+    if not student and "@" in student_id:
+        student = await get_student_by_email(session, student_id)
+
     if not student:
-        return {"student_id": student_id, "job_id": job_id, "is_selected": False, "selected_drives": []}
+        # Check Excel store for student metadata to initialize StudentProfile
+        from backend.db.excel_store import get_excel_store, SHEET_STUDENTS
+        store = get_excel_store()
+        xl_row = store.get_row(SHEET_STUDENTS, "student_id", student_id)
+        if not xl_row and "@" in student_id:
+            for r in store.get_sheet(SHEET_STUDENTS):
+                if str(r.get("email", "")).strip().lower() == student_id.strip().lower():
+                    xl_row = r
+                    break
+        email = xl_row.get("email") if xl_row else (student_id if "@" in student_id else f"{student_id.lower()}@university.edu.in")
+        full_name = xl_row.get("name") if xl_row else "Student"
+        cgpa = float(xl_row.get("cgpa", 8.0) or 8.0) if xl_row else 8.0
+        student = StudentProfile(
+            student_id=student_id,
+            email=email,
+            full_name=full_name,
+            calculated_academic_score=cgpa * 10,
+            cgpa=cgpa,
+            selected_drives=[job_id],
+            visibility_state={"selected_drives": [job_id]},
+        )
+        session.add(student)
+        await session.flush()
+        return {"student_id": student_id, "job_id": job_id, "is_selected": True, "selected_drives": [job_id]}
 
     current_drives = list(student.selected_drives or [])
     if not current_drives and student.visibility_state:
@@ -505,6 +531,8 @@ async def select_student_drive(session: AsyncSession, student_id: str, job_id: s
 async def get_student_selected_drives(session: AsyncSession, student_id: str) -> list[str]:
     """Retrieve list of drive IDs selected by a student."""
     student = await get_student(session, student_id)
+    if not student and "@" in student_id:
+        student = await get_student_by_email(session, student_id)
     if not student:
         return []
     if student.selected_drives:
@@ -757,4 +785,27 @@ async def mark_all_notifications_as_read(session: AsyncSession, user_id: str) ->
     result = await session.execute(stmt)
     await session.flush()
     return result.rowcount
+
+
+async def get_available_mentors(
+    session: AsyncSession,
+    branch: Optional[str] = None,
+    skill: Optional[str] = None,
+    min_cgpa: Optional[float] = None,
+) -> List[StudentProfile]:
+    """Retrieve real enrolled students who opted in to mentor juniors under DPDP privacy regulations."""
+    stmt = select(StudentProfile).where(
+        or_(
+            StudentProfile.share_info_with_juniors == True,
+            # Fallback to visibility_state in JSON
+            func.cast(StudentProfile.visibility_state["share_info_with_juniors"].astext, Boolean) == True,
+        )
+    )
+    if min_cgpa is not None:
+        stmt = stmt.where(StudentProfile.cgpa >= float(min_cgpa))
+    if branch:
+        stmt = stmt.where(StudentProfile.program.ilike(f"%{branch}%"))
+    stmt = stmt.order_by(StudentProfile.cgpa.desc())
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
 

@@ -4,7 +4,7 @@
     "sender": "assistant",
     "agentName": "🤖 J.A.R.V.I.S.",
     "text": "Hey Aarav Sharma! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
-    "timestamp": "08:09",
+    "timestamp": "10:47",
     "widgetType": "none",
     "trace": {
       "engine": {
@@ -25,705 +25,158 @@
     }
   },
   {
-    "id": "usr-1794825764348",
+    "id": "usr-1795085288430",
     "sender": "user",
-    "text": "what is my resume",
-    "timestamp": "10:42",
+    "text": "what are active placements",
+    "timestamp": "10:48",
     "widgetType": "none"
   },
   {
-    "id": "bot-live-1794825764348",
+    "id": "bot-live-1795085288431",
     "sender": "assistant",
-    "agentName": "🌿 T.E.R.R.A.",
-    "text": "Your resume highlights a strong background in Computer Science with a focus on Artificial Intelligence. You've gained valuable experience through internships at FLO and IIT Jammu, and you've developed skills in Python, FastAPI, SQL & Query Optimization, Docker & Linux, and more. Are you looking for any specific feedback or advice based on your resume? [📄 Resume p.1]",
-    "timestamp": "10:42",
-    "widgetType": "resume_preview",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "You're currently in B.Tech CSE with a CGPA of 8.42 and 0 backlogs. Your profile has verified skills in Python, FastAPI, SQL & Query Optimization, Docker & Linux, targeting [\"Backend Engineer\", \"AI Engineer\"] roles.",
+    "timestamp": "10:48",
+    "widgetType": "none",
     "isStreaming": false,
     "trace": {
-      "intent": "INTENT_3: CONTEXTUAL_RAG_RETRIEVAL",
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
       "engine": {
-        "name": "Qwen 2.5 / Grounded Hybrid Search",
-        "latency_ms": 18024.08
+        "name": "Qwen 2.5 (qwen2.5:7b)",
+        "model": "qwen2.5:7b",
+        "latency_ms": 19016.57,
+        "prompt_tokens": 44,
+        "completion_tokens": 34,
+        "total_tokens": 78,
+        "degraded_mode": false
       },
       "mcp_tools": [
         {
-          "server": "student-profile",
-          "tool": "get_profile",
+          "server": "active-placements",
+          "tool": "query_active_placements",
           "status": "ALLOWED",
-          "execution_time_ms": 1.2,
-          "summary": "Fetched profile for STU-101"
-        },
-        {
-          "server": "student-profile",
-          "tool": "list_evidence",
-          "status": "ALLOWED",
-          "execution_time_ms": 1.8,
-          "summary": "Retrieved verified skills for STU-101"
-        },
-        {
-          "server": "matching",
-          "tool": "evaluate_eligibility",
-          "status": "ALLOWED",
-          "execution_time_ms": 2.1,
-          "summary": "Validated eligibility gates for job-techcorp-001"
-        },
-        {
-          "server": "matching",
-          "tool": "calculate_alignment",
-          "status": "ALLOWED",
-          "execution_time_ms": 1.5,
-          "summary": "Calculated 5-factor alignment index"
+          "execution_time_ms": 2.75,
+          "summary": "Retrieved 3 placement chunks for Campus Opportunities"
         }
       ],
       "rag_chunks": [],
       "guardrail": {
-        "status": "Verified Grounded (0 hallucinations)",
-        "valid_citations": [
-          "[chunk-0]"
-        ],
+        "status": "Verified Grounded Dual-RAG",
+        "valid_citations": [],
         "hallucinations_detected": 0
       },
-      "total_latency_ms": 18024.08
+      "total_latency_ms": 19016.57
     },
-    "citations": [
-      {
-        "label": "[📄 Resume p.1]",
-        "doc_id": "doc_resume_v3",
-        "page": 1,
-        "section": "Technical Projects"
-      }
-    ]
+    "citations": []
   },
   {
-    "id": "usr-1794825793751",
+    "id": "usr-1795085335276",
     "sender": "user",
-    "text": "heyyyyyy",
-    "timestamp": "10:43",
+    "text": "eho is ben 10\\",
+    "timestamp": "10:48",
     "widgetType": "none"
   },
   {
-    "id": "bot-live-1794825793751",
+    "id": "bot-live-1795085335276",
     "sender": "assistant",
     "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Heyyyyyy! How can I help you today? 😊",
-    "timestamp": "10:43",
+    "text": "It seems like you might have meant to ask about your active placements or something else related to your career journey. Could you please provide more details? For instance, are you looking for information on active placements, interview preparation, or something else?\n\nIf you're interested in your current placement drives, I can give you more details on that as well. What would you like to know?",
+    "timestamp": "10:48",
     "widgetType": "none",
     "isStreaming": false,
     "trace": {
       "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
       "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 8747.95
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 8747.95
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1794825804744",
-    "sender": "user",
-    "text": "what are my skills",
-    "timestamp": "10:43",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1794825804744",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "🤖 **J.A.R.V.I.S.:** I heard you! To update your profile anytime, mention your skills (e.g. *'I know PyTorch and Docker'*), your CGPA (e.g. *'My CGPA is 8.5'*), or your target role (e.g. *'My target role is AI Engineer'*), and I will immediately save it to your verified institutional records.",
-    "timestamp": "10:43",
-    "widgetType": "ghost_cards",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_4: ACTION_DISPATCH",
-      "engine": {
-        "name": "Action Dispatcher",
-        "latency_ms": 5562.83
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Action Dispatched",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 5562.83
-    },
-    "citations": []
-  },
-  {
-    "id": "confirm-1794825815294",
-    "sender": "assistant",
-    "agentName": "AI Skill Check",
-    "text": "✓ Confirmed! **Distributed Systems** is now officially added to your verified profile and visible to approved recruiters.",
-    "timestamp": "10:43",
-    "widgetType": "none"
-  },
-  {
-    "id": "confirm-1794825816562",
-    "sender": "assistant",
-    "agentName": "AI Skill Check",
-    "text": "✓ Confirmed! **SQL & Database Design** is now officially added to your verified profile and visible to approved recruiters.",
-    "timestamp": "10:43",
-    "widgetType": "none"
-  },
-  {
-    "id": "usr-1795013861594",
-    "sender": "user",
-    "text": "hey",
-    "timestamp": "14:57",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795013861595",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Hey! What's going on?",
-    "timestamp": "14:57",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 4439.31
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 4439.31
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795013873913",
-    "sender": "user",
-    "text": "who are you and who is athena",
-    "timestamp": "14:57",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795013873913",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "I'm J.A.R.V.I.S., your companion for CampusBridge. I help you navigate placement drives, prep for technical interviews, and track your skills.",
-    "timestamp": "14:57",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 4384.68
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 4384.68
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795013884225",
-    "sender": "user",
-    "text": "who is athena",
-    "timestamp": "14:58",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795013884225",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Regarding who is athena: When preparing for technical rounds, the key is articulating trade-offs clearly, verifying edge cases, and connecting your theoretical concepts to real implementations.",
-    "timestamp": "14:58",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 4404.09
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 4404.09
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795013900630",
-    "sender": "user",
-    "text": "no nvm am i livinng",
-    "timestamp": "14:58",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795013900630",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Regarding no nvm am i livinng: When preparing for technical rounds, the key is articulating trade-offs clearly, verifying edge cases, and connecting your theoretical concepts to real implementations.",
-    "timestamp": "14:58",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 4387.02
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 4387.02
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795014233421",
-    "sender": "user",
-    "text": "heiohaodsiha",
-    "timestamp": "15:03",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795014233421",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Hey! It looks like you might have made a typo.",
-    "timestamp": "15:03",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 7376.03
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 7376.03
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795014263943",
-    "sender": "user",
-    "text": "who is ben 10",
-    "timestamp": "15:04",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795014263943",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Ben 10 is a popular animated series created by Dan Perlow and Doug TenNapel. The main character, Ben Tennyson, has the ability to transform into various alien creatures called Omnitrix aliens by pressing a device called the Omnitrix on his wrist. Each alien has unique powers, and Ben uses them to save people and fight villains in different episodes. It's fun to watch and explore with friends!",
-    "timestamp": "15:04",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 9525.27
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 9525.27
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795014298499",
-    "sender": "user",
-    "text": "what is this architecture",
-    "timestamp": "15:04",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795014298499",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "It sounds like you might be referring to a specific type of architecture or a context that wasn't fully provided. Could you please give more details about what kind of architecture you're asking about, such as building architecture, software architecture, or any other specific field? That way, I can provide more accurate information!",
-    "timestamp": "15:04",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 8563.1
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 8563.1
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795014315987",
-    "sender": "user",
-    "text": "what is this websiite",
-    "timestamp": "15:05",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795014315987",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "It seems like you might be referring to a website or a specific context. Could you please provide more details about the website you're asking about? For example, is it related to your studies, a company's page, or something else? That will help me give you the most relevant information!",
-    "timestamp": "15:05",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 8328.23
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 8328.23
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795019277106",
-    "sender": "user",
-    "text": "yo",
-    "timestamp": "16:27",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795019277107",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Hey there! What's up? How can I help you today?",
-    "timestamp": "16:27",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 (Direct Ollama Gateway)",
-        "model": "qwen2.5:latest",
-        "latency_ms": 2953,
+        "name": "Qwen 2.5 (qwen2.5:7b)",
+        "model": "qwen2.5:7b",
+        "latency_ms": 5646.16,
+        "prompt_tokens": 44,
+        "completion_tokens": 66,
+        "total_tokens": 110,
         "degraded_mode": false
       },
       "mcp_tools": [],
       "rag_chunks": [],
       "guardrail": {
-        "status": "Direct Neural Reasoning",
+        "status": "Verified Grounded Dual-RAG",
         "valid_citations": [],
         "hallucinations_detected": 0
       },
-      "total_latency_ms": 2953
+      "total_latency_ms": 5646.16
     },
     "citations": []
   },
   {
-    "id": "usr-1795019324126",
+    "id": "usr-1795085348665",
     "sender": "user",
-    "text": "how aree youuuu brooooo",
-    "timestamp": "16:28",
+    "text": "are you a real fried",
+    "timestamp": "10:49",
     "widgetType": "none"
   },
   {
-    "id": "bot-live-1795019324126",
+    "id": "bot-live-1795085348665",
     "sender": "assistant",
     "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "I'm doing great, thanks for asking! How about you? How can I assist you today, bro?",
-    "timestamp": "16:28",
+    "text": "Got it! I'm here to help with your career journey and academics. You can think of me as your AI mentor, always ready to provide insights and guidance based on your verified skills and experience.\n\nIf you have any specific questions about your active placements, interview preparation, or anything else related to your studies or career, feel free to ask! 😊\n\nFor now, here are the details of your current placement drive:\n\n- **Placement Drive:** RazorpayX Labs — SDE-1 (Backend & Distributed Systems) (CTC: 18 - 22 LPA, Min CGPA: 7.5)\n  - **Mandatory Skills:** Python, SQL & Query Optimization, Data Structures & Algorithms\n\nYou're well-prepared with skills like Python and FastAPI, which align closely with the mandatory requirements for this drive. Keep up the great work!\n\nIf you need any help with your 72-hour sprint plan or interview preparation, just let me know! 🚀",
+    "timestamp": "10:49",
     "widgetType": "none",
     "isStreaming": false,
     "trace": {
       "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
       "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 7467.62
+        "name": "Qwen 2.5 (qwen2.5:7b)",
+        "model": "qwen2.5:7b",
+        "latency_ms": 10226.42,
+        "prompt_tokens": 45,
+        "completion_tokens": 144,
+        "total_tokens": 189,
+        "degraded_mode": false
       },
       "mcp_tools": [],
       "rag_chunks": [],
       "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
+        "status": "Verified Grounded Dual-RAG",
         "valid_citations": [],
         "hallucinations_detected": 0
       },
-      "total_latency_ms": 7467.62
+      "total_latency_ms": 10226.42
     },
     "citations": []
   },
   {
-    "id": "usr-1795019589048",
+    "id": "usr-1795085365918",
     "sender": "user",
-    "text": "why are eyou so slow brooo",
-    "timestamp": "16:33",
+    "text": "bro what active opportunities do i have right now available to me",
+    "timestamp": "10:49",
     "widgetType": "none"
   },
   {
-    "id": "bot-live-1795019589049",
+    "id": "bot-live-1795085365918",
     "sender": "assistant",
     "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "I’m here and ready to help! Sometimes there might be a delay in the response due to internet speed or other factors. If you have a specific question or need some assistance, just let me know, and I’ll get right to it!",
-    "timestamp": "16:33",
+    "text": "Great question! Based on your profile and the selected placement drives, you currently have an active opportunity with RazorpayX Labs for the SDE-1 (Backend & Distributed Systems) role. Here are the details:\n\n- **Company:** RazorpayX Labs\n- **Role:** SDE-1 (Backend & Distributed Systems)\n- **CTC Range:** 18 - 22 LPA\n- **Minimum CGPA Requirement:** 7.5\n- **Mandatory Skills:** Python, SQL & Query Optimization, Data Structures & Algorithms\n\nYou have already been selected for this drive and are currently in the placement process. Here are a few steps you can focus on to maximize your chances:\n\n1. **Review Your Resume and Cover Letter:**\n   - Ensure your resume highlights your relevant projects and skills, especially Python, FastAPI, and SQL.\n   - Tailor your cover letter to mention specific achievements from your past projects.\n\n2. **Prepare for Technical Interviews:**\n   - Focus on core concepts in Python, SQL, and data structures.\n   - Practice coding problems on platforms like LeetCode or HackerRank to reinforce your skills.\n   - Prepare real-world examples of how you've used these technologies in previous projects.\n\n3. **Mock Interviews:**\n   - Simulate interview scenarios with friends or mentors who can provide feedback.\n   - Practice explaining your projects and the technologies you've used in a clear, concise manner.\n\n4. **Stay Organized:**\n   - Keep track of any deadlines or important dates related to this placement drive.\n   - Stay calm and confident during the process.\n\nIf you need help with any specific areas or have questions about interview preparation, feel free to ask! I’m here to support you every step of the way. 🚀🌟",
+    "timestamp": "10:49",
     "widgetType": "none",
     "isStreaming": false,
     "trace": {
       "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
       "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 8223.33
+        "name": "Qwen 2.5 (qwen2.5:7b)",
+        "model": "qwen2.5:7b",
+        "latency_ms": 18718.21,
+        "prompt_tokens": 52,
+        "completion_tokens": 257,
+        "total_tokens": 309,
+        "degraded_mode": false
       },
       "mcp_tools": [],
       "rag_chunks": [],
       "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
+        "status": "Verified Grounded Dual-RAG",
         "valid_citations": [],
         "hallucinations_detected": 0
       },
-      "total_latency_ms": 8223.33
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795019610784",
-    "sender": "user",
-    "text": "what is myyyy resumeee broooo",
-    "timestamp": "16:33",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795019610784",
-    "sender": "assistant",
-    "agentName": "🌿 T.E.R.R.A.",
-    "text": "Hey Aarav, your resume highlights your strong background in Computer Science with a focus on Artificial Intelligence. You have a CGPA of 9.50 and no backlogs, which is impressive! Your experience includes internships at FLO and IIT Jammu, where you honed skills in Python, FastAPI, SQL & Query Optimization, Docker & Linux, Data Structures & Algorithms, and more.\n\nWould you like to dive deeper into any specific part of your resume or discuss how these skills can help you in your target roles as a Backend Engineer or AI Engineer? [📄 Resume p.1]",
-    "timestamp": "16:33",
-    "widgetType": "resume_preview",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_3: CONTEXTUAL_RAG_RETRIEVAL",
-      "engine": {
-        "name": "Qwen 2.5 / Grounded Hybrid Search",
-        "latency_ms": 13293.54
-      },
-      "mcp_tools": [
-        {
-          "server": "student-profile",
-          "tool": "get_profile",
-          "status": "ALLOWED",
-          "execution_time_ms": 1.2,
-          "summary": "Fetched profile for STU-101"
-        },
-        {
-          "server": "student-profile",
-          "tool": "list_evidence",
-          "status": "ALLOWED",
-          "execution_time_ms": 1.8,
-          "summary": "Retrieved verified skills for STU-101"
-        },
-        {
-          "server": "matching",
-          "tool": "evaluate_eligibility",
-          "status": "ALLOWED",
-          "execution_time_ms": 2.1,
-          "summary": "Validated eligibility gates for job-techcorp-001"
-        },
-        {
-          "server": "matching",
-          "tool": "calculate_alignment",
-          "status": "ALLOWED",
-          "execution_time_ms": 1.5,
-          "summary": "Calculated 5-factor alignment index"
-        }
-      ],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Verified Grounded (0 hallucinations)",
-        "valid_citations": [
-          "[chunk-0]"
-        ],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 13293.54
-    },
-    "citations": [
-      {
-        "label": "[📄 Resume p.1]",
-        "doc_id": "doc_resume_v3",
-        "page": 1,
-        "section": "Technical Projects"
-      }
-    ]
-  },
-  {
-    "id": "usr-1795019647482",
-    "sender": "user",
-    "text": "what are my skills list alll",
-    "timestamp": "16:34",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795019647482",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "🤖 **J.A.R.V.I.S.:** I heard you! To update your profile anytime, mention your skills (e.g. *'I know PyTorch and Docker'*), your CGPA (e.g. *'My CGPA is 8.5'*), or your target role (e.g. *'My target role is AI Engineer'*), and I will immediately save it to your verified institutional records.",
-    "timestamp": "16:34",
-    "widgetType": "ghost_cards",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_4: ACTION_DISPATCH",
-      "engine": {
-        "name": "Action Dispatcher",
-        "latency_ms": 6363.47
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Action Dispatched",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 6363.47
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795019788278",
-    "sender": "user",
-    "text": "yooooo can youu process a doc",
-    "timestamp": "16:36",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795019788278",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Hey there! 🌟 If you want me to process a document, like OCR (Optical Character Recognition) or extract specific information, just upload the document or provide details about what you need extracted. I can help with that! 😊\n\nFor example, if you have a resume or a project report and need certain skills or projects highlighted, just let me know!",
-    "timestamp": "16:36",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 8990.22
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 8990.22
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795071073563",
-    "sender": "user",
-    "text": "hwyyy broo",
-    "timestamp": "06:51",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795071073563",
-    "sender": "assistant",
-    "agentName": "🤖 J.A.R.V.I.S.",
-    "text": "Heyyy! It looks like you might have typed \"hwyyy,\" which isn't quite clear. Did you mean to say something like \"How are you\" or did you have a specific question in mind? Just let me know, and I'll be happy to help! 🌟",
-    "timestamp": "06:51",
-    "widgetType": "none",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
-      "engine": {
-        "name": "Qwen 2.5 / Fast Reasoning Engine",
-        "latency_ms": 14370.82
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Direct Reasoning (0 chunks needed)",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 14370.82
-    },
-    "citations": []
-  },
-  {
-    "id": "usr-1795071102359",
-    "sender": "user",
-    "text": "what is my 72hrs plan",
-    "timestamp": "06:51",
-    "widgetType": "none"
-  },
-  {
-    "id": "bot-live-1795071102359",
-    "sender": "assistant",
-    "agentName": "⏱️ K.R.O.N.O.S.",
-    "text": "🤖 **J.A.R.V.I.S.:** Consulting K.R.O.N.O.S. to retrieve your active 72-Hour Sprint Plan for **RazorpayX Labs**.\n\n---\n\n⏱️ **K.R.O.N.O.S.:** Yes, Arijeet Basak! Here is your selected 72-hour sprint plan for **RazorpayX Labs (SDE-1 (Backend & Distributed Systems))**:\n\n• **Target Drive:** **RazorpayX Labs** • SDE-1 (Backend & Distributed Systems)\n• **Identified Skill Gaps:** Data Structures & Algorithms\n• **Active Selected Drives (3):** job_razorpay, job_rzp_01, JOB-2026-01\n• **Hour-by-Hour Roadmap:**\n  - **Hours 00–24:** Core Deficit Closure & Targeted Problem Sets\n  - **Hours 24–48:** High-Throughput Implementation & Practice Arena Quests\n  - **Hours 48–72:** 120s Micro-Defense Drills & AI Voice Mock\n\nYour full interactive sprint checklist is rendered below. If you ever want to remove this drive from your plan, click **'Remove from 72h Plan'** on the card below or tell me *'remove it from the plan'*!",
-    "timestamp": "06:51",
-    "widgetType": "sprint_plan",
-    "isStreaming": false,
-    "trace": {
-      "intent": "INTENT_2: SPECIALIST_AGENT_DELEGATION",
-      "delegated_agent": "K.R.O.N.O.S.",
-      "engine": {
-        "name": "Multi-Agent Pantheon (K.R.O.N.O.S.)",
-        "latency_ms": 3076
-      },
-      "mcp_tools": [],
-      "rag_chunks": [],
-      "guardrail": {
-        "status": "Verified Grounded",
-        "valid_citations": [],
-        "hallucinations_detected": 0
-      },
-      "total_latency_ms": 3076
+      "total_latency_ms": 18718.21
     },
     "citations": []
   }

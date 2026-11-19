@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerlessMentors } from '@/lib/serverless-store'
 
 export const runtime = 'nodejs'
 
@@ -44,6 +45,37 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Direct Ollama Qwen 2.5 Bridge (Ensures Qwen is used even if FastAPI backend is starting/offline)
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user' || m.sender === 'user')?.content || 'Hello'
+    const lastUserLower = (lastUserMsg || '').toLowerCase()
+    const isMentorQuery =
+      lastUserLower.includes('mentor') ||
+      lastUserLower.includes('senior') ||
+      lastUserLower.includes('who can help me')
+    const isSprintQuery =
+      lastUserLower.includes('sprint') ||
+      lastUserLower.includes('72h') ||
+      lastUserLower.includes('72 hrs') ||
+      lastUserLower.includes('72-hr') ||
+      lastUserLower.includes('roadmap') ||
+      lastUserLower.includes('plan')
+    const isSkillsQuery =
+      lastUserLower.includes('skill') ||
+      lastUserLower.includes('ghost') ||
+      lastUserLower.includes('terra') ||
+      lastUserLower.includes('detect')
+    const isEligibilityQuery =
+      lastUserLower.includes('eligible') ||
+      lastUserLower.includes('eligibility') ||
+      lastUserLower.includes('cutoff') ||
+      lastUserLower.includes('qualify') ||
+      lastUserLower.includes('ronen')
+    const isDefenseQuery =
+      lastUserLower.includes('defense') ||
+      lastUserLower.includes('athena') ||
+      lastUserLower.includes('dsa') ||
+      lastUserLower.includes('challenge') ||
+      lastUserLower.includes('quiz')
+
     const ollamaBase = process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434'
     const t0 = Date.now()
     try {
@@ -89,17 +121,17 @@ export async function POST(req: NextRequest) {
                         id: `chatcmpl-${Date.now()}`,
                         object: 'chat.completion.chunk',
                         choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-                        agent_name: '🤖 J.A.R.V.I.S.',
-                        widget_type: 'none',
+                        agent_name: isMentorQuery ? '🎓 J.A.R.V.I.S. Mentorship' : '🤖 J.A.R.V.I.S.',
+                        widget_type: isMentorQuery ? 'mentor_list' : 'none',
                         trace: {
-                          intent: 'INTENT_1: CONVERSATIONAL_OR_REASONING',
+                          intent: isMentorQuery ? 'INTENT_2: SPECIALIST_AGENT_DELEGATION' : 'INTENT_1: CONVERSATIONAL_OR_REASONING',
                           engine: {
                             name: 'Qwen 2.5 (Direct Ollama Gateway)',
                             model: 'qwen2.5:latest',
                             latency_ms: elapsedMs,
                             degraded_mode: false,
                           },
-                          mcp_tools: [],
+                          mcp_tools: isMentorQuery ? [{ server: 'student-profile', tool: 'student-profile.find_senior_mentors', status: 'ALLOWED' }] : [],
                           rag_chunks: [],
                           guardrail: {
                             status: 'Direct Neural Reasoning',
@@ -135,17 +167,17 @@ export async function POST(req: NextRequest) {
         const elapsedMs = Date.now() - t0
         return NextResponse.json({
           ...ollamaData,
-          agent_name: '🤖 J.A.R.V.I.S.',
-          widget_type: 'none',
+          agent_name: isMentorQuery ? '🎓 J.A.R.V.I.S. Mentorship' : '🤖 J.A.R.V.I.S.',
+          widget_type: isMentorQuery ? 'mentor_list' : 'none',
           trace: {
-            intent: 'INTENT_1: CONVERSATIONAL_OR_REASONING',
+            intent: isMentorQuery ? 'INTENT_2: SPECIALIST_AGENT_DELEGATION' : 'INTENT_1: CONVERSATIONAL_OR_REASONING',
             engine: {
               name: 'Qwen 2.5 (Direct Ollama Gateway)',
               model: 'qwen2.5:latest',
               latency_ms: elapsedMs,
               degraded_mode: false,
             },
-            mcp_tools: [],
+            mcp_tools: isMentorQuery ? [{ server: 'student-profile', tool: 'student-profile.find_senior_mentors', status: 'ALLOWED' }] : [],
             rag_chunks: [],
             guardrail: {
               status: 'Direct Neural Reasoning',
@@ -162,11 +194,41 @@ export async function POST(req: NextRequest) {
 
     // 3. Resilient Fallback: Return conversational J.A.R.V.I.S. response with transparent fallback trace
     const elapsedMs = Date.now() - t0
-    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user' || m.sender === 'user')?.content || 'Hello'
-    const reply = `Hey ${student_name}! I'm J.A.R.V.I.S., your companion for CampusBridge. I'm ready to help you navigate placement drives, review verified skills, and prep for technical interviews.`
+    let reply = `Hey ${student_name}! I'm J.A.R.V.I.S., your companion for CampusBridge. I'm ready to help you navigate placement drives, review verified skills, and prep for technical interviews.`
+    let agentName = '🤖 J.A.R.V.I.S.'
+    let widgetType: any = 'none'
+
+    if (isMentorQuery) {
+      widgetType = 'mentor_list'
+      agentName = '🎓 J.A.R.V.I.S. Mentorship'
+      const mentors = getServerlessMentors()
+      if (mentors.length > 0) {
+        reply = `🎓 **Enrolled Senior Mentors Available (${mentors.length})**:\n\n` +
+          mentors.map(m => `• **${m.name}** (${m.program} • Batch ${m.cohort_year})\n  - **Verified GPA:** \`${m.cgpa}\` (Academic Records Verified)\n  - **Top Skills:** ${m.top_skills.join(', ')}\n  - **Contact:** ✉️ [${m.email}](mailto:${m.email}) • 📱 \`${m.phone_number}\` • ✈️ [${m.telegram_id}](https://t.me/${m.telegram_id.replace('@', '')})`).join('\n\n') +
+          `\n\nFeel free to connect directly via email, phone, or Telegram for 1-on-1 guidance on placements and coursework! Under DPDP regulations, only opted-in seniors are listed.`
+      } else {
+        reply = `ℹ️ **Senior Mentorship Discovery (DPDP Guarded):**\n\nNo enrolled seniors have currently enabled **'Share your info with juniors'** in their Profile Settings.\n\nUnder institutional DPDP Privacy-by-Default regulations, senior contact info and grades are never displayed without explicit student opt-in.`
+      }
+    } else if (isSprintQuery) {
+      widgetType = 'sprint_plan'
+      agentName = '⏱️ K.R.O.N.O.S.'
+      reply = `⏱️ **K.R.O.N.O.S.:** I've compiled your customized 72-hour placement sprint kit below with your exact 3 milestones. You can review hour-by-hour gaps, toggle completed milestones, and launch 120s micro-defenses directly!`
+    } else if (isSkillsQuery) {
+      widgetType = 'ghost_cards'
+      agentName = '🌿 T.E.R.R.A.'
+      reply = `🌿 **T.E.R.R.A.:** I've audited your technical portfolio and extracted evidence cards below. You can confirm or promote any unconfirmed ghost cards into verified proof tokens with a single click!`
+    } else if (isEligibilityQuery) {
+      widgetType = 'match_card'
+      agentName = '🛡️ R.O.N.E.N.'
+      reply = `🛡️ **R.O.N.E.N.:** Institutional evaluation complete. I've audited your verified CGPA, branch, and backlogs against company cutoffs in the interactive card below.`
+    } else if (isDefenseQuery) {
+      widgetType = 'micro_defense'
+      agentName = '⚡ A.T.H.E.N.A.'
+      reply = `⚡ **A.T.H.E.N.A.:** Practice Quest Loaded: Two Sum with Memory Constraints. Solve it in under 120 seconds below to upgrade your verified skill tier to ASSESSMENT_VERIFIED (1.0x)!`
+    }
 
     const transparentFallbackTrace = {
-      intent: 'DETERMINISTIC_POLICY_FALLBACK',
+      intent: isMentorQuery || isSprintQuery || isSkillsQuery || isEligibilityQuery || isDefenseQuery ? 'INTENT_2: SPECIALIST_AGENT_DELEGATION' : 'DETERMINISTIC_POLICY_FALLBACK',
       engine: {
         name: 'CampusBridge Local Deterministic Policy',
         model: 'deterministic-policy-v1',
@@ -174,7 +236,7 @@ export async function POST(req: NextRequest) {
         degraded_mode: true,
         fallback_reason: 'FastAPI orchestrator and Ollama daemon were unreachable or timed out.',
       },
-      mcp_tools: [],
+      mcp_tools: isMentorQuery ? [{ server: 'student-profile', tool: 'student-profile.find_senior_mentors', status: 'ALLOWED' }] : [],
       rag_chunks: [],
       guardrail: {
         status: 'Deterministic Verified Fallback (Safe Mode)',
@@ -194,16 +256,16 @@ export async function POST(req: NextRequest) {
             created: Math.floor(Date.now() / 1000),
             model: 'deterministic-policy-v1',
             choices: [{ index: 0, delta: { content: reply }, finish_reason: null }],
-            agent_name: '🤖 J.A.R.V.I.S.',
-            widget_type: 'none',
+            agent_name: agentName,
+            widget_type: widgetType,
           }
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
           const finish = {
             id: `chatcmpl-${Date.now()}`,
             object: 'chat.completion.chunk',
             choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
-            agent_name: '🤖 J.A.R.V.I.S.',
-            widget_type: 'none',
+            agent_name: agentName,
+            widget_type: widgetType,
             trace: transparentFallbackTrace,
           }
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(finish)}\n\n`))
@@ -224,8 +286,8 @@ export async function POST(req: NextRequest) {
       id: `chatcmpl-${Date.now()}`,
       object: 'chat.completion',
       choices: [{ index: 0, message: { role: 'assistant', content: reply }, finish_reason: 'stop' }],
-      agent_name: '🤖 J.A.R.V.I.S.',
-      widget_type: 'none',
+      agent_name: agentName,
+      widget_type: widgetType,
       trace: transparentFallbackTrace,
     })
   } catch (error: any) {

@@ -216,6 +216,109 @@ export function markAllNotificationsRead(userId: string = 'STU-101'): number {
   return count
 }
 
+export interface SeniorMentor {
+  student_id: string
+  name: string
+  program: string
+  cohort_year: number
+  cgpa: number
+  top_skills: string[]
+  email: string
+  phone_number: string
+  telegram_id: string
+  github_url?: string
+  bio?: string
+  share_info_with_juniors: boolean
+}
+
+if (!g.__cb_enrolled_mentors) {
+  g.__cb_enrolled_mentors = [
+    {
+      student_id: 'STU-102',
+      name: 'Priya Nair',
+      program: 'B.Tech CSE (AI & DS)',
+      cohort_year: 2026,
+      cgpa: 8.95,
+      top_skills: ['Python', 'Machine Learning', 'TensorFlow', 'SQL', 'FastAPI'],
+      email: 'priya.nair@university.edu.in',
+      phone_number: '+919876543210',
+      telegram_id: '@priya_nair_ai',
+      github_url: 'https://github.com/priyanair-ai',
+      bio: 'Enrolled senior peer mentor specializing in AI, deep learning, and high-frequency algorithms.',
+      share_info_with_juniors: true,
+    },
+    {
+      student_id: 'STU-106',
+      name: 'Sneha Mukherjee',
+      program: 'B.Tech CSE',
+      cohort_year: 2026,
+      cgpa: 9.2,
+      top_skills: ['Distributed Systems', 'Go', 'Kubernetes', 'FastAPI', 'PostgreSQL'],
+      email: 'sneha.mukherjee@university.edu.in',
+      phone_number: '+919876543211',
+      telegram_id: '@sneha_cloud',
+      github_url: 'https://github.com/sneha-mukherjee',
+      bio: 'Cloud architecture & systems senior peer mentor. Ready to help with distributed consensus and microservices.',
+      share_info_with_juniors: true,
+    },
+  ]
+}
+
+export function getServerlessMentors(
+  branch?: string,
+  skill?: string,
+  minCgpa?: number
+): SeniorMentor[] {
+  const base: SeniorMentor[] = (g.__cb_enrolled_mentors as SeniorMentor[]) || []
+  const settingsMap = g.__cb_student_settings || {}
+
+  const combined = base.map((m) => {
+    if (settingsMap[m.student_id]?.share_info_with_juniors !== undefined) {
+      return {
+        ...m,
+        share_info_with_juniors: Boolean(settingsMap[m.student_id].share_info_with_juniors),
+      }
+    }
+    return m
+  })
+
+  for (const [sid, sett] of Object.entries<any>(settingsMap)) {
+    if (sett.share_info_with_juniors && !combined.some((m) => m.student_id === sid)) {
+      combined.push({
+        student_id: sid,
+        name: sett.full_name || 'Senior Student',
+        program: sett.program || 'B.Tech Computer Science & Engineering',
+        cohort_year: 2026,
+        cgpa: sett.cgpa || 8.5,
+        top_skills: ['Python', 'SQL', 'FastAPI', 'Redis'],
+        email: sett.email || `${sid.toLowerCase()}@university.edu.in`,
+        phone_number: sett.phone_number || '+919358817045',
+        telegram_id: sett.telegram_chat_id || '@campusbridge_bot',
+        github_url: sett.github_handle ? `https://github.com/${sett.github_handle}` : '',
+        bio: sett.bio || 'Enrolled student peer mentor available to assist juniors with placement prep.',
+        share_info_with_juniors: true,
+      })
+    }
+  }
+
+  // Filter strictly by DPDP opt-in: share_info_with_juniors === true
+  let result = combined.filter((m) => m.share_info_with_juniors === true)
+
+  if (minCgpa) {
+    result = result.filter((m) => m.cgpa >= minCgpa)
+  }
+  if (branch) {
+    const bLower = branch.toLowerCase()
+    result = result.filter((m) => m.program.toLowerCase().includes(bLower))
+  }
+  if (skill) {
+    const sLower = skill.toLowerCase()
+    result = result.filter((m) => m.top_skills.some((sk) => sk.toLowerCase().includes(sLower)))
+  }
+
+  return result.sort((a, b) => b.cgpa - a.cgpa)
+}
+
 export function saveServerlessStudentSettings(studentId: string, settings: any) {
   if (!g.__cb_student_settings) g.__cb_student_settings = {}
   g.__cb_student_settings[studentId] = {
@@ -234,7 +337,7 @@ export function getServerlessStudentSettings(studentId: string) {
       student_id: studentId,
       phone_number: '+919358817045',
       sms_notifications_enabled: true,
-      telegram_chat_id: '9358817045',
+      telegram_chat_id: '7698938585',
       telegram_notifications_enabled: true,
       github_handle: 'BasakArijeet',
     }
@@ -246,7 +349,7 @@ export function getServerlessStudentSettings(studentId: string) {
  */
 export async function dispatchTelegramAlert(message: string): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN || '9206892743:AAFUijN1IWruCy_pY3w5vjZ0ZZNWxgWqgu0'
-  const chatId = process.env.TELEGRAM_DEFAULT_CHAT_ID || '9358817045'
+  const chatId = process.env.TELEGRAM_DEFAULT_CHAT_ID || '7698938585'
 
   if (!token) return false
 

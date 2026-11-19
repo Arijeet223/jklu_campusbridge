@@ -83,6 +83,7 @@ COLUMNS = {
         "github_verified",
         "resume_verified",
         "academic_verified",
+        "share_info_with_juniors",
     ],
     SHEET_TEACHERS: [
         "staff_id",
@@ -441,6 +442,21 @@ class ExcelStore:
                     "readiness_index": 77,
                     "sprint_mode_active": False,
                 },
+                {
+                    "student_id": "STU-128",
+                    "full_name": "Arijeet Basak",
+                    "email": "arijeet.basak2005@gmail.com",
+                    "password_hash": "pbkdf2_sha256$e128$arijeet",
+                    "roll_no": "22BCON128",
+                    "program": "B.Tech CS (Artificial Intelligence)",
+                    "cohort_year": 2026,
+                    "cgpa": 8.85,
+                    "active_backlogs": 0,
+                    "privacy_shield_mode": "OPT_IN_DRIVES",
+                    "target_roles": json.dumps(["Backend Infrastructure Engineer", "AI Platform Engineer"]),
+                    "readiness_index": 88,
+                    "sprint_mode_active": True,
+                },
             ]
 
             # 2. Accounts_Teachers
@@ -597,6 +613,67 @@ class ExcelStore:
                     "source_span_text": "Defended sovereign Hindi/English bilingual RAG pipeline",
                     "confidence": 0.96,
                     "verified_by": "CampusBridge Interview Coach Agent",
+                },
+                # Arijeet Basak
+                {
+                    "evidence_id": "EV-128-1",
+                    "student_id": "STU-128",
+                    "skill_name": "Python",
+                    "category": "Backend",
+                    "tier": "4_ASSESSMENT_VERIFIED",
+                    "multiplier": 1.0,
+                    "source_doc": "assessment-py-128",
+                    "source_span_text": "Scored 98% in Advanced Python & Asynchronous Concurrency",
+                    "confidence": 0.98,
+                    "verified_by": "System Automated Evaluator",
+                },
+                {
+                    "evidence_id": "EV-128-2",
+                    "student_id": "STU-128",
+                    "skill_name": "FastAPI",
+                    "category": "Backend",
+                    "tier": "4_ASSESSMENT_VERIFIED",
+                    "multiplier": 1.0,
+                    "source_doc": "doc_resume_arijeet",
+                    "source_span_text": "Microservices, Async Endpoints & OpenAPI Architecture",
+                    "confidence": 0.96,
+                    "verified_by": "System Automated Evaluator",
+                },
+                {
+                    "evidence_id": "EV-128-3",
+                    "student_id": "STU-128",
+                    "skill_name": "SQL & Query Optimization",
+                    "category": "SQL",
+                    "tier": "4_ASSESSMENT_VERIFIED",
+                    "multiplier": 1.0,
+                    "source_doc": "doc_transcript_arijeet",
+                    "source_span_text": "PostgreSQL Indexing, Partitioning & CTE Tuning",
+                    "confidence": 0.95,
+                    "verified_by": "Academic Assessment Review",
+                },
+                {
+                    "evidence_id": "EV-128-4",
+                    "student_id": "STU-128",
+                    "skill_name": "Docker & Containerization",
+                    "category": "Backend",
+                    "tier": "2_STUDENT_CONFIRMED",
+                    "multiplier": 0.95,
+                    "source_doc": "doc_resume_arijeet",
+                    "source_span_text": "Containerization & Microservices Deployment",
+                    "confidence": 0.92,
+                    "verified_by": "Student Confirmed",
+                },
+                {
+                    "evidence_id": "EV-128-5",
+                    "student_id": "STU-128",
+                    "skill_name": "Redis & Caching",
+                    "category": "Backend",
+                    "tier": "4_ASSESSMENT_VERIFIED",
+                    "multiplier": 1.0,
+                    "source_doc": "120s-defense-redis",
+                    "source_span_text": "FastAPI Redis Idempotency 120s Defense • 1.0x Solid Locked",
+                    "confidence": 0.94,
+                    "verified_by": "System Automated Evaluator",
                 },
                 # Rohan Verma
                 {
@@ -1438,9 +1515,32 @@ class ExcelStore:
 
     def select_student_drive(self, student_id: str, job_id: str) -> dict[str, Any]:
         """Toggle a student's selected placement drive."""
-        row = self.get_row(SHEET_STUDENTS, "student_id", student_id)
+        sid_clean = str(student_id).strip()
+        row = self.get_row(SHEET_STUDENTS, "student_id", sid_clean)
         if not row:
-            return {"student_id": student_id, "job_id": job_id, "is_selected": False, "selected_drives": []}
+            # Check by email or case-insensitively
+            rows = self.get_sheet(SHEET_STUDENTS)
+            for r in rows:
+                if (
+                    str(r.get("student_id", "")).strip().lower() == sid_clean.lower()
+                    or str(r.get("email", "")).strip().lower() == sid_clean.lower()
+                ):
+                    row = r
+                    sid_clean = str(r.get("student_id", sid_clean))
+                    break
+
+        if not row:
+            # Initialize a new student row so drive selection is never dropped
+            row = {
+                "student_id": sid_clean,
+                "email": sid_clean if "@" in sid_clean else f"{sid_clean.lower()}@university.edu.in",
+                "name": "Student",
+                "program": "B.Tech CSE",
+                "cgpa": 8.0,
+                "selected_drives": json.dumps([job_id]),
+            }
+            self.insert_row(SHEET_STUDENTS, row)
+            return {"student_id": sid_clean, "job_id": job_id, "is_selected": True, "selected_drives": [job_id]}
 
         raw = row.get("selected_drives", "[]")
         try:
@@ -1455,17 +1555,28 @@ class ExcelStore:
             drives.append(job_id)
             is_selected = True
 
-        self.update_row(SHEET_STUDENTS, "student_id", student_id, {"selected_drives": json.dumps(drives)})
-        return {"student_id": student_id, "job_id": job_id, "is_selected": is_selected, "selected_drives": drives}
+        self.update_row(SHEET_STUDENTS, "student_id", sid_clean, {"selected_drives": json.dumps(drives)})
+        return {"student_id": sid_clean, "job_id": job_id, "is_selected": is_selected, "selected_drives": drives}
 
     def get_student_selected_drives(self, student_id: str) -> list[str]:
         """Get list of placement drive IDs selected by the student."""
-        row = self.get_row(SHEET_STUDENTS, "student_id", student_id)
+        sid_clean = str(student_id).strip()
+        row = self.get_row(SHEET_STUDENTS, "student_id", sid_clean)
+        if not row:
+            rows = self.get_sheet(SHEET_STUDENTS)
+            for r in rows:
+                if (
+                    str(r.get("student_id", "")).strip().lower() == sid_clean.lower()
+                    or str(r.get("email", "")).strip().lower() == sid_clean.lower()
+                ):
+                    row = r
+                    break
         if not row:
             return []
         raw = row.get("selected_drives", "[]")
         try:
-            return json.loads(raw) if isinstance(raw, str) else list(raw)
+            res = json.loads(raw) if isinstance(raw, str) else list(raw)
+            return res if isinstance(res, list) else []
         except Exception:
             return []
 

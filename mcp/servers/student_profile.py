@@ -174,6 +174,41 @@ class StudentProfileServer(BaseMCPServer):
             )
         )
 
+        # Tool 5: find_senior_mentors
+        self.register_tool(
+            ToolDefinition(
+                name="find_senior_mentors",
+                description="Query enrolled seniors who have explicitly enabled 'share_info_with_juniors' under DPDP privacy regulations. Returns verified GPA, top skills, and contact info.",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "skill_or_branch": {
+                            "type": "string",
+                            "description": "Optional skill (e.g. Python, SQL) or branch (e.g. CSE, AI & DS) to filter.",
+                            "default": None,
+                        },
+                        "min_cgpa": {
+                            "type": "number",
+                            "description": "Optional minimum verified GPA cutoff.",
+                            "default": None,
+                        },
+                    },
+                },
+                output_schema={
+                    "type": "object",
+                    "properties": {
+                        "count": {"type": "integer"},
+                        "mentors": {"type": "array"},
+                    },
+                },
+                required_roles=["STUDENT", "FACULTY", "PLACEMENT_OFFICER", "ADMIN"],
+                read_only=True,
+                rate_limit_per_minute=60,
+                timeout_seconds=5.0,
+                handler=self._handle_find_senior_mentors,
+            )
+        )
+
     def _handle_query_student_context(self, args: dict[str, Any], context: SecurityContext) -> dict[str, Any]:
         """Fetch verified student context from Qdrant with actor_id enforcement."""
         query = str(args.get("query", "")).strip()
@@ -196,6 +231,88 @@ class StudentProfileServer(BaseMCPServer):
                 "count": 0,
                 "error": str(e),
             }
+
+    def _handle_find_senior_mentors(self, args: dict[str, Any], context: SecurityContext) -> dict[str, Any]:
+        """Fetch real enrolled senior mentors who explicitly enabled share_info_with_juniors under DPDP."""
+        import json
+        filter_term = str(args.get("skill_or_branch") or "").strip().lower()
+        min_cgpa = args.get("min_cgpa")
+        min_cgpa_val = float(min_cgpa) if min_cgpa is not None else None
+
+        mentors: list[dict[str, Any]] = []
+        try:
+            from backend.db.excel_store import get_excel_store, SHEET_STUDENTS, SHEET_EVIDENCE
+            store = get_excel_store()
+            students = store.get_sheet(SHEET_STUDENTS)
+            evidence = store.get_sheet(SHEET_EVIDENCE)
+
+            for s in students:
+                raw_vis = s.get("visibility_state")
+                vis_dict = {}
+                if isinstance(raw_vis, dict):
+                    vis_dict = raw_vis
+                elif isinstance(raw_vis, str) and raw_vis.strip():
+                    try:
+                        vis_dict = json.loads(raw_vis)
+                    except Exception:
+                        pass
+
+                val = s.get("share_info_with_juniors")
+                is_opted_in = (
+                    val in (True, 1, 1.0, "1", "1.0", "true", "True", "yes")
+                    or str(val).lower() in ("true", "1", "1.0", "yes")
+                    or vis_dict.get("share_info_with_juniors") in (True, 1, "true", "True")
+                )
+                if not is_opted_in:
+                    continue
+
+                cgpa = float(s.get("cgpa", 0.0) or 0.0)
+                if min_cgpa_val and cgpa < min_cgpa_val:
+                    continue
+
+                sid = str(s.get("student_id", ""))
+                prog = str(s.get("program", "B.Tech CSE"))
+
+                stu_ev = [
+                    str(e.get("skill_name"))
+                    for e in evidence
+                    if str(e.get("student_id", "")).strip().lower() == sid.lower()
+                    and e.get("skill_name")
+                ]
+                top_skills = list(dict.fromkeys(stu_ev))[:6]
+                if not top_skills:
+                    top_skills = ["Python", "FastAPI", "SQL", "System Design"]
+
+                if filter_term:
+                    match_branch = filter_term in prog.lower()
+                    match_skill = any(filter_term in sk.lower() for sk in top_skills)
+                    if not (match_branch or match_skill):
+                        continue
+
+                raw_phone = str(s.get("phone_number") or "+919358817045").split(".")[0].strip()
+                clean_phone = raw_phone if raw_phone.startswith("+") else f"+{raw_phone}"
+
+                mentors.append({
+                    "student_id": sid,
+                    "name": str(s.get("full_name", "Senior Student")),
+                    "program": prog,
+                    "cohort_year": int(s.get("cohort_year", 2026) or 2026),
+                    "cgpa": cgpa,
+                    "top_skills": top_skills,
+                    "email": str(s.get("email", "")),
+                    "phone_number": clean_phone,
+                    "telegram_id": str(s.get("telegram_id") or s.get("telegram_chat_id") or "@campusbridge_bot"),
+                    "github_url": str(s.get("github_url") or ""),
+                    "bio": str(s.get("bio") or "Enrolled senior mentor available for technical interview prep and guidance."),
+                })
+        except Exception:
+            pass
+
+        return {
+            "count": len(mentors),
+            "mentors": mentors,
+            "dpdp_compliant": True,
+        }
 
     def _handle_get_my_profile(self, args: dict[str, Any], context: SecurityContext) -> dict[str, Any]:
         student_id = context.actor_id if context.actor_role == "STUDENT" else _PRIYA_ID

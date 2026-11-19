@@ -32,6 +32,7 @@ import {
   Code,
   Plus,
   RotateCcw,
+  GraduationCap,
 } from 'lucide-react'
 import type { ChatMessage, Skill, JobMatch, EligibilityRule, UserRole, AITrace, EvidenceStatus } from '@/lib/types'
 import {
@@ -45,6 +46,7 @@ import MicroDefenseChatCard from './MicroDefenseChatCard'
 import SprintPlanChatCard from './SprintPlanChatCard'
 import ApplicationsTrackerView from './ApplicationsTrackerView'
 import WordResumePreview from './WordResumePreview'
+import MentorDiscoveryChatCard from './MentorDiscoveryChatCard'
 import LiveKitVoiceModal from './LiveKitVoiceModal'
 import type { ActiveWorkspaceView } from './CollapsibleNavDrawer'
 
@@ -76,6 +78,13 @@ export function getAgentBadge(agentName?: string) {
       label: '⏱️ K.R.O.N.O.S.',
       role: 'Trajectory & Sprint Engine',
       badgeClass: 'bg-[#DDD6FE]/40 text-[#5B21B6] border-[#DDD6FE]',
+    }
+  }
+  if (name.includes('MENTOR')) {
+    return {
+      label: '🎓 J.A.R.V.I.S. Mentorship',
+      role: 'Senior Peer Discovery',
+      badgeClass: 'bg-[#DE95BE]/30 text-[#6D3B56] border-[#DE95BE]',
     }
   }
   if (name.includes('WORKSPACE') || name.includes('COPILOT') || name.includes('GMAIL') || name.includes('CALENDAR') || name.includes('NOTE')) {
@@ -1189,15 +1198,15 @@ export default function ChatWorkspace({
             <span>Voice Mic Ready</span>
           </span>
 
-          {/* Real-Time LiveKit WebRTC Voice Call */}
+          {/* Peer / Senior Mentorship Discovery */}
           <button
             type="button"
-            onClick={() => setIsLiveKitOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-oxford text-white border border-oxford text-[11px] font-semibold transition-all shadow-2xs hover:bg-oxford/90 cursor-pointer active:translate-y-0.5"
-            title="Start real-time LiveKit WebRTC audio session with J.A.R.V.I.S."
+            onClick={() => handleSendMessage('Find me a mentor from my enrolled seniors')}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#6D3B56] text-white border border-[#582e44] text-[11px] font-semibold transition-all shadow-2xs hover:bg-[#582e44] cursor-pointer active:translate-y-0.5"
+            title="Discover enrolled senior mentors who opted in under DPDP regulations"
           >
-            <PhoneCall className="h-3.5 w-3.5 text-emerald-400" />
-            <span>LiveKit Call</span>
+            <GraduationCap className="h-3.5 w-3.5 text-amber-300" />
+            <span>Find your mentor</span>
           </button>
         </div>
       </div>
@@ -1453,6 +1462,21 @@ export default function ChatWorkspace({
                   {/* Interactive Onboarding Starter Prompt Chips */}
                   {msg.id === 'msg-welcome' && messages.length === 1 && (
                     <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-2xl animate-in fade-in-50 duration-300">
+                      <button
+                        type="button"
+                        onClick={() => handleSendMessage('Find me a mentor from my enrolled seniors')}
+                        className="flex items-start gap-3 p-3.5 rounded-xl border border-purple-200/80 bg-purple-50/50 hover:bg-purple-50 hover:border-purple-300 hover:shadow-xs transition-all text-left group cursor-pointer active:translate-y-0.5 sm:col-span-2"
+                      >
+                        <span className="text-xl p-1 rounded-lg bg-purple-100/70">🎓</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold text-purple-900 group-hover:text-purple-700 flex items-center justify-between">
+                            <span>Find your mentor from enrolled seniors</span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 font-bold">DPDP Verified</span>
+                          </div>
+                          <div className="text-[11px] text-ink-muted mt-0.5">Connect with real enrolled seniors for 1-on-1 interview prep, verified GPAs &amp; direct contacts</div>
+                        </div>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleSendMessage('What is my 72h sprint plan?')}
@@ -1745,6 +1769,10 @@ export default function ChatWorkspace({
                           githubUrl={activeGithubUrl}
                           skills={skills.map((s) => s.name)}
                         />
+                      )}
+
+                      {msg.widgetType === 'mentor_list' && (
+                        <MentorDiscoveryChatCard />
                       )}
                     </div>
                   )}

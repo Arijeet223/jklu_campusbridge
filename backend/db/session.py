@@ -82,28 +82,30 @@ async def get_async_session() -> AsyncGenerator[Optional[AsyncSession], None]:
     session = None
     try:
         session = AsyncSessionLocal()
-        try:
-            yield session
-            if session.is_active:
-                try:
-                    await session.commit()
-                except Exception as ce:
-                    logger.debug("Database commit suppressed: %s", ce)
-                    try:
-                        await session.rollback()
-                    except Exception:
-                        pass
-        except Exception as e:
-            if session:
+    except Exception as outer_e:
+        logger.warning("PostgreSQL session initialization notice: %s", outer_e)
+        yield None
+        return
+
+    try:
+        yield session
+        if session and session.is_active:
+            try:
+                await session.commit()
+            except Exception as ce:
+                logger.debug("Database commit suppressed: %s", ce)
                 try:
                     await session.rollback()
                 except Exception:
                     pass
-            logger.warning("Database transaction error: %s", e)
-            raise
-    except Exception as outer_e:
-        logger.warning("PostgreSQL session initialization notice: %s", outer_e)
-        yield None
+    except Exception as e:
+        if session:
+            try:
+                await session.rollback()
+            except Exception:
+                pass
+        logger.warning("Database transaction error: %s", e)
+        raise
     finally:
         if session:
             try:

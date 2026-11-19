@@ -1,0 +1,91 @@
+[
+  {
+    "id": "msg-welcome",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Hey Aarav Sharma! 👋 I'm J.A.R.V.I.S., your companion for CampusBridge. What are you working on today?",
+    "timestamp": "08:51",
+    "widgetType": "none",
+    "trace": {
+      "engine": {
+        "name": "J.A.R.V.I.S. Cognitive Router",
+        "model": "qwen2.5:7b",
+        "latency_ms": 8.5,
+        "degraded_mode": false
+      },
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Contextual Session Initialized",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 8.5
+    }
+  },
+  {
+    "id": "usr-1795078209690",
+    "sender": "user",
+    "text": "heyyyy",
+    "timestamp": "08:50",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1795078209690",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "Heyyyy! How’s it going? Need some help with something specific or just want to chat?",
+    "timestamp": "08:50",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_1: CONVERSATIONAL_OR_REASONING",
+      "engine": {
+        "name": "Qwen 2.5 / Fast Reasoning Engine",
+        "latency_ms": 20217.97
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Direct Reasoning (0 chunks needed)",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 20217.97
+    },
+    "citations": []
+  },
+  {
+    "id": "usr-1795078262243",
+    "sender": "user",
+    "text": "Find me a mentor from my enrolled seniors",
+    "timestamp": "08:51",
+    "widgetType": "none"
+  },
+  {
+    "id": "bot-live-1795078262243",
+    "sender": "assistant",
+    "agentName": "🤖 J.A.R.V.I.S.",
+    "text": "🤖 **J.A.R.V.I.S.:** I heard you! To update your profile anytime, mention your skills (e.g. *'I know PyTorch and Docker'*), your CGPA (e.g. *'My CGPA is 8.5'*), or your target role (e.g. *'My target role is AI Engineer'*), and I will immediately save it to your verified institutional records.",
+    "timestamp": "08:51",
+    "widgetType": "none",
+    "isStreaming": false,
+    "trace": {
+      "intent": "INTENT_4: ACTION_DISPATCH",
+      "engine": {
+        "name": "Action Dispatcher",
+        "latency_ms": 7689.97
+      },
+      "mcp_tools": [],
+      "rag_chunks": [],
+      "guardrail": {
+        "status": "Action Dispatched",
+        "valid_citations": [],
+        "hallucinations_detected": 0
+      },
+      "total_latency_ms": 7689.97
+    },
+    "citations": []
+  }
+]

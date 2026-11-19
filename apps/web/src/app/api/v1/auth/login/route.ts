@@ -129,9 +129,9 @@ export async function POST(req: NextRequest) {
         cgpa = 8.95
       } else if (identifier.includes('devansh')) {
         name = 'Devansh Gupta'
-        id = 'STU-105'
+        id = 'STU-115'
         program = 'B.Tech CSE'
-        cgpa = 8.70
+        cgpa = 7.93
       } else if (identifier.includes('arijeet')) {
         name = 'Arijeet Basak'
         id = 'STU-128'
@@ -144,7 +144,12 @@ export async function POST(req: NextRequest) {
           .split(' ')
           .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
           .join(' ')
-        id = `STU-${Math.floor(100 + Math.random() * 900)}`
+        let hash = 0
+        for (let i = 0; i < identifier.length; i++) {
+          hash = ((hash << 5) - hash) + identifier.charCodeAt(i)
+        }
+        const stableNum = (Math.abs(hash) % 899) + 101
+        id = `STU-${stableNum}`
       }
 
       userPayload = {

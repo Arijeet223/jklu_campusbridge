@@ -33,25 +33,51 @@ export interface ReadinessProfile {
 export function computeReadinessProfile(
   skills: Skill[] = [],
   cgpa: number = 8.42,
-  completedQuests: string[] = []
+  completedQuests: string[] = [],
+  academicRecords: any[] = []
 ): ReadinessProfile {
+  // Convert any verified academic coursework records into authentic course skills
+  const courseSkills: Skill[] = (Array.isArray(academicRecords) ? academicRecords : [])
+    .filter((r) => r && (r.subject_name || r.name) && !r.is_failed)
+    .map((r, idx) => {
+      const gp = Number(r.grade_point) || 8.0
+      const prof = gp >= 9.0 ? 'Expert' : gp >= 8.0 ? 'Advanced' : 'Intermediate'
+      const subj = String(r.subject_name || r.name).trim()
+      return {
+        id: r.id || `acad_crs_${idx}`,
+        name: subj,
+        category: 'Academic Coursework',
+        proficiency: prof as any,
+        evidenceStatus: 'INSTITUTION_VERIFIED' as const,
+        sourceDocumentId: r.source_doc || 'doc_transcript',
+        sourceSpan: `${subj} • Grade ${r.grade_or_marks || 'Pass'} (${r.credits || 3} Credits)`,
+        confidence: 0.98,
+      }
+    })
+
+  const allCandidateSkills = [...(Array.isArray(skills) ? skills : []), ...courseSkills]
+
   // ── STRICT ASSERTION: Filter exclusively confirmed/solid skills ─────────
   // Rejects all mock data arrays and unconfirmed provisional ghost cards
-  const solidSkills = (Array.isArray(skills) ? skills : []).filter((s) => {
+  const solidSkills = allCandidateSkills.filter((s) => {
     if (!s || !s.name) return false
     const nameLower = s.name.toLowerCase()
     // Strict assertion: Reject placeholder and mock skills
     if (s.id?.startsWith('mock-') || nameLower.includes('dummy') || nameLower.includes('mock')) {
-      console.warn(`[ReadinessAssertion] Excluded mock/placeholder skill: ${s.name}`)
       return false
     }
     // Strict assertion: Only confirmed solid tokens contribute to Readiness Score
+    const evStatus = s.evidenceStatus || (s as any).evidence_status || ''
+    const tierStr = String((s as any).tier || '').toUpperCase()
     const isSolid =
-      s.evidenceStatus === 'STUDENT_CONFIRMED' ||
-      s.evidenceStatus === 'INSTITUTION_VERIFIED' ||
-      s.evidenceStatus === 'ASSESSMENT_VERIFIED' ||
-      s.evidenceStatus === 'ARTIFACT_LINKED' ||
-      (s as any).isConfirmed === true
+      evStatus === 'STUDENT_CONFIRMED' ||
+      evStatus === 'INSTITUTION_VERIFIED' ||
+      evStatus === 'ASSESSMENT_VERIFIED' ||
+      evStatus === 'ARTIFACT_LINKED' ||
+      tierStr.includes('CONFIRMED') ||
+      tierStr.includes('VERIFIED') ||
+      (s as any).isConfirmed === true ||
+      (s as any).is_confirmed === true
     return isSolid
   })
 
@@ -65,11 +91,13 @@ export function computeReadinessProfile(
     else if (prof === 'expert') base = 96
 
     // Multiplier based on verification provenance
+    const evStatus = s.evidenceStatus || (s as any).evidence_status || ''
+    const tierStr = String((s as any).tier || '').toUpperCase()
     let tierMultiplier = 0.0
-    if (s.evidenceStatus === 'STUDENT_CONFIRMED') tierMultiplier = 0.95
-    else if (s.evidenceStatus === 'ARTIFACT_LINKED') tierMultiplier = 0.97
-    else if (s.evidenceStatus === 'ASSESSMENT_VERIFIED' || s.evidenceStatus === 'INSTITUTION_VERIFIED') tierMultiplier = 1.0
-    else if ((s as any).isConfirmed) tierMultiplier = 0.95
+    if (evStatus === 'STUDENT_CONFIRMED' || tierStr.includes('CONFIRMED')) tierMultiplier = 0.95
+    else if (evStatus === 'ARTIFACT_LINKED') tierMultiplier = 0.97
+    else if (evStatus === 'ASSESSMENT_VERIFIED' || evStatus === 'INSTITUTION_VERIFIED' || tierStr.includes('VERIFIED')) tierMultiplier = 1.0
+    else if ((s as any).isConfirmed || (s as any).is_confirmed) tierMultiplier = 0.95
 
     return Math.round(base * tierMultiplier)
   }
@@ -77,7 +105,7 @@ export function computeReadinessProfile(
   // ─────────────────────────────────────────────────────────────
   // 1. DIMENSION: Database & SQL Windowing
   // ─────────────────────────────────────────────────────────────
-  const sqlRegex = /\b(sql|postgresql|postgres|mysql|sqlite|database|indexing|cte|dense_rank|window|acid|query optimization)\b/i
+  const sqlRegex = /\b(sql|postgresql|postgres|mysql|sqlite|nosql|databases?|indexing|cte|dense_rank|window|acid|query optimization|dbms|relational|data warehousing|mongodb|redis)\b/i
   const sqlSkills = solidSkills.filter((s) => sqlRegex.test(s.name) || sqlRegex.test(s.category || ''))
 
   let sqlScore = 0
@@ -108,7 +136,7 @@ export function computeReadinessProfile(
   // ─────────────────────────────────────────────────────────────
   // 2. DIMENSION: DSA & Problem Solving
   // ─────────────────────────────────────────────────────────────
-  const dsaRegex = /\b(python|c\+\+|cpp|java|golang|go|rust|algorithms|data structures|dsa|dynamic programming|sliding window|trees|graphs|binary search)\b/i
+  const dsaRegex = /\b(python|c\+\+|cpp|java|golang|go|rust|algorithms?|data structures?|dsa|dynamic programming|sliding window|trees|graphs|binary search|problem solving|discrete mathematics|scikit-learn|pandas|pytorch)\b/i
   const dsaSkills = solidSkills.filter((s) => dsaRegex.test(s.name) || (s.category || '').toLowerCase().includes('algorithm'))
 
   let dsaScore = 0
@@ -133,7 +161,7 @@ export function computeReadinessProfile(
   // ─────────────────────────────────────────────────────────────
   // 3. DIMENSION: System Design & Concurrency
   // ─────────────────────────────────────────────────────────────
-  const sysRegex = /\b(system design|microservices|distributed|redis|kafka|docker|kubernetes|fastapi|concurrency|multithreading|load balancer|caching)\b/i
+  const sysRegex = /\b(system design|microservices|distributed|redis|kafka|docker|kubernetes|fastapi|express|express\.js|concurrency|multithreading|load balancer|caching|operating systems|computer networks|networks|systems|computer organization)\b/i
   const sysSkills = solidSkills.filter((s) => sysRegex.test(s.name) || sysRegex.test(s.category || ''))
 
   let sysScore = 0
@@ -219,7 +247,7 @@ export function computeReadinessProfile(
   // ─────────────────────────────────────────────────────────────
   // OVERALL WEIGHTED READINESS INDEX
   // ─────────────────────────────────────────────────────────────
-  const overallReadiness = Math.round(
+  let overallReadiness = Math.round(
     dsaScore * 0.25 +
     sysScore * 0.20 +
     sqlScore * 0.20 +
@@ -227,6 +255,11 @@ export function computeReadinessProfile(
     cgpaScore * 0.10 +
     provenanceScore * 0.10
   )
+
+  // Grounding guard: If the student has verified academic standing, maintain realistic floor
+  if (solidSkills.length === 0 && cgpaScore > 0) {
+    overallReadiness = Math.max(overallReadiness, Math.round(cgpaScore * 0.65))
+  }
 
   const dimensionList = [dsaMetric, sysMetric, sqlMetric, defenseMetric, cgpaMetric, provenanceMetric]
 

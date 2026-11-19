@@ -147,14 +147,28 @@ export default function StudentMatchesPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        if (Array.isArray(data.selected_drives)) {
-          setSelectedDrives(data.selected_drives)
+        const drives = data.selected_drives || data.selected_drive_ids || []
+        if (Array.isArray(drives)) {
+          setSelectedDrives(drives)
         }
       }
     } catch {}
   }
 
   const handleToggleSelectDrive = async (jobId: string, company: string, role: string) => {
+    const willBeSelected = !selectedDrives.includes(jobId)
+
+    // Optimistic UI update so feedback is instantaneous
+    setSelectedDrives((prev) =>
+      willBeSelected ? Array.from(new Set([...prev, jobId])) : prev.filter((id) => id !== jobId)
+    )
+
+    if (willBeSelected) {
+      setSprintNotice(`🎯 Joined "${company} — ${role}"! 72-Hour Sprint Plan unlocked in your sidebar.`)
+    } else {
+      setSprintNotice(`Deselected "${company} — ${role}" from your sprint targets.`)
+    }
+
     try {
       const res = await fetch(
         `/api/student/drives/${encodeURIComponent(jobId)}/select?student_id=${encodeURIComponent(studentId)}`,
@@ -165,25 +179,20 @@ export default function StudentMatchesPage() {
       )
       if (res.ok) {
         const data = await res.json()
-        if (Array.isArray(data.selected_drives)) {
-          setSelectedDrives(data.selected_drives)
-        } else {
-          setSelectedDrives((prev) =>
-            prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
+        const drives = data.selected_drives || data.selected_drive_ids
+        if (Array.isArray(drives)) {
+          setSelectedDrives(drives)
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('cb_drives_updated', {
+              detail: { jobId, isSelected: data.is_selected ?? willBeSelected },
+            })
           )
         }
-        const isNowSelected = data.is_selected ?? !selectedDrives.includes(jobId)
-        if (isNowSelected) {
-          setSprintNotice(`🎯 Joined "${company} — ${role}"! 72-Hour Sprint Plan unlocked in your sidebar.`)
-        } else {
-          setSprintNotice(`Deselected "${company} — ${role}" from your sprint targets.`)
-        }
-        setTimeout(() => setSprintNotice(null), 4000)
       }
     } catch (err: any) {
-      setSelectedDrives((prev) =>
-        prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
-      )
+      // In case of error, preserve optimistic selection
     }
   }
 
@@ -597,6 +606,31 @@ export default function StudentMatchesPage() {
         company={disputeJob.company}
         onOpenSourceSpan={() => handleOpenSource('doc_resume_v3')}
       />
+
+      {/* Floating Instant Feedback Toast for Drive Actions */}
+      {sprintNotice && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-md p-4 bg-white border-2 border-[#6D3B56] rounded-2xl text-xs font-bold text-[#1B1C1B] shadow-2xl animate-in slide-in-from-bottom-5 duration-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="h-4 w-4 text-[#6D3B56] shrink-0" />
+            <span>{sprintNotice}</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/student/sprint-plan"
+              className="px-3 py-1.5 rounded-xl bg-[#6D3B56] text-white hover:bg-[#582e44] text-xs font-bold transition-all shadow-2xs"
+            >
+              Open 72h Plan →
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSprintNotice(null)}
+              className="text-xs text-ink-muted hover:text-ink-primary px-1 cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }
